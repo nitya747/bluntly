@@ -21,15 +21,12 @@ function LoginContent() {
     // Check if redirect query param contains error
     const err = searchParams.get('error');
     if (err === 'auth-callback-failed') {
-      setErrorMsg('Authentication failed during redirect. Please try again.');
+      const timer = setTimeout(() => {
+        setErrorMsg('Authentication failed during redirect. Please try again.');
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [searchParams]);
-
-  const handleBypass = () => {
-    document.cookie = "blunlty_bypass=true; path=/; max-age=86400";
-    router.push('/');
-    router.refresh();
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -142,18 +139,6 @@ function LoginContent() {
           >
             {loading ? 'Processing...' : isSignUp ? 'Create Free Account' : 'Sign In to Dashboard'}
           </button>
-
-          {!isSignUp && (
-            <button
-              type="button"
-              onClick={handleBypass}
-              disabled={loading}
-              className="button-secondary bypass-btn font-sans flex align-center justify-center gap-2"
-              style={{ width: '100%', marginTop: '0.75rem', padding: '0.8rem', fontSize: '0.95rem' }}
-            >
-              <LogoIcon size={16} /> Developer Bypass (Skip Auth)
-            </button>
-          )}
         </form>
 
         {/* Sign In/Up Toggle */}

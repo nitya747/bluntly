@@ -3,7 +3,6 @@
 import { 
   UserIcon, 
   UsersIcon, 
-  HistoryIcon, 
   SettingsIcon, 
   LogoIcon, 
   LogOutIcon, 
@@ -13,11 +12,10 @@ import {
   ChevronLeftIcon 
 } from './Icons';
 
-export default function Sidebar({ activeView, setActiveView, theme, toggleTheme, collapsed, setCollapsed, user, onSignOut }) {
+export default function Sidebar({ activeView, setActiveView, theme, toggleTheme, collapsed, setCollapsed, user, onSignOut, credits, onBuyCredits }) {
   const navItems = [
     { id: 'individual', label: 'Single Analysis', IconComponent: UserIcon },
     { id: 'batch', label: 'Batch Ranking', IconComponent: UsersIcon },
-    { id: 'history', label: 'Analysis History', IconComponent: HistoryIcon, badge: 'Soon' },
     { id: 'settings', label: 'Settings', IconComponent: SettingsIcon }
   ];
 
@@ -65,7 +63,7 @@ export default function Sidebar({ activeView, setActiveView, theme, toggleTheme,
       </nav>
 
       {/* Sidebar Footer */}
-      <div className="sidebar-footer flex-col gap-4">
+      <div className="sidebar-footer flex-col gap-3">
         {/* User Email & Sign Out */}
         {user && (
           <div className="user-profile flex-col gap-2">
@@ -77,6 +75,30 @@ export default function Sidebar({ activeView, setActiveView, theme, toggleTheme,
                 <span className="user-status font-mono">Authenticated</span>
               </div>
             )}
+            
+            {/* Credits Section */}
+            <div className="credits-section flex-col gap-1.5 mt-1">
+              {collapsed ? (
+                <div className="credits-info-collapsed flex-col align-center justify-center gap-1" title={`${credits} credits remaining`}>
+                  <span className="credits-text-collapsed font-sans text-center">
+                    🪙<strong className="font-mono" style={{ marginLeft: '1px' }}>{credits}</strong>
+                  </span>
+                  <button onClick={onBuyCredits} className="buy-credits-btn-collapsed font-mono" title="Top Up +10 Credits">
+                    +10
+                  </button>
+                </div>
+              ) : (
+                <div className="credits-info flex align-center justify-between">
+                  <span className="credits-text font-sans flex align-center gap-1">
+                    🪙 <strong className="font-mono">{credits}</strong> credits
+                  </span>
+                  <button onClick={onBuyCredits} className="buy-credits-btn font-sans" title="Top Up +10 Credits">
+                    + Top Up
+                  </button>
+                </div>
+              )}
+            </div>
+
             <button onClick={onSignOut} className="sign-out-btn flex align-center justify-center" title="Sign Out">
               <span className="sign-out-icon flex align-center justify-center">
                 <LogOutIcon size={16} />
@@ -301,6 +323,96 @@ export default function Sidebar({ activeView, setActiveView, theme, toggleTheme,
 
         .collapse-btn:hover {
           color: var(--primary);
+        }
+
+        .credits-section {
+          background-color: var(--bg-primary);
+          border: 1px solid var(--border-color);
+          border-radius: 8px;
+          padding: 0.5rem;
+          margin-bottom: 0.25rem;
+          width: 100%;
+        }
+
+        .sidebar.collapsed .credits-section {
+          background: transparent;
+          border: none;
+          padding: 0;
+          margin-bottom: 0.25rem;
+          width: 100%;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        }
+
+        .credits-info {
+          font-size: 0.8rem;
+          color: var(--text-primary);
+          width: 100%;
+        }
+
+        .credits-info-collapsed {
+          width: 100%;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .credits-text {
+          font-weight: 600;
+        }
+
+        .credits-text-collapsed {
+          font-size: 0.8rem;
+          font-weight: 700;
+          color: var(--text-primary);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .buy-credits-btn {
+          background: linear-gradient(135deg, var(--primary), var(--secondary));
+          color: #FFFFFF;
+          border: none;
+          font-size: 0.7rem;
+          font-weight: 700;
+          padding: 0.15rem 0.4rem;
+          border-radius: 4px;
+          cursor: pointer;
+          transition: opacity 0.2s;
+        }
+
+        .buy-credits-btn:hover {
+          opacity: 0.9;
+        }
+
+        .buy-credits-btn-collapsed {
+          background: linear-gradient(135deg, var(--primary), var(--secondary));
+          color: #FFFFFF;
+          border: none;
+          font-size: 0.65rem;
+          font-weight: 800;
+          padding: 0.25rem 0.4rem;
+          border-radius: 6px;
+          cursor: pointer;
+          text-align: center;
+          width: 100%;
+          max-width: 44px;
+        }
+
+        .buy-credits-btn-collapsed:hover {
+          opacity: 0.9;
+        }
+
+        .sidebar.collapsed .user-profile {
+          padding: 0.5rem;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
         }
       `}</style>
     </aside>

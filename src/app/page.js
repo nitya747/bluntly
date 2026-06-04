@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
 import RightPanel from '../components/RightPanel';
 import IndividualView from '../components/IndividualView';
 import BatchView from '../components/BatchView';
 import { createClient } from '../lib/supabase/client';
-import { SettingsIcon, BotIcon } from '../components/Icons';
+import { SettingsIcon } from '../components/Icons';
 
 export default function Home() {
   const [activeView, setActiveView] = useState('individual');
@@ -17,14 +18,43 @@ export default function Home() {
   const [currentAnalysis, setCurrentAnalysis] = useState(null);
   const [isMock, setIsMock] = useState(true);
   const [user, setUser] = useState(null);
+  const [credits, setCredits] = useState(0);
 
   const supabase = createClient();
+  const router = useRouter();
+
+  const fetchCredits = async () => {
+    try {
+      const res = await fetch('/api/credits');
+      const data = await res.json();
+      if (data.success) {
+        setCredits(data.credits);
+      }
+    } catch (err) {
+      console.error('Failed to fetch credits:', err);
+    }
+  };
+
+  const handleBuyCredits = async () => {
+    try {
+      const res = await fetch('/api/credits', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        setCredits(data.credits);
+      }
+    } catch (err) {
+      console.error('Failed to top up credits:', err);
+    }
+  };
 
   // Load theme, fetch user, and check AI backend status on mount
   useEffect(() => {
+    let themeTimer;
     // Load theme
     const savedTheme = localStorage.getItem('theme') || 'dark';
-    setTheme(savedTheme);
+    themeTimer = setTimeout(() => {
+      setTheme(savedTheme);
+    }, 0);
     document.documentElement.setAttribute('data-theme', savedTheme);
 
     // Fetch user and session-based scans history
@@ -33,11 +63,9 @@ export default function Home() {
       if (user) {
         setUser(user);
         fetchHistory();
+        fetchCredits();
       } else {
-        const match = document.cookie.match(new RegExp('(^| )blunlty_bypass=([^;]+)'));
-        if (match && match[2] === 'true') {
-          setUser({ email: 'developer@blunlty.local', id: 'mock-dev-id' });
-        }
+        router.push('/login');
       }
     };
 
@@ -71,6 +99,10 @@ export default function Home() {
 
     getUserData();
     checkBackend();
+
+    return () => {
+      if (themeTimer) clearTimeout(themeTimer);
+    };
   }, []);
 
   const toggleTheme = () => {
@@ -82,9 +114,9 @@ export default function Home() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    document.cookie = "blunlty_bypass=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
     setUser(null);
-    window.location.reload();
+    router.push('/login');
+    router.refresh();
   };
 
   const handleAddHistory = (record) => {
@@ -109,6 +141,8 @@ export default function Home() {
         setCollapsed={setSidebarCollapsed}
         user={user}
         onSignOut={handleSignOut}
+        credits={credits}
+        onBuyCredits={handleBuyCredits}
       />
 
       {/* Main Workspace Frame */}
@@ -125,11 +159,17 @@ export default function Home() {
             <IndividualView 
               onAddHistory={handleAddHistory} 
               selectedAnalysis={currentAnalysis}
+              credits={credits}
+              setCredits={setCredits}
             />
           )}
 
           {activeView === 'batch' && (
-            <BatchView onAddHistory={handleAddHistory} />
+            <BatchView 
+              onAddHistory={handleAddHistory} 
+              credits={credits}
+              setCredits={setCredits}
+            />
           )}
 
           {activeView === 'settings' && (

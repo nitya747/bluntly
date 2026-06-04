@@ -15,7 +15,7 @@ import {
   ChevronDownIcon 
 } from './Icons';
 
-export default function BatchView({ onAddHistory }) {
+export default function BatchView({ onAddHistory, credits, setCredits }) {
   const [files, setFiles] = useState([]);
   const [jobDescription, setJobDescription] = useState('');
   const [processing, setProcessing] = useState(false);
@@ -157,7 +157,11 @@ export default function BatchView({ onAddHistory }) {
   };
 
   const handleSSEEvent = (eventData) => {
-    const { event, index, name, status, result, error, results: finalResults } = eventData;
+    const { event, index, name, status, result, error, results: finalResults, credits: sseCredits } = eventData;
+
+    if (sseCredits !== undefined) {
+      setCredits(sseCredits);
+    }
 
     if (event === 'init') {
       // Stream initialized
@@ -377,11 +381,21 @@ export default function BatchView({ onAddHistory }) {
             </div>
           </div>
 
+          {/* Credit Check Banner */}
+          {files.length > 0 && credits < files.length && (
+            <div className="credit-warning-banner card flex align-center gap-3">
+              <span className="error-icon flex align-center">⚠️</span>
+              <span className="error-message font-sans">
+                Insufficient credits. Processing this batch requires <strong>{files.length} credits</strong>, but you only have <strong>{credits} credits</strong>. Please click <strong>+ Top Up</strong> to add credits.
+              </span>
+            </div>
+          )}
+
           {/* Action Trigger */}
-          <div className="action-row flex justify-center">
+          <div className="action-row flex flex-col align-center justify-center gap-2">
             <button
               onClick={runBatchAnalysis}
-              disabled={files.length === 0 || processing}
+              disabled={files.length === 0 || processing || credits < files.length}
               className="button-primary run-btn font-sans"
             >
               {processing ? (
@@ -394,6 +408,11 @@ export default function BatchView({ onAddHistory }) {
                 </span>
               )}
             </button>
+            {files.length > 0 && (
+              <span className="credit-cost-subtext font-sans">
+                Will cost {files.length} credits (You have {credits} credits)
+              </span>
+            )}
           </div>
 
           {/* Error Card */}
@@ -995,6 +1014,24 @@ export default function BatchView({ onAddHistory }) {
 
         :global(.spin-animation) {
           animation: spin 2s linear infinite;
+        }
+
+        .credit-warning-banner {
+          border-color: var(--warning);
+          background-color: var(--warning-bg);
+          color: var(--warning);
+          padding: 0.75rem 1rem;
+          border-radius: 12px;
+          margin-top: 1rem;
+          max-width: 450px;
+          align-self: center;
+        }
+
+        .credit-cost-subtext {
+          font-size: 0.75rem;
+          color: var(--text-muted);
+          margin-top: 0.25rem;
+          text-align: center;
         }
       `}</style>
     </div>

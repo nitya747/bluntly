@@ -3,14 +3,6 @@ import { createClient } from '../../../lib/supabase/server';
 
 export async function GET(request) {
   try {
-    const bypassCookie = request.cookies.get('blunlty_bypass')?.value;
-    if (bypassCookie === 'true') {
-      return NextResponse.json({
-        success: true,
-        history: []
-      });
-    }
-
     const supabase = await createClient();
 
     // Check user authenticated context

@@ -11,7 +11,7 @@ import {
   SettingsIcon 
 } from './Icons';
 
-export default function IndividualView({ onAddHistory, selectedAnalysis }) {
+export default function IndividualView({ onAddHistory, selectedAnalysis, credits, setCredits }) {
   const [file, setFile] = useState(null);
   const [jobDescription, setJobDescription] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
@@ -24,11 +24,14 @@ export default function IndividualView({ onAddHistory, selectedAnalysis }) {
   // Load selected analysis if loaded from history
   useEffect(() => {
     if (selectedAnalysis) {
-      setResult(selectedAnalysis.analysis);
-      setJobDescription(selectedAnalysis.analysis.jobDescription || '');
-      setFile({ name: selectedAnalysis.filename, size: 0, isSavedRecord: true });
-      setError(null);
-      setActiveSection('analysis');
+      const timer = setTimeout(() => {
+        setResult(selectedAnalysis.analysis);
+        setJobDescription(selectedAnalysis.analysis.jobDescription || '');
+        setFile({ name: selectedAnalysis.filename, size: 0, isSavedRecord: true });
+        setError(null);
+        setActiveSection('analysis');
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [selectedAnalysis]);
 
@@ -102,6 +105,9 @@ export default function IndividualView({ onAddHistory, selectedAnalysis }) {
       }
 
       setResult(data.analysis);
+      if (data.credits !== undefined) {
+        setCredits(data.credits);
+      }
       
       // Save to global history
       onAddHistory({
@@ -212,11 +218,21 @@ export default function IndividualView({ onAddHistory, selectedAnalysis }) {
             </div>
           </div>
 
+          {/* Credit Check Banner */}
+          {credits === 0 && (
+            <div className="credit-warning-banner card flex align-center gap-3">
+              <span className="error-icon flex align-center">⚠️</span>
+              <span className="error-message font-sans">
+                Out of credits. Please click <strong>+ Top Up</strong> in the sidebar to add credits.
+              </span>
+            </div>
+          )}
+
           {/* Action Button - Moved a bit down via styles */}
-          <div className="action-row flex justify-center">
+          <div className="action-row flex flex-col align-center justify-center gap-2">
             <button
               onClick={runAnalysis}
-              disabled={!file || analyzing}
+              disabled={!file || analyzing || credits === 0}
               className="button-primary run-btn font-sans"
             >
               {analyzing ? (
@@ -229,6 +245,7 @@ export default function IndividualView({ onAddHistory, selectedAnalysis }) {
                 </span>
               )}
             </button>
+            <span className="credit-cost-subtext font-sans">Costs 1 credit (You have {credits} credits)</span>
           </div>
 
           {/* Error Bound (if in input view) */}
@@ -842,6 +859,24 @@ export default function IndividualView({ onAddHistory, selectedAnalysis }) {
 
         :global(.spin-animation) {
           animation: spin 2s linear infinite;
+        }
+
+        .credit-warning-banner {
+          border-color: var(--warning);
+          background-color: var(--warning-bg);
+          color: var(--warning);
+          padding: 0.75rem 1rem;
+          border-radius: 12px;
+          margin-top: 1rem;
+          max-width: 450px;
+          align-self: center;
+        }
+
+        .credit-cost-subtext {
+          font-size: 0.75rem;
+          color: var(--text-muted);
+          margin-top: 0.25rem;
+          text-align: center;
         }
       `}</style>
     </div>

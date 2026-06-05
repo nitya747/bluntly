@@ -175,7 +175,11 @@ export default function IndividualView({ onAddHistory, selectedAnalysis, credits
                   </div>
                   <div className="file-info flex-col align-center">
                     <span className="file-name font-sans">{file.name}</span>
-                    <span className="file-size font-mono">{Math.round(file.size / 1024)} KB</span>
+                    {file.isSavedRecord ? (
+                      <span className="file-size font-sans" style={{ color: 'var(--primary)' }}>Saved Scan</span>
+                    ) : (
+                      <span className="file-size font-mono">{Math.round(file.size / 1024)} KB</span>
+                    )}
                     <span className="file-badge font-mono">{file.name.split('.').pop().toUpperCase()}</span>
                   </div>
                   <button onClick={clearFile} className="button-secondary btn-sm flex align-center gap-1.5" style={{ display: 'inline-flex', alignItems: 'center' }}>
@@ -232,12 +236,16 @@ export default function IndividualView({ onAddHistory, selectedAnalysis, credits
           <div className="action-row flex flex-col align-center justify-center gap-2">
             <button
               onClick={runAnalysis}
-              disabled={!file || analyzing || credits === 0}
+              disabled={!file || analyzing || credits === 0 || file.isSavedRecord}
               className="button-primary run-btn font-sans"
             >
               {analyzing ? (
                 <span className="flex align-center justify-center gap-2" style={{ display: 'inline-flex', alignItems: 'center' }}>
                   <SettingsIcon size={18} className="spin-animation" /> Running Parsing & AI Analysis...
+                </span>
+              ) : file?.isSavedRecord ? (
+                <span className="flex align-center justify-center gap-2" style={{ display: 'inline-flex', alignItems: 'center' }}>
+                  Select a New File to Analyse
                 </span>
               ) : (
                 <span className="flex align-center justify-center gap-2" style={{ display: 'inline-flex', alignItems: 'center' }}>
@@ -245,7 +253,13 @@ export default function IndividualView({ onAddHistory, selectedAnalysis, credits
                 </span>
               )}
             </button>
-            <span className="credit-cost-subtext font-sans">Costs 1 credit (You have {credits} credits)</span>
+            {file?.isSavedRecord ? (
+              <span className="credit-cost-subtext font-sans">
+                Viewing saved report. Click <strong>Clear File</strong> to upload a new resume.
+              </span>
+            ) : (
+              <span className="credit-cost-subtext font-sans">Costs 1 credit (You have {credits} credits)</span>
+            )}
           </div>
 
           {/* Error Bound (if in input view) */}
@@ -347,6 +361,37 @@ export default function IndividualView({ onAddHistory, selectedAnalysis, credits
                       <span className="gauge-label font-sans">Resume Quality</span>
                     </div>
                   </div>
+                  {/* Experience Match Details (only shown if JD is present) */}
+                  {result.experienceMatch && result.experienceMatch.required > 0 && (
+                    <div className="experience-match-card flex align-center justify-between font-sans" style={{
+                      backgroundColor: 'var(--primary-light)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '12px',
+                      padding: '0.75rem 1rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginTop: '1.25rem',
+                      width: '100%'
+                    }}>
+                      <div className="flex-col text-left">
+                        <span className="match-label font-sans" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block' }}>Experience Alignment</span>
+                        <span className="match-detail font-sans font-bold" style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+                          Required: {result.experienceMatch.required} yrs | Extracted: {result.experienceMatch.detected} yrs
+                        </span>
+                      </div>
+                      <span className={`match-badge font-mono ${result.experienceMatch.matched ? 'passed' : 'failed'}`} style={{
+                        fontSize: '0.7rem',
+                        fontWeight: '850',
+                        padding: '0.2rem 0.5rem',
+                        borderRadius: '4px',
+                        backgroundColor: result.experienceMatch.matched ? 'var(--success-bg)' : 'var(--danger-bg)',
+                        color: result.experienceMatch.matched ? 'var(--success)' : 'var(--danger)'
+                      }}>
+                        {result.experienceMatch.matched ? 'MATCH' : 'GAP'}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Breakdown Score Bars */}
@@ -365,6 +410,42 @@ export default function IndividualView({ onAddHistory, selectedAnalysis, credits
                             style={{ width: `${score}%` }}
                           ></div>
                         </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Rule Engine Checks Card */}
+                <div className="card flex-col gap-4">
+                  <h3 className="card-title font-sans">Programmatic Rule Checks</h3>
+                  <div className="rules-list flex-col gap-2.5">
+                    {[
+                      { key: 'email', label: 'Email Contact Info', check: !result.ruleViolations?.includes('Missing email') },
+                      { key: 'phone', label: 'Phone Contact Info', check: !result.ruleViolations?.includes('Missing phone') },
+                      { key: 'length', label: 'Resume Content Length', check: !result.ruleViolations?.includes('Resume too short') },
+                      { key: 'experience', label: 'Work Experience Section', check: !result.ruleViolations?.includes('No experience section') },
+                      { key: 'skills', label: 'Technical Skills Section', check: !result.ruleViolations?.includes('No skills section') }
+                    ].map((rule) => (
+                      <div key={rule.key} className="rule-item flex align-center justify-between font-sans" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span className="rule-label flex align-center gap-2" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                          <span className={`rule-status-bullet ${rule.check ? 'passed' : 'failed'}`} style={{
+                            width: '8px',
+                            height: '8px',
+                            borderRadius: '50%',
+                            backgroundColor: rule.check ? 'var(--success)' : 'var(--danger)'
+                          }}></span>
+                          {rule.label}
+                        </span>
+                        <span className={`rule-badge font-mono ${rule.check ? 'passed' : 'failed'}`} style={{
+                          fontSize: '0.7rem',
+                          fontWeight: '800',
+                          padding: '0.15rem 0.5rem',
+                          borderRadius: '4px',
+                          backgroundColor: rule.check ? 'var(--success-bg)' : 'var(--danger-bg)',
+                          color: rule.check ? 'var(--success)' : 'var(--danger)'
+                        }}>
+                          {rule.check ? 'PASSED' : 'FAILED'}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -426,14 +507,22 @@ export default function IndividualView({ onAddHistory, selectedAnalysis, credits
 
                 {/* Feedback Tab Selector */}
                 <div className="card flex-col gap-4">
-                  <div className="tabs-header flex gap-2 border-b">
-                    {['summary', 'strengths', 'improvements', 'details'].map((tab) => (
+                  <div className="tabs-header flex gap-2 border-b" style={{ flexWrap: 'wrap' }}>
+                    {[
+                      { id: 'summary', label: 'Summary' },
+                      { id: 'strengths', label: 'Strengths' },
+                      { id: 'improvements', label: 'Improvements' },
+                      { id: 'wording', label: 'Wording' },
+                      { id: 'advice', label: 'Career Advice' },
+                      { id: 'json', label: 'Structured Resume' },
+                      { id: 'details', label: 'Details' }
+                    ].map((tab) => (
                       <button
-                        key={tab}
-                        onClick={() => setActiveTab(tab)}
-                        className={`tab-btn font-sans ${activeTab === tab ? 'active' : ''}`}
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`tab-btn font-sans ${activeTab === tab.id ? 'active' : ''}`}
                       >
-                        {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                        {tab.label}
                       </button>
                     ))}
                   </div>
@@ -463,6 +552,35 @@ export default function IndividualView({ onAddHistory, selectedAnalysis, credits
                           </li>
                         ))}
                       </ul>
+                    )}
+
+                    {activeTab === 'wording' && (
+                      <ul className="checklist flex-col gap-2">
+                        {result.feedback.wordingImprovements && result.feedback.wordingImprovements.length > 0 ? (
+                          result.feedback.wordingImprovements.map((wrd, idx) => (
+                            <li key={idx} className="checklist-item flex gap-2 font-sans align-center">
+                              <span className="check-icon flex" style={{ color: 'var(--primary)' }}><SparklesIcon size={14} /></span>
+                              <span>{wrd}</span>
+                            </li>
+                          ))
+                        ) : (
+                          <li className="checklist-item font-sans text-muted">No specific wording suggestions available.</li>
+                        )}
+                      </ul>
+                    )}
+
+                    {activeTab === 'advice' && (
+                      <p className="summary-paragraph font-sans" style={{ fontStyle: 'italic' }}>
+                        {result.feedback.careerAdvice || "No specific career advice generated."}
+                      </p>
+                    )}
+
+                    {activeTab === 'json' && (
+                      <div className="detailed-markdown font-sans" style={{ maxHeight: '300px' }}>
+                        <pre className="markdown-pre font-mono" style={{ fontSize: '0.75rem', color: 'var(--text-primary)', textAlign: 'left' }}>
+                          {JSON.stringify(result.structuredResume || {}, null, 2)}
+                        </pre>
+                      </div>
                     )}
 
                     {activeTab === 'details' && (

@@ -13,8 +13,12 @@ CREATE TABLE IF NOT EXISTS public.scans (
   sections JSONB,
   feedback JSONB,
   job_description TEXT,
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  structured_resume JSONB
 );
+
+-- Migration to update existing tables:
+-- ALTER TABLE public.scans ADD COLUMN IF NOT EXISTS structured_resume JSONB;
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE public.scans ENABLE ROW LEVEL SECURITY;

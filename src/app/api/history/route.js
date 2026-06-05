@@ -23,20 +23,38 @@ export async function GET(request) {
     }
 
     // Format rows for frontend history state list
-    const historyList = scans.map((row) => ({
-      id: row.id,
-      filename: row.filename,
-      timestamp: new Date(row.created_at).toLocaleTimeString(),
-      analysis: {
-        candidateName: row.candidate_name,
-        atsScore: row.ats_score,
-        qualityScore: row.quality_score,
-        skills: row.skills,
-        sections: row.sections,
-        feedback: row.feedback,
-        jobDescription: row.job_description
-      }
-    }));
+    const historyList = scans.map((row) => {
+      const fb = row.feedback || {};
+      const structuredResume = row.structured_resume || fb.structuredResume || null;
+      
+      const feedback = {
+        summary: fb.summary || '',
+        strengths: fb.strengths || [],
+        improvements: fb.improvements || [],
+        wordingImprovements: fb.wordingImprovements || [],
+        careerAdvice: fb.careerAdvice || '',
+        detailedMarkdown: fb.detailedMarkdown || ''
+      };
+
+      return {
+        id: row.id,
+        filename: row.filename,
+        timestamp: new Date(row.created_at).toLocaleTimeString(),
+        analysis: {
+          candidateName: row.candidate_name,
+          atsScore: row.ats_score,
+          qualityScore: row.quality_score,
+          skills: row.skills,
+          sections: row.sections,
+          feedback: feedback,
+          jobDescription: row.job_description,
+          structuredResume: structuredResume,
+          ruleViolations: fb.ruleViolations || [],
+          passedRules: fb.passedRules || [],
+          experienceMatch: fb.experienceMatch || null
+        }
+      };
+    });
 
     return NextResponse.json({
       success: true,

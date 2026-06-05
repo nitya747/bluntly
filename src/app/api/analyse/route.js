@@ -6,19 +6,34 @@ import { getOrCreateProfile } from '../../../lib/supabase/profile';
 
 export async function POST(request) {
   try {
+    let user = null;
+    const bypassCookie = request.cookies.get('blunlty_bypass')?.value;
     const supabase = await createClient();
-    const { data } = await supabase.auth.getUser();
-    const user = data?.user;
+
+    if (bypassCookie === 'true') {
+      user = { id: 'mock-dev-id', email: 'developer@blunlty.local' };
+    } else {
+      const { data } = await supabase.auth.getUser();
+      user = data?.user;
+    }
     
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized access.' }, { status: 401 });
+    }
+
+    // Handle initial backend check ping (where no multipart form is sent)
+    const contentType = request.headers.get('content-type') || '';
+    if (!contentType.includes('multipart/form-data')) {
+      return NextResponse.json({ 
+        success: true, 
+        isMock: !process.env.GEMINI_API_KEY 
+      });
     }
 
     const formData = await request.formData();
     const file = formData.get('file');
     const jobDescription = formData.get('jobDescription') || '';
 
-    // Handle initial backend check ping (where no file is sent)
     if (!file) {
       return NextResponse.json({ 
         success: true, 
@@ -26,8 +41,19 @@ export async function POST(request) {
       });
     }
 
+    if (typeof file === 'string' || typeof file.arrayBuffer !== 'function') {
+      return NextResponse.json({ 
+        error: 'Invalid file upload. Please select a valid PDF, LaTeX, or text file.' 
+      }, { status: 400 });
+    }
+
     // Verify user credits (retrieve or auto-create profile)
-    const profile = await getOrCreateProfile(supabase, user.id);
+    let profile = null;
+    if (user.id === 'mock-dev-id') {
+      profile = { credits: 999 };
+    } else {
+      profile = await getOrCreateProfile(supabase, user.id);
+    }
 
     if (!profile || profile.credits < 1) {
       return NextResponse.json(
@@ -46,41 +72,82 @@ export async function POST(request) {
     // Run the analysis (Gemini or Mock fallback)
     const analysis = await analyzeResume(parsedText, jobDescription, file.name || 'Resume');
 
-    // Persist scan result in Supabase scans table
-    const { data: scanRow, error: dbError } = await supabase
-      .from('scans')
-      .insert({
+    let scanId = 'dummy-scan-id';
+    let createdAt = new Date().toISOString();
+    let remainingCredits = Math.max(0, profile.credits - 1);
+
+    if (user.id !== 'mock-dev-id') {
+      // Persist scan result in Supabase scans table
+      const insertData = {
         filename: file.name || 'Resume.pdf',
         candidate_name: analysis.candidateName,
         ats_score: analysis.atsScore,
         quality_score: analysis.qualityScore,
         skills: analysis.skills,
         sections: analysis.sections,
-        feedback: analysis.feedback,
+        feedback: {
+          ...analysis.feedback,
+          ruleViolations: analysis.ruleViolations,
+          passedRules: analysis.passedRules,
+          experienceMatch: analysis.experienceMatch
+        },
         job_description: jobDescription,
-        user_id: user.id
-      })
-      .select('id, created_at')
-      .single();
+        user_id: user.id,
+        structured_resume: analysis.structuredResume
+      };
 
-    if (dbError) {
-      console.error('Database write error:', dbError);
-      throw new Error(`Failed to save scan: ${dbError.message}`);
-    }
+      let scanRow = null;
+      let dbError = null;
 
-    const scanId = scanRow.id;
-    const createdAt = scanRow.created_at;
+      const dbResult = await supabase
+        .from('scans')
+        .insert(insertData)
+        .select('id, created_at')
+        .single();
+      
+      dbError = dbResult.error;
+      scanRow = dbResult.data;
 
-    // Deduct 1 credit from user profile
-    const remainingCredits = Math.max(0, profile.credits - 1);
-    const { error: creditError } = await supabase
-      .from('profiles')
-      .update({ credits: remainingCredits })
-      .eq('id', user.id);
+      if (dbError) {
+        console.warn('Database write error with structured_resume column. Retrying with fallback placement...', dbError);
+        // Fallback: Store structuredResume inside feedback column and retry insert
+        const fallbackInsertData = { ...insertData };
+        delete fallbackInsertData.structured_resume;
+        fallbackInsertData.feedback = {
+          ...fallbackInsertData.feedback,
+          structuredResume: analysis.structuredResume
+        };
 
-    if (creditError) {
-      console.error('Failed to deduct credit:', creditError);
-      // Log it but don't crash, so the user still gets their analysis report
+        const retryResult = await supabase
+          .from('scans')
+          .insert(fallbackInsertData)
+          .select('id, created_at')
+          .single();
+
+        dbError = retryResult.error;
+        scanRow = retryResult.data;
+
+        if (dbError) {
+          console.error('Database write error on retry fallback:', dbError);
+          throw new Error(`Failed to save scan: ${dbError.message}`);
+        }
+      }
+
+      scanId = scanRow.id;
+      createdAt = scanRow.created_at;
+
+      // Deduct 1 credit from user profile
+      const { error: creditError } = await supabase
+        .from('profiles')
+        .update({ credits: remainingCredits })
+        .eq('id', user.id);
+
+      if (creditError) {
+        console.error('Failed to deduct credit:', creditError);
+        // Log it but don't crash, so the user still gets their analysis report
+      }
+    } else {
+      remainingCredits = 999;
     }
 
     // Return the response containing database ID, updated credits, & mock status

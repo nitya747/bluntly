@@ -22,6 +22,13 @@ export async function POST(request) {
       return NextResponse.json({ error: 'No files provided' }, { status: 400 });
     }
 
+    // Validate that all items in the batch are actual files
+    for (const file of files) {
+      if (typeof file === 'string' || typeof file.arrayBuffer !== 'function') {
+        return NextResponse.json({ error: 'Invalid file detected in batch upload. Please upload valid files.' }, { status: 400 });
+      }
+    }
+
     // Retrieve user credits (retrieve or auto-create profile)
     const profile = await getOrCreateProfile(supabase, user.id);
 
@@ -72,25 +79,58 @@ export async function POST(request) {
             const analysis = await analyzeResume(parsedText, jobDescription, filename);
 
             // Persist the batch item inside the Supabase database
-            const { data: scanRow, error: dbError } = await supabase
+            const insertData = {
+              filename,
+              candidate_name: analysis.candidateName,
+              ats_score: analysis.atsScore,
+              quality_score: analysis.qualityScore,
+              skills: analysis.skills,
+              sections: analysis.sections,
+              feedback: {
+                ...analysis.feedback,
+                ruleViolations: analysis.ruleViolations,
+                passedRules: analysis.passedRules,
+                experienceMatch: analysis.experienceMatch
+              },
+              job_description: jobDescription,
+              user_id: user.id,
+              structured_resume: analysis.structuredResume
+            };
+
+            let scanRow = null;
+            let dbError = null;
+
+            const dbResult = await supabase
               .from('scans')
-              .insert({
-                filename,
-                candidate_name: analysis.candidateName,
-                ats_score: analysis.atsScore,
-                quality_score: analysis.qualityScore,
-                skills: analysis.skills,
-                sections: analysis.sections,
-                feedback: analysis.feedback,
-                job_description: jobDescription,
-                user_id: user.id
-              })
+              .insert(insertData)
               .select('id, created_at')
               .single();
+            
+            dbError = dbResult.error;
+            scanRow = dbResult.data;
+
+            if (dbError) {
+              console.warn(`Database write failed with structured_resume for ${filename}, retrying with fallback...`, dbError);
+              const fallbackInsertData = { ...insertData };
+              delete fallbackInsertData.structured_resume;
+              fallbackInsertData.feedback = {
+                ...fallbackInsertData.feedback,
+                structuredResume: analysis.structuredResume
+              };
+
+              const retryResult = await supabase
+                .from('scans')
+                .insert(fallbackInsertData)
+                .select('id, created_at')
+                .single();
+
+              dbError = retryResult.error;
+              scanRow = retryResult.data;
+            }
 
             let record;
             if (dbError) {
-              console.error(`Database write failed for ${filename}:`, dbError);
+              console.error(`Database write failed completely for ${filename}:`, dbError);
               // Fallback record to keep flow going
               record = {
                 id: 'mock-' + Math.random().toString(36).substr(2, 9),

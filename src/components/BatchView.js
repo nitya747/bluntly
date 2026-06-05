@@ -583,6 +583,23 @@ export default function BatchView({ onAddHistory, credits, setCredits }) {
                       <p className="detail-summary font-sans">
                         {getSortedResults()[expandedIndex].analysis.feedback.summary}
                       </p>
+                      {/* Rule Violations Indicator */}
+                      {getSortedResults()[expandedIndex].analysis.ruleViolations && (
+                        <div className="flex-col gap-1 mt-2 text-left">
+                          <span className="detail-lbl font-sans font-bold" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Rule Checks:</span>
+                          <span className="font-sans" style={{ fontSize: '0.75rem' }}>
+                            {getSortedResults()[expandedIndex].analysis.ruleViolations.length > 0 ? (
+                              <span style={{ color: 'var(--danger)' }}>
+                                ⚠️ Failed: {getSortedResults()[expandedIndex].analysis.ruleViolations.join(', ')}
+                              </span>
+                            ) : (
+                              <span style={{ color: 'var(--success)' }}>
+                                ✓ All basic structure checks passed
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Checklist Strengths & Improvements */}

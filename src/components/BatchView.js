@@ -1,4 +1,6 @@
-import { useState, useRef } from 'react';
+'use client';
+
+import { useState } from 'react';
 import { 
   UploadIcon, 
   TrashIcon, 
@@ -15,18 +17,24 @@ import {
   ChevronDownIcon 
 } from './Icons';
 
-export default function BatchView({ onAddHistory, credits, setCredits }) {
+export default function BatchView({ onAddHistory, credits, setCredits, history = [] }) {
   const [files, setFiles] = useState([]);
   const [jobDescription, setJobDescription] = useState('');
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState(null);
   const [progressLog, setProgressLog] = useState([]);
   const [results, setResults] = useState([]);
+  const [recentBatchJobs, setRecentBatchJobs] = useState([]);
+  
+  // Filtering & Sorting
   const [sortField, setSortField] = useState('atsScore');
   const [sortOrder, setSortOrder] = useState('desc');
+  const [minScore, setMinScore] = useState(0);
+  const [skillFilter, setSkillFilter] = useState('');
+
   const [expandedIndex, setExpandedIndex] = useState(null);
   const [dragOver, setDragOver] = useState(false);
-  const [activeSection, setActiveSection] = useState('input'); // 'input' or 'analysis'
+  const [activeSection, setActiveSection] = useState('input'); // 'input' (Configure) or 'analysis' (Analysis Report)
 
   const loadSampleJD = () => {
     setJobDescription(
@@ -79,10 +87,6 @@ export default function BatchView({ onAddHistory, credits, setCredits }) {
   const clearAllFiles = () => {
     setFiles([]);
     setError(null);
-    setResults([]);
-    setProgressLog([]);
-    setExpandedIndex(null);
-    setActiveSection('input');
   };
 
   const runBatchAnalysis = async () => {
@@ -163,9 +167,7 @@ export default function BatchView({ onAddHistory, credits, setCredits }) {
       setCredits(sseCredits);
     }
 
-    if (event === 'init') {
-      // Stream initialized
-    } else if (event === 'progress') {
+    if (event === 'progress') {
       setProgressLog(prev => 
         prev.map(log => 
           log.index === index 
@@ -186,6 +188,20 @@ export default function BatchView({ onAddHistory, credits, setCredits }) {
       })).filter(res => res.success);
 
       setResults(formattedResults);
+
+      // Save to local batch list
+      const avgATS = formattedResults.length > 0 
+        ? Math.round(formattedResults.reduce((acc, r) => acc + (r.analysis?.atsScore || 0), 0) / formattedResults.length)
+        : 0;
+
+      const newJob = {
+        timestamp: new Date().toLocaleTimeString(),
+        candidateCount: formattedResults.length,
+        avgATS,
+        jobSnippet: jobDescription ? jobDescription.substring(0, 40) + '...' : 'General Analysis',
+        rawResults: formattedResults
+      };
+      setRecentBatchJobs(prev => [newJob, ...prev]);
 
       // Add each successfully parsed result to global scan history
       formattedResults.forEach(res => {
@@ -209,22 +225,37 @@ export default function BatchView({ onAddHistory, credits, setCredits }) {
     }
   };
 
-  const getSortedResults = () => {
-    return [...results].sort((a, b) => {
+  // Apply filters and sorting
+  const getFilteredAndSortedResults = () => {
+    // 1. Filter
+    const filtered = results.filter(res => {
+      const score = res.analysis?.atsScore ?? 0;
+      if (score < minScore) return false;
+      if (skillFilter.trim() !== '') {
+        const skillsList = res.analysis?.skills?.matched || [];
+        const filterText = skillFilter.toLowerCase();
+        const hasSkill = skillsList.some(s => s.toLowerCase().includes(filterText));
+        if (!hasSkill) return false;
+      }
+      return true;
+    });
+
+    // 2. Sort
+    return filtered.sort((a, b) => {
       let valA, valB;
 
       if (sortField === 'name') {
-        valA = a.analysis.candidateName.toLowerCase();
-        valB = b.analysis.candidateName.toLowerCase();
+        valA = (a.analysis?.candidateName || '').toLowerCase();
+        valB = (b.analysis?.candidateName || '').toLowerCase();
       } else if (sortField === 'format') {
         valA = a.filename.split('.').pop().toLowerCase();
         valB = b.filename.split('.').pop().toLowerCase();
       } else if (sortField === 'atsScore') {
-        valA = a.analysis.atsScore || 0;
-        valB = b.analysis.atsScore || 0;
+        valA = a.analysis?.atsScore ?? 0;
+        valB = b.analysis?.atsScore ?? 0;
       } else if (sortField === 'qualityScore') {
-        valA = a.analysis.qualityScore || 0;
-        valB = b.analysis.qualityScore || 0;
+        valA = a.analysis?.qualityScore ?? 0;
+        valB = b.analysis?.qualityScore ?? 0;
       } else {
         return 0;
       }
@@ -239,17 +270,20 @@ export default function BatchView({ onAddHistory, credits, setCredits }) {
     setExpandedIndex(expandedIndex === idx ? null : idx);
   };
 
+  const loadRecentBatchJob = (job) => {
+    setResults(job.rawResults);
+    setActiveSection('analysis');
+    setExpandedIndex(null);
+  };
+
   // CSV Exporter
   const exportCSV = () => {
     if (results.length === 0) return;
-    
     const headers = ['Rank', 'Candidate Name', 'File Name', 'Format', 'ATS Score (%)', 'Quality Score (%)', 'Top Skills'];
-    const sorted = getSortedResults();
-    
+    const sorted = getFilteredAndSortedResults();
     const rows = sorted.map((res, idx) => {
       const extension = res.filename.split('.').pop().toUpperCase();
       const topSkills = res.analysis.skills.matched.slice(0, 3).join(', ') || 'None';
-      
       return [
         idx + 1,
         `"${res.analysis.candidateName}"`,
@@ -260,7 +294,6 @@ export default function BatchView({ onAddHistory, credits, setCredits }) {
         `"${topSkills}"`
       ];
     });
-
     const csvContent = [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
     downloadFile(csvContent, 'resume_ranking_report.csv', 'text/csv;charset=utf-8;');
   };
@@ -268,9 +301,15 @@ export default function BatchView({ onAddHistory, credits, setCredits }) {
   // JSON Exporter
   const exportJSON = () => {
     if (results.length === 0) return;
-    const sorted = getSortedResults();
+    const sorted = getFilteredAndSortedResults();
     const jsonString = JSON.stringify(sorted, null, 2);
     downloadFile(jsonString, 'resume_ranking_report.json', 'application/json;charset=utf-8;');
+  };
+
+  // PDF Exporter (Mock/Print)
+  const exportPDF = () => {
+    alert('PDF Export: Printing layout triggered. Please use the system browser dialog to save as PDF.');
+    window.print();
   };
 
   const downloadFile = (content, filename, mimeType) => {
@@ -285,269 +324,447 @@ export default function BatchView({ onAddHistory, credits, setCredits }) {
     document.body.removeChild(link);
   };
 
+  // Progress metrics
   const completedCount = progressLog.filter(l => l.status === 'completed' || l.status === 'error').length;
   const totalCount = progressLog.length;
   const percentComplete = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
-  return (
-    <div className="workspace flex-col gap-6">
-      {/* Sub-navigation tabs for Setup vs Analysis */}
-      {results.length > 0 && (
-        <div className="section-tabs">
-          <button
-            onClick={() => setActiveSection('input')}
-            className={`section-tab-btn font-sans ${activeSection === 'input' ? 'active' : ''}`}
-          >
-            Configure Matcher
-          </button>
-          <button
-            onClick={() => setActiveSection('analysis')}
-            className={`section-tab-btn font-sans ${activeSection === 'analysis' ? 'active' : ''}`}
-          >
-            Analysis Report
-          </button>
-        </div>
-      )}
+  // Summary statistics
+  const totalResumes = results.length;
+  const avgATS = totalResumes > 0 
+    ? Math.round(results.reduce((acc, r) => acc + (r.analysis?.atsScore || 0), 0) / totalResumes)
+    : 0;
+  const highestATS = totalResumes > 0 ? Math.max(...results.map(r => r.analysis?.atsScore || 0)) : 0;
+  const lowestATS = totalResumes > 0 ? Math.min(...results.map(r => r.analysis?.atsScore || 0)) : 0;
 
-      {/* Configure Matcher Section */}
+  return (
+    <div className="workspace flex-col gap-6 fade-in">
+      {/* Secondary Navigation */}
+      <div className="tabs-navigation">
+        <button
+          onClick={() => setActiveSection('input')}
+          className={`tab-nav-btn ${activeSection === 'input' ? 'active' : ''}`}
+        >
+          Configure
+        </button>
+        <button
+          onClick={() => {
+            if (results.length > 0 || processing) {
+              setActiveSection('analysis');
+            }
+          }}
+          disabled={results.length === 0 && !processing}
+          className={`tab-nav-btn ${activeSection === 'analysis' ? 'active' : ''}`}
+          style={{ opacity: (results.length > 0 || processing) ? 1 : 0.5, cursor: (results.length > 0 || processing) ? 'pointer' : 'not-allowed' }}
+        >
+          Analysis Report
+        </button>
+      </div>
+
+      {/* 1. Configure Screen Pattern */}
       {activeSection === 'input' && (
-        <div className="flex-col gap-6">
-          {/* Upload Zone & JD inputs */}
-          <div className="input-section grid grid-cols-2 gap-8">
-            {/* Batch File Zone */}
-            <div 
-              className={`dropzone card flex-col align-center justify-center gap-3 ${dragOver ? 'drag-over' : ''}`}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-            >
-              <input 
-                type="file" 
-                onChange={handleFileChange} 
-                accept=".pdf,.tex,.txt" 
-                multiple 
-                className="hidden-input" 
-                id="batch-file-input"
-              />
+        <div className="flex-col gap-8 fade-in">
+          <div className="grid grid-cols-2 gap-8">
+            {/* Multi File Upload Card */}
+            <div className="card">
+              <div className="flex justify-between align-center">
+                <h3 className="card-title">Resumes Batch</h3>
+                {files.length > 0 && (
+                  <button onClick={clearAllFiles} className="button-secondary sample-btn flex align-center gap-2">
+                    <TrashIcon size={13} />
+                    <span>Clear All</span>
+                  </button>
+                )}
+              </div>
+              <div className="card-divider"></div>
               
-              {files.length === 0 ? (
-                <label htmlFor="batch-file-input" className="upload-label flex-col align-center justify-center gap-3 cursor-pointer">
-                  <div className="upload-icon-circle flex align-center justify-center">
-                    <UploadIcon size={24} style={{ color: 'var(--primary)' }} />
+              <div 
+                className={`dropzone-area flex-col align-center justify-center gap-3 ${dragOver ? 'drag-over' : ''}`}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                style={{ height: '220px' }}
+              >
+                <input 
+                  type="file" 
+                  onChange={handleFileChange} 
+                  accept=".pdf,.tex,.txt" 
+                  multiple 
+                  id="batch-file-input"
+                  style={{ display: 'none' }}
+                />
+                
+                {files.length === 0 ? (
+                  <label htmlFor="batch-file-input" className="upload-box flex-col align-center justify-center gap-3 cursor-pointer">
+                    <div className="upload-icon-wrapper flex align-center justify-center">
+                      <UploadIcon size={24} style={{ color: 'var(--text-secondary)' }} />
+                    </div>
+                    <div className="flex-col align-center text-center">
+                      <span className="upload-title">Upload Resume Batch</span>
+                      <span className="upload-desc">Drag & drop or click to browse</span>
+                      <span className="upload-note font-mono">Select up to 20 PDF, LaTeX or Text files</span>
+                    </div>
+                  </label>
+                ) : (
+                  <div className="batch-files-list flex-col w-full h-full p-2" style={{ overflowY: 'auto' }}>
+                    <span className="font-sans font-bold text-secondary" style={{ fontSize: '13px', display: 'block', marginBottom: '8px' }}>
+                      {files.length} files selected:
+                    </span>
+                    <div className="flex-col gap-2">
+                      {files.map((f, i) => (
+                        <div key={i} className="file-row flex align-center justify-between" style={{
+                          backgroundColor: 'var(--bg)',
+                          border: '1px solid var(--border)',
+                          borderRadius: '8px',
+                          padding: '6px 12px',
+                          fontSize: '12px'
+                        }}>
+                          <span className="truncate" style={{ maxWidth: '80%' }}>{f.name}</span>
+                          <button onClick={() => removeFile(i)} className="remove-btn">✕</button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <div className="upload-text flex-col align-center text-center">
-                    <span className="upload-title font-sans">Upload Resumes in Batch</span>
-                    <span className="upload-subtitle font-sans">Select up to 20 PDF/LaTeX files</span>
-                    <span className="upload-formats font-mono">Drag multiple files here</span>
-                  </div>
-                </label>
-              ) : (
-                <div className="batch-files-view flex-col w-full h-full p-2">
-                  <div className="flex justify-between align-center border-b pb-2 mb-2">
-                    <span className="files-count font-sans">{files.length} files selected</span>
-                    <button onClick={clearAllFiles} className="button-secondary btn-xs flex align-center gap-1" style={{ display: 'inline-flex', alignItems: 'center' }}>
-                      <TrashIcon size={12} /> Reset
-                    </button>
-                  </div>
-                  <div className="files-list flex-col gap-1 overflow-y-auto flex-1">
-                    {files.map((f, i) => (
-                      <div key={i} className="file-row flex align-center justify-between font-sans">
-                        <span className="file-row-name truncate">{f.name}</span>
-                        <button onClick={() => removeFile(i)} className="remove-row-btn">✕</button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
             {/* Job Description Card */}
-            <div className="jd-box card flex-col gap-3">
+            <div className="card">
               <div className="flex justify-between align-center">
-                <label className="label-title font-sans">Compare Against JD Requirements</label>
-                <button onClick={loadSampleJD} className="button-secondary btn-xs flex align-center gap-1" style={{ display: 'inline-flex', alignItems: 'center' }}>
-                  <SparklesIcon size={12} /> Load Sample JD
+                <h3 className="card-title">Job Description</h3>
+                <button onClick={loadSampleJD} className="button-secondary sample-btn flex align-center gap-2">
+                  <SparklesIcon size={13} />
+                  <span>Sample JD</span>
                 </button>
               </div>
-              <textarea
-                value={jobDescription}
-                onChange={(e) => setJobDescription(e.target.value)}
-                placeholder="Paste the target job description here to rank candidate resumes by ATS match score..."
-                className="jd-textarea font-sans"
-              />
-              <div className="jd-footer flex justify-between font-mono">
-                <span>{jobDescription.split(/\s+/).filter(Boolean).length} words</span>
+              <div className="card-divider"></div>
+              
+              <div className="flex-col gap-3 h-full">
+                <textarea
+                  value={jobDescription}
+                  onChange={(e) => setJobDescription(e.target.value)}
+                  placeholder="Paste the target job description here to rank candidate resumes by ATS match score..."
+                  className="textarea-text jd-textarea"
+                  style={{ minHeight: '140px' }}
+                />
+                <div className="jd-stats flex justify-between font-mono">
+                  <span>{jobDescription.split(/\s+/).filter(Boolean).length} words</span>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Credit Check Banner */}
+          {/* Credit warnings */}
           {files.length > 0 && credits < files.length && (
-            <div className="credit-warning-banner card flex align-center gap-3">
+            <div className="credit-warning-banner card flex align-center gap-3" style={{ alignSelf: 'center', maxWidth: '500px', width: '100%', borderColor: 'var(--danger)', backgroundColor: 'rgba(239,68,68,0.06)', color: 'var(--danger)' }}>
               <span className="error-icon flex align-center">⚠️</span>
-              <span className="error-message font-sans">
-                Insufficient credits. Processing this batch requires <strong>{files.length} credits</strong>, but you only have <strong>{credits} credits</strong>. Please click <strong>+ Top Up</strong> to add credits.
+              <span className="error-message font-sans" style={{ fontSize: '13px' }}>
+                Insufficient credits. This batch requires <strong>{files.length} credits</strong>, but you only have <strong>{credits} credits</strong> remaining. Please buy credits in the sidebar.
               </span>
             </div>
           )}
 
-          {/* Action Trigger */}
-          <div className="action-row flex flex-col align-center justify-center gap-2">
+          {/* Error Bound */}
+          {error && (
+            <div className="error-banner flex align-center gap-3">
+              <AlertIcon size={16} />
+              <span className="error-text">{error}</span>
+            </div>
+          )}
+
+          {/* Start button */}
+          <div className="flex-col align-center gap-2">
             <button
               onClick={runBatchAnalysis}
               disabled={files.length === 0 || processing || credits < files.length}
-              className="button-primary run-btn font-sans"
+              className="button-primary run-analysis-btn"
+              style={{ width: '320px' }}
             >
               {processing ? (
-                <span className="flex align-center justify-center gap-2" style={{ display: 'inline-flex', alignItems: 'center' }}>
-                  <SettingsIcon size={18} className="spin-animation" /> Processing Batch Live...
-                </span>
+                <>
+                  <SettingsIcon size={16} className="spin-animation" style={{ marginRight: '8px' }} />
+                  Processing Batch Scans...
+                </>
               ) : (
-                <span className="flex align-center justify-center gap-2" style={{ display: 'inline-flex', alignItems: 'center' }}>
-                  <ChartIcon size={18} /> Parse & Rank Candidate Batch
-                </span>
+                'Start Batch Analysis'
               )}
             </button>
             {files.length > 0 && (
-              <span className="credit-cost-subtext font-sans">
-                Will cost {files.length} credits (You have {credits} credits)
+              <span className="cost-subtext">
+                Will cost {files.length} credits (You have {credits} credits remaining)
               </span>
             )}
           </div>
 
-          {/* Error Card */}
-          {error && (
-            <div className="error-card card flex align-center gap-3">
-              <span className="error-icon flex align-center"><AlertIcon size={20} /></span>
-              <span className="error-message font-sans">{error}</span>
-            </div>
-          )}
+          {/* Recent Batch Jobs Table */}
+          <div className="card">
+            <h3 className="card-title">Recent Batch Jobs</h3>
+            <div className="card-divider"></div>
+            {recentBatchJobs.length === 0 ? (
+              <p className="font-sans text-secondary text-center py-4" style={{ fontSize: '14px' }}>
+                No batch jobs run in this session.
+              </p>
+            ) : (
+              <div className="table-container">
+                <table className="enterprise-table">
+                  <thead>
+                    <tr>
+                      <th>Run Time</th>
+                      <th>Candidates Scanned</th>
+                      <th>JD Focus</th>
+                      <th>Avg ATS Score</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recentBatchJobs.map((job, idx) => (
+                      <tr key={idx}>
+                        <td style={{ fontWeight: '600' }}>{job.timestamp}</td>
+                        <td className="font-mono">{job.candidateCount} Resumes</td>
+                        <td style={{ color: 'var(--text-secondary)' }}>{job.jobSnippet}</td>
+                        <td>
+                          <span className="tag tag-matched">{job.avgATS}%</span>
+                        </td>
+                        <td>
+                          <button
+                            onClick={() => loadRecentBatchJob(job)}
+                            className="button-secondary"
+                            style={{ padding: '6px 12px', fontSize: '12px', borderRadius: '8px' }}
+                          >
+                            View Job
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
-      {/* Analysis Section */}
+      {/* 2. Analysis Report Screen Pattern */}
       {activeSection === 'analysis' && (
-        <div className="flex-col gap-6">
-          {/* Error Card */}
-          {error && !processing && (
-            <div className="error-card card flex align-center gap-3">
-              <span className="error-icon flex align-center"><AlertIcon size={20} /></span>
-              <span className="error-message font-sans">{error}</span>
-            </div>
-          )}
-
-          {/* SSE Progress Feed List */}
-          {progressLog.length > 0 && (
-            <div className="progress-section card flex-col gap-3">
-              <div className="flex justify-between align-center">
-                <h3 className="card-title font-sans">Batch Progress Indicator</h3>
-                <span className="percent-indicator font-mono">{percentComplete}% ({completedCount}/{totalCount})</span>
+        <div className="flex-col gap-8 fade-in">
+          {/* Section 1: Batch Status */}
+          <div className="card">
+            <h3 className="card-title">Batch Progress</h3>
+            <div className="card-divider"></div>
+            <div className="flex-col gap-4">
+              <div className="flex justify-between align-center font-sans" style={{ fontSize: '13px' }}>
+                <span className="text-secondary">Processed: <strong>{completedCount} / {totalCount}</strong> candidates</span>
+                <span style={{ fontWeight: '700', color: 'var(--primary)' }}>{percentComplete}% Complete</span>
               </div>
-              
-              {/* Progress Bar Track */}
               <div className="progress-bar-track">
-                <div className="progress-bar-fill" style={{ width: `${percentComplete}%` }}></div>
+                <div 
+                  className="progress-bar-fill primary" 
+                  style={{ width: `${percentComplete}%` }}
+                ></div>
               </div>
 
-              {/* Individual Status Log Items */}
-              <div className="progress-log-list grid grid-cols-2 gap-3 mt-2">
-                {progressLog.map((log) => (
-                  <div key={log.index} className="log-row card flex align-center justify-between py-2 px-3">
-                    <span className="log-name truncate font-sans">{log.name}</span>
-                    <span className={`log-status font-mono ${log.status} flex align-center gap-1.5`} style={{ display: 'inline-flex', alignItems: 'center' }}>
-                      {log.status === 'queued' && <><ClockIcon size={14} /> Queued</>}
-                      {log.status === 'parsing' && <><SettingsIcon size={14} className="spin-animation" /> Parsing</>}
-                      {log.status === 'analysing' && <><BotIcon size={14} /> Analysing</>}
-                      {log.status === 'completed' && <><CheckIcon size={14} /> Done</>}
-                      {log.status === 'error' && <><XIcon size={14} /> Error</>}
-                    </span>
-                  </div>
-                ))}
+              {/* Progress Detail Logs grid */}
+              {progressLog.length > 0 && (
+                <div className="grid grid-cols-4 gap-3" style={{ maxHeight: '140px', overflowY: 'auto', marginTop: '8px' }}>
+                  {progressLog.map((log) => (
+                    <div key={log.index} className="flex-col gap-1" style={{
+                      backgroundColor: 'var(--bg)',
+                      border: '1px solid var(--border)',
+                      borderRadius: '8px',
+                      padding: '8px 12px',
+                      fontSize: '11px'
+                    }}>
+                      <span className="truncate font-bold" style={{ color: 'var(--text-primary)' }}>{log.name}</span>
+                      <span className="font-mono text-secondary" style={{ textTransform: 'capitalize' }}>
+                        {log.status === 'completed' ? '✓ Completed' : log.status === 'error' ? '✕ Failed' : log.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Section 2: Summary Metrics (140px KPI cards) */}
+          {results.length > 0 && (
+            <div className="grid grid-cols-4 gap-6">
+              {/* Total Resumes */}
+              <div className="kpi-card">
+                <span className="kpi-title">Total Resumes</span>
+                <span className="kpi-score">{totalResumes}</span>
+                <span className="kpi-status">Candidates parsed</span>
+                <div className="progress-bar-track">
+                  <div className="progress-bar-fill primary" style={{ width: '100%' }}></div>
+                </div>
+              </div>
+
+              {/* Average ATS Score */}
+              <div className="kpi-card">
+                <span className="kpi-title">Average ATS Match</span>
+                <span className="kpi-score">{avgATS}%</span>
+                <span className="kpi-status" style={{ color: `var(--${getProgressColorClass(avgATS)})`, fontWeight: '600' }}>
+                  {getStatusLabel(avgATS)}
+                </span>
+                <div className="progress-bar-track">
+                  <div className={`progress-bar-fill ${getProgressColorClass(avgATS)}`} style={{ width: `${avgATS}%` }}></div>
+                </div>
+              </div>
+
+              {/* Highest Score */}
+              <div className="kpi-card">
+                <span className="kpi-title">Highest ATS Match</span>
+                <span className="kpi-score">{highestATS}%</span>
+                <span className="kpi-status" style={{ color: `var(--${getProgressColorClass(highestATS)})`, fontWeight: '600' }}>
+                  Top Match
+                </span>
+                <div className="progress-bar-track">
+                  <div className={`progress-bar-fill ${getProgressColorClass(highestATS)}`} style={{ width: `${highestATS}%` }}></div>
+                </div>
+              </div>
+
+              {/* Lowest Score */}
+              <div className="kpi-card">
+                <span className="kpi-title">Lowest ATS Match</span>
+                <span className="kpi-score">{lowestATS}%</span>
+                <span className="kpi-status" style={{ color: `var(--${getProgressColorClass(lowestATS)})`, fontWeight: '600' }}>
+                  Floor Score
+                </span>
+                <div className="progress-bar-track">
+                  <div className={`progress-bar-fill ${getProgressColorClass(lowestATS)}`} style={{ width: `${lowestATS}%` }}></div>
+                </div>
               </div>
             </div>
           )}
 
-          {/* Ranked Candidates Table */}
+          {/* Section 4: Filters Toolbar */}
           {results.length > 0 && (
-            <div className="results-section flex-col gap-4">
+            <div className="card">
+              <h3 className="card-title">Filter Candidates</h3>
+              <div className="card-divider"></div>
+              <div className="flex align-center gap-6 flex-wrap" style={{ fontSize: '13px' }}>
+                {/* Score slider */}
+                <div className="flex align-center gap-3">
+                  <span className="text-secondary" style={{ fontWeight: '500' }}>Min Score:</span>
+                  <input 
+                    type="range" 
+                    min="0" 
+                    max="100" 
+                    value={minScore} 
+                    onChange={(e) => setMinScore(Number(e.target.value))} 
+                    style={{ cursor: 'pointer' }}
+                  />
+                  <span className="font-mono" style={{ fontWeight: '600', width: '30px' }}>{minScore}%</span>
+                </div>
+
+                {/* Skill input */}
+                <div className="flex align-center gap-3 flex-1" style={{ minWidth: '200px' }}>
+                  <span className="text-secondary" style={{ fontWeight: '500' }}>Required Skill:</span>
+                  <input 
+                    type="text" 
+                    className="input-text" 
+                    placeholder="e.g. Next.js, Kubernetes..." 
+                    value={skillFilter}
+                    onChange={(e) => setSkillFilter(e.target.value)}
+                    style={{ padding: '6px 12px' }}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Section 3: Ranked Candidates Table & Section 5: Exports */}
+          {results.length > 0 && (
+            <div className="flex-col gap-4">
               <div className="flex justify-between align-center">
-                <h2 className="section-title font-sans">Ranked Candidates List</h2>
+                <h3 className="card-title" style={{ border: 'none', padding: '0' }}>Ranked Candidate Match List</h3>
                 
                 {/* Export Buttons */}
-                <div className="export-bar flex gap-2">
-                  <button onClick={exportCSV} className="button-secondary btn-sm font-sans flex align-center gap-1.5" style={{ display: 'inline-flex', alignItems: 'center' }}>
-                    <DownloadIcon size={14} /> Export CSV
+                <div className="flex gap-2">
+                  <button onClick={exportCSV} className="button-secondary flex align-center gap-2" style={{ padding: '6px 12px', fontSize: '12px', borderRadius: '8px' }}>
+                    <DownloadIcon size={12} />
+                    <span>CSV</span>
                   </button>
-                  <button onClick={exportJSON} className="button-secondary btn-sm font-sans flex align-center gap-1.5" style={{ display: 'inline-flex', alignItems: 'center' }}>
-                    <DownloadIcon size={14} /> Export JSON
+                  <button onClick={exportJSON} className="button-secondary flex align-center gap-2" style={{ padding: '6px 12px', fontSize: '12px', borderRadius: '8px' }}>
+                    <DownloadIcon size={12} />
+                    <span>JSON</span>
+                  </button>
+                  <button onClick={exportPDF} className="button-secondary flex align-center gap-2" style={{ padding: '6px 12px', fontSize: '12px', borderRadius: '8px' }}>
+                    <DownloadIcon size={12} />
+                    <span>PDF</span>
                   </button>
                 </div>
               </div>
 
-              {/* Ranking Table */}
-              <div className="table-container card p-0">
-                <table className="ranking-table font-sans">
+              {/* Candidates Table */}
+              <div className="table-container">
+                <table className="enterprise-table">
                   <thead>
                     <tr>
-                      <th className="font-sans">Rank</th>
-                      <th onClick={() => handleSort('name')} className="sortable font-sans">
-                        <span className="flex align-center gap-1" style={{ display: 'inline-flex', alignItems: 'center' }}>
-                          Name {sortField === 'name' ? (sortOrder === 'asc' ? <ChevronUpIcon size={12} /> : <ChevronDownIcon size={12} />) : ''}
-                        </span>
+                      <th>Rank</th>
+                      <th className="sortable" onClick={() => handleSort('name')}>
+                        <div className="flex align-center gap-1">
+                          Candidate Name
+                          {sortField === 'name' && (sortOrder === 'asc' ? <ChevronUpIcon size={14} /> : <ChevronDownIcon size={14} />)}
+                        </div>
                       </th>
-                      <th onClick={() => handleSort('format')} className="sortable font-sans">
-                        <span className="flex align-center gap-1" style={{ display: 'inline-flex', alignItems: 'center' }}>
-                          Format {sortField === 'format' ? (sortOrder === 'asc' ? <ChevronUpIcon size={12} /> : <ChevronDownIcon size={12} />) : ''}
-                        </span>
+                      <th>Resume Name</th>
+                      <th className="sortable text-center" onClick={() => handleSort('atsScore')}>
+                        <div className="flex align-center justify-center gap-1" style={{ width: '100%' }}>
+                          ATS Score
+                          {sortField === 'atsScore' && (sortOrder === 'asc' ? <ChevronUpIcon size={14} /> : <ChevronDownIcon size={14} />)}
+                        </div>
                       </th>
-                      <th onClick={() => handleSort('atsScore')} className="sortable font-sans">
-                        <span className="flex align-center gap-1" style={{ display: 'inline-flex', alignItems: 'center' }}>
-                          ATS Score {sortField === 'atsScore' ? (sortOrder === 'asc' ? <ChevronUpIcon size={12} /> : <ChevronDownIcon size={12} />) : ''}
-                        </span>
+                      <th className="sortable text-center" onClick={() => handleSort('qualityScore')}>
+                        <div className="flex align-center justify-center gap-1" style={{ width: '100%' }}>
+                          Resume Quality
+                          {sortField === 'qualityScore' && (sortOrder === 'asc' ? <ChevronUpIcon size={14} /> : <ChevronDownIcon size={14} />)}
+                        </div>
                       </th>
-                      <th onClick={() => handleSort('qualityScore')} className="sortable font-sans">
-                        <span className="flex align-center gap-1" style={{ display: 'inline-flex', alignItems: 'center' }}>
-                          Quality {sortField === 'qualityScore' ? (sortOrder === 'asc' ? <ChevronUpIcon size={12} /> : <ChevronDownIcon size={12} />) : ''}
-                        </span>
-                      </th>
-                      <th className="font-sans">Top Core Skills</th>
-                      <th className="font-sans">Action</th>
+                      <th>Top Matching Skills</th>
+                      <th>Action</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {getSortedResults().map((res, index) => {
-                      const sortedIdx = index + 1;
-                      const format = res.filename.split('.').pop().toUpperCase();
+                    {getFilteredAndSortedResults().map((res, index) => {
+                      const rank = index + 1;
+                      const extension = res.filename.split('.').pop().toUpperCase();
                       const isExpanded = expandedIndex === index;
-                      const score = res.analysis.atsScore !== null ? res.analysis.atsScore : res.analysis.qualityScore;
+                      const score = res.analysis?.atsScore ?? res.analysis?.qualityScore ?? 0;
 
                       return (
-                        <tr key={res.id} className={isExpanded ? 'row-expanded' : ''}>
-                          <td>
-                            <span className={`rank-badge font-mono ${sortedIdx <= 3 ? 'top-rank' : ''}`}>
-                              #{sortedIdx}
+                        <tr key={res.id} style={{ backgroundColor: isExpanded ? 'var(--bg)' : 'transparent' }}>
+                          <td style={{ fontWeight: '700', color: rank <= 3 ? 'var(--primary)' : 'var(--text-secondary)' }}>
+                            #{rank}
+                          </td>
+                          <td style={{ fontWeight: '600' }}>{res.analysis?.candidateName || 'N/A'}</td>
+                          <td className="font-mono text-secondary" style={{ fontSize: '13px' }}>
+                            {res.filename} <span style={{ opacity: 0.6 }}>({extension})</span>
+                          </td>
+                          <td style={{ textAlign: 'center' }}>
+                            <span 
+                              className="tag"
+                              style={{ 
+                                backgroundColor: score >= 80 ? 'rgba(16, 185, 129, 0.1)' : score >= 65 ? 'rgba(245, 158, 11, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                                color: score >= 80 ? 'var(--success)' : score >= 65 ? 'var(--warning)' : 'var(--danger)'
+                              }}
+                            >
+                              {res.analysis?.atsScore !== null && res.analysis?.atsScore !== undefined ? `${res.analysis.atsScore}%` : 'N/A'}
                             </span>
                           </td>
-                          <td className="font-bold">{res.analysis.candidateName}</td>
-                          <td className="font-mono text-sm">{format}</td>
-                          <td>
-                            <span className={`score-badge font-mono ${score >= 80 ? 'good' : score >= 65 ? 'avg' : 'low'}`}>
-                              {res.analysis.atsScore !== null ? `${res.analysis.atsScore}%` : 'N/A'}
-                            </span>
-                          </td>
-                          <td>
-                            <span className="font-mono">{res.analysis.qualityScore}%</span>
+                          <td style={{ textAlign: 'center', fontWeight: '600' }}>
+                            {res.analysis?.qualityScore}%
                           </td>
                           <td>
                             <div className="flex gap-1 flex-wrap">
-                              {res.analysis.skills.matched.slice(0, 3).map((s, i) => (
-                                <span key={i} className="chip chip-success font-mono text-xs">{s}</span>
-                              ))}
+                              {res.analysis?.skills?.matched?.slice(0, 3).map((s, i) => (
+                                <span key={i} className="tag tag-matched" style={{ padding: '2px 8px', fontSize: '11px' }}>{s}</span>
+                              )) || <span className="text-secondary font-sans" style={{ fontSize: '12px' }}>None</span>}
                             </div>
                           </td>
                           <td>
-                            <button onClick={() => toggleRowExpand(index)} className="button-secondary btn-xs">
-                              {isExpanded ? 'Collapse' : 'Report'}
+                            <button onClick={() => toggleRowExpand(index)} className="button-secondary" style={{ padding: '6px 12px', fontSize: '12px', borderRadius: '8px' }}>
+                              {isExpanded ? 'Hide' : 'Report'}
                             </button>
                           </td>
                         </tr>
@@ -557,67 +774,55 @@ export default function BatchView({ onAddHistory, credits, setCredits }) {
                 </table>
               </div>
 
-              {/* Accordion Detail Card Expansion */}
-              {expandedIndex !== null && (
-                <div className="expanded-detail-card card flex-col gap-4 mt-2">
-                  <div className="flex justify-between align-center border-b pb-2">
-                    <h3 className="candidate-detail-title font-sans">
-                      Resume Report for **{getSortedResults()[expandedIndex].analysis.candidateName}**
-                    </h3>
-                    <button onClick={() => setExpandedIndex(null)} className="close-expanded-btn">✕</button>
+              {/* Accordion expand detail panel */}
+              {expandedIndex !== null && getFilteredAndSortedResults()[expandedIndex] && (
+                <div className="card fade-in" style={{ borderColor: 'var(--primary)', marginTop: '8px' }}>
+                  <div className="flex justify-between align-center">
+                    <h4 className="font-primary" style={{ fontSize: '15px', fontWeight: '700' }}>
+                      Detailed Report for: <strong>{getFilteredAndSortedResults()[expandedIndex].analysis.candidateName}</strong>
+                    </h4>
+                    <button onClick={() => setExpandedIndex(null)} className="remove-btn">✕</button>
                   </div>
-
-                  <div className="grid grid-cols-2 gap-8 py-2">
-                    {/* Score breakdown and summary */}
+                  <div className="card-divider"></div>
+                  
+                  <div className="grid grid-cols-2 gap-8" style={{ fontSize: '13px' }}>
+                    {/* Score detail and summary text */}
                     <div className="flex-col gap-3">
-                      <div className="flex justify-around bg-primary-light p-3 rounded-12">
+                      <div className="flex justify-around bg-primary-light" style={{ backgroundColor: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '12px' }}>
                         <div className="flex-col align-center">
-                          <span className="score-val font-mono">{getSortedResults()[expandedIndex].analysis.atsScore}%</span>
-                          <span className="score-lbl">ATS Score</span>
+                          <span style={{ fontSize: '18px', fontWeight: '700', color: 'var(--primary)' }}>
+                            {getFilteredAndSortedResults()[expandedIndex].analysis.atsScore}%
+                          </span>
+                          <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>ATS Score</span>
                         </div>
                         <div className="flex-col align-center">
-                          <span className="score-val font-mono">{getSortedResults()[expandedIndex].analysis.qualityScore}%</span>
-                          <span className="score-lbl">Quality Score</span>
+                          <span style={{ fontSize: '18px', fontWeight: '700', color: 'var(--text-primary)' }}>
+                            {getFilteredAndSortedResults()[expandedIndex].analysis.qualityScore}%
+                          </span>
+                          <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Quality Score</span>
                         </div>
                       </div>
-                      <p className="detail-summary font-sans">
-                        {getSortedResults()[expandedIndex].analysis.feedback.summary}
+                      <p className="text-secondary" style={{ lineHeight: '1.5' }}>
+                        {getFilteredAndSortedResults()[expandedIndex].analysis.feedback?.summary}
                       </p>
-                      {/* Rule Violations Indicator */}
-                      {getSortedResults()[expandedIndex].analysis.ruleViolations && (
-                        <div className="flex-col gap-1 mt-2 text-left">
-                          <span className="detail-lbl font-sans font-bold" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Rule Checks:</span>
-                          <span className="font-sans" style={{ fontSize: '0.75rem' }}>
-                            {getSortedResults()[expandedIndex].analysis.ruleViolations.length > 0 ? (
-                              <span style={{ color: 'var(--danger)' }}>
-                                ⚠️ Failed: {getSortedResults()[expandedIndex].analysis.ruleViolations.join(', ')}
-                              </span>
-                            ) : (
-                              <span style={{ color: 'var(--success)' }}>
-                                ✓ All basic structure checks passed
-                              </span>
-                            )}
-                          </span>
-                        </div>
-                      )}
                     </div>
 
-                    {/* Checklist Strengths & Improvements */}
+                    {/* Strengths & Improvements */}
                     <div className="flex-col gap-3">
                       <div className="flex-col gap-1">
-                        <span className="detail-lbl font-sans">Strengths</span>
-                        <ul className="detail-list">
-                          {getSortedResults()[expandedIndex].analysis.feedback.strengths.slice(0, 2).map((s, i) => (
-                            <li key={i} className="font-sans">• {s}</li>
-                          ))}
+                        <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>Strengths</span>
+                        <ul style={{ listStyle: 'none', paddingLeft: '0', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                          {getFilteredAndSortedResults()[expandedIndex].analysis.feedback?.strengths?.slice(0, 3).map((s, i) => (
+                            <li key={i}>• {s}</li>
+                          )) || <li>None</li>}
                         </ul>
                       </div>
-                      <div className="flex-col gap-1 mt-2">
-                        <span className="detail-lbl font-sans">Key Areas to Improve</span>
-                        <ul className="detail-list">
-                          {getSortedResults()[expandedIndex].analysis.feedback.improvements.slice(0, 2).map((s, i) => (
-                            <li key={i} className="font-sans">• {s}</li>
-                          ))}
+                      <div className="flex-col gap-1" style={{ marginTop: '8px' }}>
+                        <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>Areas to Improve</span>
+                        <ul style={{ listStyle: 'none', paddingLeft: '0', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                          {getFilteredAndSortedResults()[expandedIndex].analysis.feedback?.improvements?.slice(0, 3).map((s, i) => (
+                            <li key={i}>• {s}</li>
+                          )) || <li>None</li>}
                         </ul>
                       </div>
                     </div>
@@ -630,425 +835,118 @@ export default function BatchView({ onAddHistory, credits, setCredits }) {
       )}
 
       <style jsx>{`
-        .section-tabs {
-          display: flex;
-          background-color: var(--bg-secondary);
-          border: 1px solid var(--border-color);
-          padding: 0.3rem;
-          border-radius: 9999px;
-          align-self: center;
-          margin-bottom: 0.5rem;
-          box-shadow: var(--shadow-sm);
-          width: fit-content;
-        }
-
-        .section-tab-btn {
-          background: transparent;
-          border: none;
-          color: var(--text-secondary);
-          cursor: pointer;
-          font-size: 0.85rem;
-          font-weight: 700;
-          padding: 0.5rem 1.75rem;
-          border-radius: 9999px;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .section-tab-btn:hover {
-          color: var(--text-primary);
-        }
-
-        .section-tab-btn.active {
-          background: linear-gradient(135deg, var(--primary), var(--secondary));
-          color: #FFFFFF;
-          box-shadow: var(--btn-shadow);
-        }
-
         .workspace {
-          padding: 2rem;
-          overflow-y: auto;
-          flex: 1;
+          width: 100%;
         }
 
-        .dropzone {
-          border: 2.5px dashed var(--border-color);
-          height: 240px;
-          cursor: pointer;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        .dropzone-area {
+          border: 2px dashed var(--border);
+          border-radius: var(--radius-card);
+          height: 200px;
+          transition: border-color var(--transition-speed) ease, background-color var(--transition-speed) ease;
         }
 
-        .dropzone:hover, .dropzone.drag-over {
+        .dropzone-area:hover, .dropzone-area.drag-over {
           border-color: var(--primary);
-          background-color: var(--primary-light);
+          background-color: var(--bg);
         }
 
-        .hidden-input {
-          display: none;
+        .upload-box {
+          width: 100%;
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
         }
 
-        .upload-icon-circle {
-          background-color: var(--primary-light);
-          width: 54px;
-          height: 54px;
+        .upload-icon-wrapper {
+          background-color: var(--bg);
+          border: 1px solid var(--border);
           border-radius: 50%;
-          font-size: 1.5rem;
+          width: 48px;
+          height: 48px;
         }
 
         .upload-title {
-          font-size: 1.05rem;
-          font-weight: 700;
+          font-family: var(--font-primary);
+          font-size: 14px;
+          font-weight: 600;
           color: var(--text-primary);
         }
 
-        .upload-subtitle {
-          font-size: 0.85rem;
+        .upload-desc {
+          font-family: var(--font-secondary);
+          font-size: 12px;
           color: var(--text-secondary);
-          margin-top: 0.15rem;
+          margin-top: 2px;
         }
 
-        .upload-formats {
-          font-size: 0.75rem;
-          color: var(--text-muted);
-          margin-top: 0.4rem;
+        .upload-note {
+          font-size: 11px;
+          color: var(--text-secondary);
+          opacity: 0.8;
+          margin-top: 6px;
         }
 
-        .batch-files-view {
-          align-self: flex-start;
-          width: 100%;
-          height: 100%;
-        }
-
-        .files-count {
-          font-size: 0.95rem;
-          font-weight: 700;
-          color: var(--text-primary);
-        }
-
-        .files-list {
-          padding-right: 0.25rem;
-        }
-
-        .file-row {
-          background-color: var(--bg-primary);
-          padding: 0.4rem 0.75rem;
-          border-radius: 8px;
-          font-size: 0.8rem;
-          margin-bottom: 0.25rem;
-        }
-
-        .file-row-name {
-          max-width: 85%;
-        }
-
-        .truncate {
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-
-        .remove-row-btn {
+        .remove-btn {
           background: transparent;
           border: none;
-          color: var(--text-muted);
+          color: var(--text-secondary);
           cursor: pointer;
           font-weight: bold;
-          font-size: 0.85rem;
+          font-size: 14px;
+          transition: color var(--transition-speed) ease;
         }
 
-        .remove-row-btn:hover {
+        .remove-btn:hover {
           color: var(--danger);
-        }
-
-        .jd-box {
-          height: 240px;
-        }
-
-        .label-title {
-          font-size: 0.95rem;
-          font-weight: 700;
-          color: var(--text-primary);
         }
 
         .jd-textarea {
-          width: 100%;
           flex: 1;
+          min-height: 120px;
           resize: none;
-          background-color: var(--bg-primary);
-          border: 1px solid var(--border-color);
-          border-radius: 12px;
-          padding: 0.75rem 1rem;
-          color: var(--text-primary);
-          outline: none;
-          transition: border-color 0.2s, box-shadow 0.2s;
-          font-size: 0.85rem;
-          line-height: 1.5;
         }
 
-        .jd-textarea:focus {
-          border-color: var(--primary);
-          box-shadow: 0 0 0 3px var(--border-glow);
+        .jd-stats {
+          font-size: 11px;
+          color: var(--text-secondary);
         }
 
-        .jd-footer {
-          font-size: 0.7rem;
-          color: var(--text-muted);
+        .sample-btn {
+          padding: 6px 12px !important;
+          font-size: 12px !important;
+          border-radius: 8px !important;
         }
 
-        .run-btn {
-          width: 320px;
-          padding: 0.85rem;
-          font-size: 1rem;
-        }
-
-        .error-card {
-          border-color: var(--danger);
-          background-color: var(--danger-bg);
+        .error-banner {
+          background-color: rgba(239, 68, 68, 0.06);
+          border: 1px solid rgba(239, 68, 68, 0.2);
           color: var(--danger);
-          padding: 1rem;
-        }
-
-        .error-icon {
-          font-size: 1.3rem;
-        }
-
-        .error-message {
-          font-size: 0.85rem;
-          font-weight: 600;
-        }
-
-        /* Progress Feed */
-        .percent-indicator {
-          font-size: 0.85rem;
-          font-weight: 700;
-          color: var(--primary);
-        }
-
-        .progress-bar-track {
-          background-color: var(--bg-primary);
-          height: 10px;
-          border-radius: 999px;
-          overflow: hidden;
-          width: 100%;
-        }
-
-        .progress-bar-fill {
-          background: linear-gradient(135deg, var(--primary), var(--secondary));
-          height: 100%;
-          border-radius: 999px;
-          transition: width 0.4s ease-out;
-        }
-
-        .progress-log-list {
-          max-height: 150px;
-          overflow-y: auto;
-        }
-
-        .log-row {
-          border: 1px solid var(--border-color);
-          box-shadow: none;
-          background-color: var(--bg-primary);
-        }
-
-        .log-name {
-          max-width: 60%;
-          font-size: 0.8rem;
-          color: var(--text-primary);
-        }
-
-        .log-status {
-          font-size: 0.75rem;
-          font-weight: 700;
-        }
-
-        .log-status.queued { color: var(--text-muted); }
-        .log-status.parsing { color: var(--primary); }
-        .log-status.analysing { color: var(--secondary); }
-        .log-status.completed { color: var(--success); }
-        .log-status.error { color: var(--danger); }
-
-        /* Ranking Table */
-        .section-title {
-          font-size: 1.25rem;
-          font-weight: 800;
-          color: var(--text-primary);
-        }
-
-        .table-container {
-          overflow-x: auto;
-          border: 1px solid var(--border-color);
-          border-radius: 16px;
-        }
-
-        .ranking-table {
-          width: 100%;
-          border-collapse: collapse;
-          text-align: left;
-        }
-
-        .ranking-table th {
-          background-color: var(--bg-primary);
-          color: var(--text-secondary);
-          font-weight: 700;
-          font-size: 0.8rem;
-          text-transform: uppercase;
-          padding: 0.75rem 1.25rem;
-          border-bottom: 1px solid var(--border-color);
-        }
-
-        .ranking-table th.sortable {
-          cursor: pointer;
-        }
-
-        .ranking-table th.sortable:hover {
-          color: var(--primary);
-        }
-
-        .ranking-table td {
-          padding: 0.9rem 1.25rem;
-          border-bottom: 1px solid var(--border-color);
-          font-size: 0.85rem;
-          color: var(--text-secondary);
-        }
-
-        .ranking-table tbody tr {
-          transition: background-color 0.2s;
-        }
-
-        .ranking-table tbody tr:hover {
-          background-color: var(--primary-light);
-        }
-
-        .ranking-table tbody tr.row-expanded {
-          background-color: var(--primary-light);
-          border-left: 3px solid var(--primary);
-        }
-
-        .rank-badge {
-          background-color: var(--bg-primary);
-          font-size: 0.8rem;
-          font-weight: bold;
-          padding: 0.25rem 0.5rem;
-          border-radius: 6px;
-          color: var(--text-muted);
-        }
-
-        .rank-badge.top-rank {
-          background-color: var(--primary-light);
-          color: var(--primary);
-          border: 1px solid var(--border-glow);
-        }
-
-        .font-bold {
-          font-weight: 700;
-          color: var(--text-primary);
-        }
-
-        .score-badge {
-          font-weight: 800;
-          font-size: 0.9rem;
-        }
-
-        .score-badge.good { color: var(--success); }
-        .score-badge.avg { color: var(--warning); }
-        .score-badge.low { color: var(--danger); }
-
-        .btn-sm {
-          padding: 0.4rem 1rem;
-          font-size: 0.8rem;
-          border-radius: 8px;
-        }
-
-        .btn-xs {
-          padding: 0.25rem 0.5rem;
-          font-size: 0.75rem;
-          border-radius: 6px;
-        }
-
-        /* Expanded Details Accordion */
-        .expanded-detail-card {
-          border-color: var(--primary);
-          animation: slide-down 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .candidate-detail-title {
-          font-size: 0.95rem;
-          font-weight: 700;
-          color: var(--text-primary);
-        }
-
-        .close-expanded-btn {
-          background: transparent;
-          border: none;
-          color: var(--text-muted);
-          font-size: 1rem;
-          cursor: pointer;
-        }
-
-        .close-expanded-btn:hover {
-          color: var(--text-primary);
-        }
-
-        .rounded-12 {
-          border-radius: 12px;
-        }
-
-        .score-val {
-          font-size: 1.5rem;
-          font-weight: 800;
-          color: var(--primary);
-        }
-
-        .score-lbl {
-          font-size: 0.7rem;
-          color: var(--text-secondary);
-        }
-
-        .detail-summary {
-          font-size: 0.8rem;
-          line-height: 1.4;
-          color: var(--text-secondary);
-        }
-
-        .detail-lbl {
-          font-size: 0.8rem;
-          font-weight: 700;
-          color: var(--text-primary);
-        }
-
-        .detail-list {
-          list-style: none;
-          font-size: 0.75rem;
-          color: var(--text-secondary);
-          line-height: 1.4;
-        }
-
-        .mt-2 { margin-top: 0.75rem; }
-
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-
-        :global(.spin-animation) {
-          animation: spin 2s linear infinite;
-        }
-
-        .credit-warning-banner {
-          border-color: var(--warning);
-          background-color: var(--warning-bg);
-          color: var(--warning);
-          padding: 0.75rem 1rem;
-          border-radius: 12px;
-          margin-top: 1rem;
-          max-width: 450px;
+          padding: 12px 16px;
+          border-radius: var(--radius-btn);
           align-self: center;
+          max-width: 500px;
+          width: 100%;
         }
 
-        .credit-cost-subtext {
-          font-size: 0.75rem;
-          color: var(--text-muted);
-          margin-top: 0.25rem;
-          text-align: center;
+        .error-text {
+          font-family: var(--font-secondary);
+          font-size: 13px;
+          font-weight: 500;
+        }
+
+        .run-analysis-btn {
+          width: 280px;
+          padding: 14px;
+          font-size: 15px;
+        }
+
+        .cost-subtext {
+          font-family: var(--font-secondary);
+          font-size: 12px;
+          color: var(--text-secondary);
         }
       `}</style>
     </div>

@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 import { 
   FileTextIcon, 
@@ -11,15 +13,21 @@ import {
   SettingsIcon 
 } from './Icons';
 
-export default function IndividualView({ onAddHistory, selectedAnalysis, credits, setCredits }) {
+export default function IndividualView({ 
+  onAddHistory, 
+  selectedAnalysis, 
+  credits, 
+  setCredits, 
+  history = [] 
+}) {
   const [file, setFile] = useState(null);
   const [jobDescription, setJobDescription] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
-  const [activeTab, setActiveTab] = useState('summary');
+  const [activeFeedbackTab, setActiveFeedbackTab] = useState('summary');
   const [dragOver, setDragOver] = useState(false);
-  const [activeSection, setActiveSection] = useState('input'); // 'input' or 'analysis'
+  const [activeSection, setActiveSection] = useState('input'); // 'input' (Configure) or 'analysis' (Analysis Report)
 
   // Load selected analysis if loaded from history
   useEffect(() => {
@@ -35,7 +43,6 @@ export default function IndividualView({ onAddHistory, selectedAnalysis, credits
     }
   }, [selectedAnalysis]);
 
-  // Sample job description for easy testing
   const loadSampleJD = () => {
     setJobDescription(
       "Looking for a Senior React Developer with experience in React, Next.js, and TypeScript. Skills in Custom CSS, Tailwind, and Kubernetes are a plus."
@@ -86,7 +93,6 @@ export default function IndividualView({ onAddHistory, selectedAnalysis, credits
     setAnalyzing(true);
     setError(null);
     setResult(null);
-    setActiveSection('analysis');
 
     const formData = new FormData();
     formData.append('file', file);
@@ -114,8 +120,11 @@ export default function IndividualView({ onAddHistory, selectedAnalysis, credits
         id: data.analysis.id,
         filename: file.name,
         analysis: data.analysis,
-        timestamp: data.analysis.timestamp,
+        timestamp: data.analysis.timestamp || new Date().toLocaleTimeString(),
       });
+
+      // Automatically switch to the Analysis Report screen
+      setActiveSection('analysis');
     } catch (err) {
       console.error(err);
       setError(err.message || 'An error occurred during analysis.');
@@ -124,877 +133,667 @@ export default function IndividualView({ onAddHistory, selectedAnalysis, credits
     }
   };
 
-  // Helper to get formatted score color
-  const getScoreColorClass = (score) => {
-    if (score >= 80) return 'good';
-    if (score >= 65) return 'average';
-    return 'poor';
+  // Helper to load a scan directly from the recent scans list
+  const loadRecentScan = (record) => {
+    setResult(record.analysis);
+    setJobDescription(record.analysis.jobDescription || '');
+    setFile({ name: record.filename, size: 0, isSavedRecord: true });
+    setError(null);
+    setActiveSection('analysis');
   };
 
-  // SVG Gauge parameters
-  const R = 40;
-  const C = 2 * Math.PI * R; // ~251.32
+  // Helper for progress bar color
+  const getProgressColorClass = (score) => {
+    if (score >= 80) return 'success';
+    if (score >= 65) return 'warning';
+    return 'danger';
+  };
+
+  const getStatusLabel = (score) => {
+    if (score >= 80) return 'Excellent';
+    if (score >= 65) return 'Good Match';
+    return 'Needs Improvement';
+  };
+
+  // Keyword Match Score: ratio of matched to matched+missing
+  const getKeywordMatchScore = () => {
+    if (!result) return 0;
+    const matched = result.skills?.matched?.length || 0;
+    const missing = result.skills?.missing?.length || 0;
+    const total = matched + missing;
+    return total > 0 ? Math.round((matched / total) * 100) : 0;
+  };
+
+  // Dynamic Overall Ranking calculated from session history
+  const getOverallRanking = () => {
+    if (!result || history.length === 0) return { rank: 1, total: 1 };
+    
+    // Sort history by score descending
+    const sorted = [...history].sort((a, b) => {
+      const scoreA = a.analysis?.atsScore ?? a.analysis?.qualityScore ?? 0;
+      const scoreB = b.analysis?.atsScore ?? b.analysis?.qualityScore ?? 0;
+      return scoreB - scoreA;
+    });
+
+    const index = sorted.findIndex(item => item.id === result.id || item.analysis?.id === result.id);
+    const rank = index !== -1 ? index + 1 : 1;
+    return { rank, total: history.length };
+  };
+
+  const rankingInfo = getOverallRanking();
+  const keywordScore = getKeywordMatchScore();
+  const individualScans = history.slice(0, 5); // Last 5 scans
 
   return (
-    <div className="workspace flex-col gap-6">
-      {/* Sub-navigation tabs for Setup vs Analysis */}
-      {result && (
-        <div className="section-tabs">
-          <button
-            onClick={() => setActiveSection('input')}
-            className={`section-tab-btn font-sans ${activeSection === 'input' ? 'active' : ''}`}
-          >
-            Configure Matcher
-          </button>
-          <button
-            onClick={() => setActiveSection('analysis')}
-            className={`section-tab-btn font-sans ${activeSection === 'analysis' ? 'active' : ''}`}
-          >
-            Analysis Report
-          </button>
-        </div>
-      )}
+    <div className="workspace flex-col gap-6 fade-in">
+      {/* Secondary Navigation (Configure vs Analysis Report) */}
+      <div className="tabs-navigation">
+        <button
+          onClick={() => setActiveSection('input')}
+          className={`tab-nav-btn ${activeSection === 'input' ? 'active' : ''}`}
+        >
+          Configure
+        </button>
+        <button
+          onClick={() => {
+            if (result) {
+              setActiveSection('analysis');
+            }
+          }}
+          disabled={!result}
+          className={`tab-nav-btn ${activeSection === 'analysis' ? 'active' : ''}`}
+          style={{ opacity: result ? 1 : 0.5, cursor: result ? 'pointer' : 'not-allowed' }}
+        >
+          Analysis Report
+        </button>
+      </div>
 
-      {/* Input / Configure Section */}
+      {/* 1. Configure Screen Pattern (Input Only) */}
       {activeSection === 'input' && (
-        <div className="flex-col gap-6">
-          <div className="input-section grid grid-cols-2 gap-8">
-            {/* Dropzone Container */}
-            <div 
-              className={`dropzone card flex-col align-center justify-center gap-3 ${dragOver ? 'drag-over' : ''}`}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-            >
-              {file ? (
-                <div className="file-details flex-col align-center gap-3 w-full">
-                  <div className="file-icon-wrapper flex align-center justify-center">
-                    <span className="file-icon-emoji flex align-center justify-center" style={{ color: '#FFFFFF' }}>
-                      {file.name.endsWith('.tex') ? <FileCodeIcon size={28} /> : <FileTextIcon size={28} />}
-                    </span>
+        <div className="flex-col gap-8 fade-in">
+          <div className="grid grid-cols-2 gap-8">
+            {/* Resume Upload Card */}
+            <div className="card">
+              <h3 className="card-title">Resume File</h3>
+              <div className="card-divider"></div>
+              
+              <div 
+                className={`dropzone-area flex-col align-center justify-center gap-3 ${dragOver ? 'drag-over' : ''}`}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
+                {file ? (
+                  <div className="file-details flex-col align-center gap-3 w-full">
+                    <div className="file-icon-wrapper flex align-center justify-center">
+                      {file.name.endsWith('.tex') ? <FileCodeIcon size={24} style={{ color: 'var(--primary)' }} /> : <FileTextIcon size={24} style={{ color: 'var(--primary)' }} />}
+                    </div>
+                    <div className="file-info flex-col align-center text-center">
+                      <span className="file-name truncate">{file.name}</span>
+                      {file.isSavedRecord ? (
+                        <span className="file-size text-secondary">Saved Session Scan</span>
+                      ) : (
+                        <span className="file-size font-mono">{Math.round(file.size / 1024)} KB</span>
+                      )}
+                    </div>
+                    <button onClick={clearFile} className="button-secondary flex align-center gap-2" style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '13px' }}>
+                      <XIcon size={14} /> Clear File
+                    </button>
                   </div>
-                  <div className="file-info flex-col align-center">
-                    <span className="file-name font-sans">{file.name}</span>
-                    {file.isSavedRecord ? (
-                      <span className="file-size font-sans" style={{ color: 'var(--primary)' }}>Saved Scan</span>
-                    ) : (
-                      <span className="file-size font-mono">{Math.round(file.size / 1024)} KB</span>
-                    )}
-                    <span className="file-badge font-mono">{file.name.split('.').pop().toUpperCase()}</span>
-                  </div>
-                  <button onClick={clearFile} className="button-secondary btn-sm flex align-center gap-1.5" style={{ display: 'inline-flex', alignItems: 'center' }}>
-                    <XIcon size={14} /> Clear File
-                  </button>
-                </div>
-              ) : (
-                <label className="upload-label flex-col align-center justify-center gap-3 cursor-pointer">
-                  <input type="file" onChange={handleFileChange} accept=".pdf,.tex,.txt" className="hidden-input" />
-                  <div className="upload-icon-circle flex align-center justify-center">
-                    <UploadIcon size={24} style={{ color: 'var(--primary)' }} />
-                  </div>
-                  <div className="upload-text flex-col align-center text-center">
-                    <span className="upload-title font-sans">Drag & Drop Resume</span>
-                    <span className="upload-subtitle font-sans">or click to browse local files</span>
-                    <span className="upload-formats font-mono">Supports PDF or LaTeX (.tex)</span>
-                  </div>
-                </label>
-              )}
+                ) : (
+                  <label className="upload-box flex-col align-center justify-center gap-3 cursor-pointer">
+                    <input type="file" onChange={handleFileChange} accept=".pdf,.tex,.txt" style={{ display: 'none' }} />
+                    <div className="upload-icon-wrapper flex align-center justify-center">
+                      <UploadIcon size={24} style={{ color: 'var(--text-secondary)' }} />
+                    </div>
+                    <div className="flex-col align-center text-center">
+                      <span className="upload-title">Upload Resume</span>
+                      <span className="upload-desc">Drag & drop or click to browse</span>
+                      <span className="upload-note font-mono">PDF, LaTeX (.tex) or Text (.txt)</span>
+                    </div>
+                  </label>
+                )}
+              </div>
             </div>
 
             {/* Job Description Card */}
-            <div className="jd-box card flex-col gap-3">
+            <div className="card">
               <div className="flex justify-between align-center">
-                <label className="label-title font-sans">Target Job Description</label>
-                <button onClick={loadSampleJD} className="button-secondary btn-xs font-sans flex align-center gap-1" style={{ display: 'inline-flex', alignItems: 'center' }}>
-                  <SparklesIcon size={12} /> Load Sample JD
+                <h3 className="card-title">Job Description</h3>
+                <button onClick={loadSampleJD} className="button-secondary sample-btn flex align-center gap-2">
+                  <SparklesIcon size={13} />
+                  <span>Sample JD</span>
                 </button>
               </div>
-              <textarea
-                value={jobDescription}
-                onChange={(e) => setJobDescription(e.target.value)}
-                placeholder="Paste target job requirements here to calculate ATS compatibility score..."
-                className="jd-textarea font-sans"
-              />
-              <div className="jd-footer flex justify-between font-mono">
-                <span>{jobDescription.split(/\s+/).filter(Boolean).length} words</span>
-                <span>{jobDescription.length} characters</span>
+              <div className="card-divider"></div>
+              
+              <div className="flex-col gap-3 h-full">
+                <textarea
+                  value={jobDescription}
+                  onChange={(e) => setJobDescription(e.target.value)}
+                  placeholder="Paste target job requirements here to calculate ATS compatibility score..."
+                  className="textarea-text jd-textarea"
+                />
+                <div className="jd-stats flex justify-between font-mono">
+                  <span>{jobDescription.split(/\s+/).filter(Boolean).length} words</span>
+                  <span>{jobDescription.length} chars</span>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Credit Check Banner */}
-          {credits === 0 && (
-            <div className="credit-warning-banner card flex align-center gap-3">
-              <span className="error-icon flex align-center">⚠️</span>
-              <span className="error-message font-sans">
-                Out of credits. Please click <strong>+ Top Up</strong> in the sidebar to add credits.
-              </span>
+          {/* Error display */}
+          {error && (
+            <div className="error-banner flex align-center gap-3">
+              <AlertIcon size={16} />
+              <span className="error-text">{error}</span>
             </div>
           )}
 
-          {/* Action Button - Moved a bit down via styles */}
-          <div className="action-row flex flex-col align-center justify-center gap-2">
+          {/* Analyze Button & Cost */}
+          <div className="flex-col align-center gap-2" style={{ marginTop: '8px' }}>
             <button
               onClick={runAnalysis}
-              disabled={!file || analyzing || credits === 0 || file.isSavedRecord}
-              className="button-primary run-btn font-sans"
+              disabled={!file || analyzing || credits === 0}
+              className="button-primary run-analysis-btn"
             >
               {analyzing ? (
-                <span className="flex align-center justify-center gap-2" style={{ display: 'inline-flex', alignItems: 'center' }}>
-                  <SettingsIcon size={18} className="spin-animation" /> Running Parsing & AI Analysis...
-                </span>
-              ) : file?.isSavedRecord ? (
-                <span className="flex align-center justify-center gap-2" style={{ display: 'inline-flex', alignItems: 'center' }}>
-                  Select a New File to Analyse
-                </span>
+                <>
+                  <SettingsIcon size={16} className="spin-animation" style={{ marginRight: '8px' }} />
+                  Analyzing Resume...
+                </>
               ) : (
-                <span className="flex align-center justify-center gap-2" style={{ display: 'inline-flex', alignItems: 'center' }}>
-                  <SearchIcon size={18} /> Analyse Compatibility Score
-                </span>
+                'Analyze Resume'
               )}
             </button>
-            {file?.isSavedRecord ? (
-              <span className="credit-cost-subtext font-sans">
-                Viewing saved report. Click <strong>Clear File</strong> to upload a new resume.
-              </span>
-            ) : (
-              <span className="credit-cost-subtext font-sans">Costs 1 credit (You have {credits} credits)</span>
-            )}
+            <span className="cost-subtext">
+              {file?.isSavedRecord 
+                ? 'Viewing saved scan' 
+                : `Costs 1 credit — You have ${credits} credits remaining`}
+            </span>
           </div>
 
-          {/* Error Bound (if in input view) */}
-          {error && (
-            <div className="error-card card flex align-center gap-3">
-              <span className="error-icon flex align-center"><AlertIcon size={20} /></span>
-              <span className="error-message font-sans">{error}</span>
-            </div>
-          )}
+          {/* Recent Analyses Table */}
+          <div className="card">
+            <h3 className="card-title">Recent Single Analyses</h3>
+            <div className="card-divider"></div>
+            {individualScans.length === 0 ? (
+              <p className="font-sans text-secondary text-center py-4" style={{ fontSize: '14px' }}>
+                No recent scans in this session.
+              </p>
+            ) : (
+              <div className="table-container">
+                <table className="enterprise-table">
+                  <thead>
+                    <tr>
+                      <th>Candidate Name</th>
+                      <th>Filename</th>
+                      <th>ATS Match Score</th>
+                      <th>Quality Score</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {individualScans.map((scan) => {
+                      const score = scan.analysis?.atsScore ?? scan.analysis?.qualityScore ?? 0;
+                      return (
+                        <tr key={scan.id}>
+                          <td style={{ fontWeight: '600' }}>{scan.analysis?.candidateName || 'N/A'}</td>
+                          <td className="font-mono text-secondary" style={{ fontSize: '13px' }}>{scan.filename}</td>
+                          <td>
+                            <span 
+                              className="tag"
+                              style={{ 
+                                backgroundColor: score >= 80 ? 'rgba(16, 185, 129, 0.1)' : score >= 65 ? 'rgba(245, 158, 11, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                                color: score >= 80 ? 'var(--success)' : score >= 65 ? 'var(--warning)' : 'var(--danger)'
+                              }}
+                            >
+                              {scan.analysis?.atsScore !== null && scan.analysis?.atsScore !== undefined ? `${scan.analysis.atsScore}%` : 'N/A'}
+                            </span>
+                          </td>
+                          <td className="font-mono" style={{ fontWeight: '600' }}>{scan.analysis?.qualityScore}%</td>
+                          <td>
+                            <button
+                              onClick={() => loadRecentScan(scan)}
+                              className="button-secondary"
+                              style={{ padding: '6px 12px', fontSize: '12px', borderRadius: '8px' }}
+                            >
+                              View Report
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
-      {/* Analysis Section */}
-      {activeSection === 'analysis' && (
-        <div className="flex-col gap-6">
-          {/* Skeletons Loading State */}
-          {analyzing && (
-            <div className="skeleton-loading card flex-col gap-6">
-              <div className="skeleton-row flex gap-6">
-                <div className="skeleton-circle"></div>
-                <div className="skeleton-circle"></div>
-                <div className="skeleton-lines flex-1 flex-col gap-3">
-                  <div className="skeleton-line w-full"></div>
-                  <div className="skeleton-line w-3-4"></div>
-                  <div className="skeleton-line w-1-2"></div>
-                </div>
+      {/* 2. Analysis Report Screen Pattern (Results Only, No inputs/uploads) */}
+      {activeSection === 'analysis' && result && (
+        <div className="flex-col gap-8 fade-in">
+          {/* Section 1: KPI Cards */}
+          <div className="grid grid-cols-4 gap-6">
+            {/* ATS Match Score */}
+            <div className="kpi-card">
+              <span className="kpi-title">ATS Match Score</span>
+              <span className="kpi-score">
+                {result.atsScore !== null && result.atsScore !== undefined ? `${result.atsScore} / 100` : 'N/A'}
+              </span>
+              <span className="kpi-status" style={{ color: `var(--${getProgressColorClass(result.atsScore || 0)})`, fontWeight: '600' }}>
+                {result.atsScore !== null && result.atsScore !== undefined ? getStatusLabel(result.atsScore) : 'No JD supplied'}
+              </span>
+              <div className="progress-bar-track">
+                <div 
+                  className={`progress-bar-fill ${getProgressColorClass(result.atsScore || 0)}`} 
+                  style={{ width: `${result.atsScore || 0}%` }}
+                ></div>
               </div>
-              <div className="skeleton-line w-full"></div>
-              <div className="skeleton-line w-5-6"></div>
             </div>
-          )}
 
-          {/* Error Bound (if analysis failed) */}
-          {error && !analyzing && (
-            <div className="error-card card flex align-center gap-3">
-              <span className="error-icon flex align-center"><AlertIcon size={20} /></span>
-              <span className="error-message font-sans">{error}</span>
+            {/* Resume Quality */}
+            <div className="kpi-card">
+              <span className="kpi-title">Resume Quality</span>
+              <span className="kpi-score">{result.qualityScore} / 100</span>
+              <span className="kpi-status" style={{ color: `var(--${getProgressColorClass(result.qualityScore)})`, fontWeight: '600' }}>
+                {getStatusLabel(result.qualityScore)}
+              </span>
+              <div className="progress-bar-track">
+                <div 
+                  className={`progress-bar-fill ${getProgressColorClass(result.qualityScore)}`} 
+                  style={{ width: `${result.qualityScore}%` }}
+                ></div>
+              </div>
             </div>
-          )}
 
-          {/* Results Dashboard Panel */}
-          {!analyzing && result && (
-            <div className="results-panel grid grid-cols-2 gap-8">
-              {/* Left Column: Gauges and Breakdown */}
-              <div className="flex-col gap-8">
-                {/* Gauges Card */}
-                <div className="card flex-col gap-4">
-                  <h3 className="card-title font-sans">Compatibility Scores</h3>
-                  <div className="gauges-container flex justify-around align-center py-4">
-                    {/* ATS Score Gauge (only shown if job description was supplied) */}
-                    {result.atsScore !== null && result.atsScore !== undefined && (
-                      <div className="gauge-item flex-col align-center gap-2">
-                        <div className="gauge-svg-wrapper">
-                          <svg width="100" height="100" viewBox="0 0 100 100" className="gauge-svg">
-                            <circle cx="50" cy="50" r={R} stroke="var(--border-color)" strokeWidth="8" fill="transparent" />
-                            <circle
-                              cx="50"
-                              cy="50"
-                              r={R}
-                              stroke="var(--primary)"
-                              strokeWidth="8"
-                              fill="transparent"
-                              strokeDasharray={C}
-                              strokeDashoffset={C - (result.atsScore / 100) * C}
-                              strokeLinecap="round"
-                              className="gauge-circle-fill"
-                            />
-                          </svg>
-                          <span className={`gauge-value font-mono ${getScoreColorClass(result.atsScore)}`}>
-                            {result.atsScore}%
-                          </span>
-                        </div>
-                        <span className="gauge-label font-sans">ATS Match Score</span>
-                      </div>
-                    )}
+            {/* Keyword Match */}
+            <div className="kpi-card">
+              <span className="kpi-title">Keyword Match</span>
+              <span className="kpi-score">{keywordScore} / 100</span>
+              <span className="kpi-status" style={{ color: `var(--${getProgressColorClass(keywordScore)})`, fontWeight: '600' }}>
+                {getStatusLabel(keywordScore)}
+              </span>
+              <div className="progress-bar-track">
+                <div 
+                  className={`progress-bar-fill ${getProgressColorClass(keywordScore)}`} 
+                  style={{ width: `${keywordScore}%` }}
+                ></div>
+              </div>
+            </div>
 
-                    {/* Quality Score Gauge */}
-                    <div className="gauge-item flex-col align-center gap-2">
-                      <div className="gauge-svg-wrapper">
-                        <svg width="100" height="100" viewBox="0 0 100 100" className="gauge-svg">
-                          <circle cx="50" cy="50" r={R} stroke="var(--border-color)" strokeWidth="8" fill="transparent" />
-                          <circle
-                            cx="50"
-                            cy="50"
-                            r={R}
-                            stroke="var(--secondary)"
-                            strokeWidth="8"
-                            fill="transparent"
-                            strokeDasharray={C}
-                            strokeDashoffset={C - (result.qualityScore / 100) * C}
-                            strokeLinecap="round"
-                            className="gauge-circle-fill"
-                          />
-                        </svg>
-                        <span className={`gauge-value font-mono ${getScoreColorClass(result.qualityScore)}`}>
-                          {result.qualityScore}%
-                        </span>
+            {/* Overall Ranking */}
+            <div className="kpi-card">
+              <span className="kpi-title">Overall Ranking</span>
+              <span className="kpi-score">#{rankingInfo.rank} <span style={{ fontSize: '16px', fontWeight: '500', color: 'var(--text-secondary)' }}>/ {rankingInfo.total}</span></span>
+              <span className="kpi-status" style={{ fontWeight: '600', color: rankingInfo.rank === 1 ? 'var(--success)' : 'var(--text-secondary)' }}>
+                {rankingInfo.rank === 1 ? 'Top Candidate' : rankingInfo.rank <= 3 ? 'Strong Match' : 'Screen Candidate'}
+              </span>
+              <div className="progress-bar-track">
+                <div 
+                  className="progress-bar-fill primary" 
+                  style={{ width: `${((rankingInfo.total - rankingInfo.rank + 1) / rankingInfo.total) * 100}%` }}
+                ></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Grid layout for Breakdown and Skills */}
+          <div className="grid grid-cols-2 gap-8">
+            {/* Left Column: Breakdown & Rules */}
+            <div className="flex-col gap-8">
+              {/* Section 2: Section Breakdown */}
+              <div className="card">
+                <h3 className="card-title">Section Breakdown</h3>
+                <div className="card-divider"></div>
+                <div className="flex-col gap-4">
+                  {Object.entries(result.sections || {}).map(([key, score]) => (
+                    <div key={key} className="progress-bar-container">
+                      <div className="flex justify-between font-sans" style={{ fontSize: '13px', fontWeight: '500' }}>
+                        <span style={{ textTransform: 'capitalize', color: 'var(--text-secondary)' }}>{key}</span>
+                        <span style={{ fontWeight: '600' }}>{score}%</span>
                       </div>
-                      <span className="gauge-label font-sans">Resume Quality</span>
+                      <div className="progress-bar-track">
+                        <div 
+                          className="progress-bar-fill primary" 
+                          style={{ width: `${score}%` }}
+                        ></div>
+                      </div>
                     </div>
-                  </div>
-                  {/* Experience Match Details (only shown if JD is present) */}
+                  ))}
+                  
+                  {/* Experience Match detail line */}
                   {result.experienceMatch && result.experienceMatch.required > 0 && (
-                    <div className="experience-match-card flex align-center justify-between font-sans" style={{
-                      backgroundColor: 'var(--primary-light)',
-                      border: '1px solid var(--border-color)',
+                    <div className="flex align-center justify-between" style={{
+                      backgroundColor: 'var(--bg)',
+                      border: '1px solid var(--border)',
                       borderRadius: '12px',
-                      padding: '0.75rem 1rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      marginTop: '1.25rem',
-                      width: '100%'
+                      padding: '12px 16px',
+                      fontSize: '13px',
+                      marginTop: '8px'
                     }}>
-                      <div className="flex-col text-left">
-                        <span className="match-label font-sans" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block' }}>Experience Alignment</span>
-                        <span className="match-detail font-sans font-bold" style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>
-                          Required: {result.experienceMatch.required} yrs | Extracted: {result.experienceMatch.detected} yrs
-                        </span>
-                      </div>
-                      <span className={`match-badge font-mono ${result.experienceMatch.matched ? 'passed' : 'failed'}`} style={{
-                        fontSize: '0.7rem',
-                        fontWeight: '850',
-                        padding: '0.2rem 0.5rem',
-                        borderRadius: '4px',
-                        backgroundColor: result.experienceMatch.matched ? 'var(--success-bg)' : 'var(--danger-bg)',
-                        color: result.experienceMatch.matched ? 'var(--success)' : 'var(--danger)'
-                      }}>
+                      <span className="text-secondary">Experience Alignment: Required <strong>{result.experienceMatch.required} yrs</strong> | Detected <strong>{result.experienceMatch.detected} yrs</strong></span>
+                      <span className={`tag ${result.experienceMatch.matched ? 'tag-matched' : 'tag-missing'}`}>
                         {result.experienceMatch.matched ? 'MATCH' : 'GAP'}
                       </span>
                     </div>
                   )}
                 </div>
-
-                {/* Breakdown Score Bars */}
-                <div className="card flex-col gap-4">
-                  <h3 className="card-title font-sans">Section Details</h3>
-                  <div className="breakdown-list flex-col gap-3">
-                    {Object.entries(result.sections).map(([key, score]) => (
-                      <div key={key} className="breakdown-item flex-col gap-1">
-                        <div className="flex justify-between font-sans">
-                          <span className="breakdown-name font-sans">{key.charAt(0).toUpperCase() + key.slice(1)}</span>
-                          <span className="breakdown-score font-mono">{score}%</span>
-                        </div>
-                        <div className="breakdown-track">
-                          <div 
-                            className={`breakdown-fill ${key}`} 
-                            style={{ width: `${score}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Rule Engine Checks Card */}
-                <div className="card flex-col gap-4">
-                  <h3 className="card-title font-sans">Programmatic Rule Checks</h3>
-                  <div className="rules-list flex-col gap-2.5">
-                    {[
-                      { key: 'email', label: 'Email Contact Info', check: !result.ruleViolations?.includes('Missing email') },
-                      { key: 'phone', label: 'Phone Contact Info', check: !result.ruleViolations?.includes('Missing phone') },
-                      { key: 'length', label: 'Resume Content Length', check: !result.ruleViolations?.includes('Resume too short') },
-                      { key: 'experience', label: 'Work Experience Section', check: !result.ruleViolations?.includes('No experience section') },
-                      { key: 'skills', label: 'Technical Skills Section', check: !result.ruleViolations?.includes('No skills section') }
-                    ].map((rule) => (
-                      <div key={rule.key} className="rule-item flex align-center justify-between font-sans" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <span className="rule-label flex align-center gap-2" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                          <span className={`rule-status-bullet ${rule.check ? 'passed' : 'failed'}`} style={{
-                            width: '8px',
-                            height: '8px',
-                            borderRadius: '50%',
-                            backgroundColor: rule.check ? 'var(--success)' : 'var(--danger)'
-                          }}></span>
-                          {rule.label}
-                        </span>
-                        <span className={`rule-badge font-mono ${rule.check ? 'passed' : 'failed'}`} style={{
-                          fontSize: '0.7rem',
-                          fontWeight: '800',
-                          padding: '0.15rem 0.5rem',
-                          borderRadius: '4px',
-                          backgroundColor: rule.check ? 'var(--success-bg)' : 'var(--danger-bg)',
-                          color: rule.check ? 'var(--success)' : 'var(--danger)'
-                        }}>
-                          {rule.check ? 'PASSED' : 'FAILED'}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
               </div>
 
-              {/* Right Column: Feedback Tabs and Skills Chips */}
-              <div className="flex-col gap-8">
-                {/* Skills Dashboard */}
-                <div className="card flex-col gap-3">
-                  <h3 className="card-title font-sans">Keywords & Skills Analysis</h3>
-                  
+              {/* Section 4: Rule Checks */}
+              <div className="card">
+                <h3 className="card-title">Rule Checks</h3>
+                <div className="card-divider"></div>
+                <div className="flex-col gap-3">
+                  {[
+                    { key: 'email', label: 'Email Contact Information', check: !result.ruleViolations?.includes('Missing email') },
+                    { key: 'phone', label: 'Phone Contact Information', check: !result.ruleViolations?.includes('Missing phone') },
+                    { key: 'length', label: 'Resume Content Length', check: !result.ruleViolations?.includes('Resume too short') },
+                    { key: 'experience', label: 'Work Experience Section', check: !result.ruleViolations?.includes('No experience section') },
+                    { key: 'skills', label: 'Technical Skills Section', check: !result.ruleViolations?.includes('No skills section') }
+                  ].map((rule) => (
+                    <div key={rule.key} className="flex align-center justify-between" style={{ fontSize: '13px' }}>
+                      <span className="flex align-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+                        <span style={{
+                          width: '8px',
+                          height: '8px',
+                          borderRadius: '50%',
+                          backgroundColor: rule.check ? 'var(--success)' : 'var(--danger)',
+                          display: 'inline-block'
+                        }}></span>
+                        {rule.label}
+                      </span>
+                      <span className={`tag ${rule.check ? 'tag-matched' : 'tag-missing'}`}>
+                        {rule.check ? 'Passed' : 'Failed'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column: Skills Analysis */}
+            <div className="flex-col gap-8">
+              {/* Section 3: Skills Analysis */}
+              <div className="card">
+                <h3 className="card-title">Skills Analysis</h3>
+                <div className="card-divider"></div>
+                <div className="flex-col gap-4">
                   {/* Matched Skills */}
-                  <div className="skills-sub-group flex-col gap-2">
-                    <span className="group-label font-sans flex align-center gap-2" style={{ display: 'inline-flex', alignItems: 'center' }}>
-                      <CheckIcon size={14} style={{ color: 'var(--success)' }} /> Matched Skills ({result.skills.matched.length})
+                  <div className="flex-col gap-2">
+                    <span className="font-sans" style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                      Matched Skills ({result.skills?.matched?.length || 0})
                     </span>
                     <div className="flex flex-wrap gap-2">
-                      {result.skills.matched.length === 0 ? (
-                        <span className="no-skills font-sans">None matching.</span>
+                      {result.skills?.matched?.length === 0 ? (
+                        <span className="no-skills font-sans" style={{ fontSize: '13px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>None matched</span>
                       ) : (
                         result.skills.matched.map((s, idx) => (
-                          <span key={idx} className="chip chip-success font-mono">{s}</span>
+                          <span key={idx} className="tag tag-matched">{s}</span>
                         ))
                       )}
                     </div>
                   </div>
 
                   {/* Missing Skills */}
-                  {result.skills.missing && result.skills.missing.length > 0 && (
-                    <div className="skills-sub-group flex-col gap-2 mt-2">
-                      <span className="group-label font-sans flex align-center gap-2" style={{ display: 'inline-flex', alignItems: 'center' }}>
-                        <XIcon size={14} style={{ color: 'var(--danger)' }} /> Missing Keywords ({result.skills.missing.length})
+                  {result.skills?.missing && result.skills.missing.length > 0 && (
+                    <div className="flex-col gap-2" style={{ marginTop: '8px' }}>
+                      <span className="font-sans" style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                        Missing Keywords ({result.skills.missing.length})
                       </span>
                       <div className="flex flex-wrap gap-2">
                         {result.skills.missing.map((s, idx) => (
-                          <span key={idx} className="chip chip-danger font-mono">{s}</span>
+                          <span key={idx} className="tag tag-missing">{s}</span>
                         ))}
                       </div>
                     </div>
                   )}
 
-                  {/* Detected Skills */}
-                  <div className="skills-sub-group flex-col gap-2 mt-2">
-                    <span className="group-label font-sans flex align-center gap-2" style={{ display: 'inline-flex', alignItems: 'center' }}>
-                      <SearchIcon size={14} style={{ color: 'var(--primary)' }} /> Other Detected Skills ({result.skills.detected.length})
+                  {/* Other Detected Skills */}
+                  <div className="flex-col gap-2" style={{ marginTop: '8px' }}>
+                    <span className="font-sans" style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                      Other Detected Skills ({result.skills?.detected?.length || 0})
                     </span>
                     <div className="flex flex-wrap gap-2">
-                      {result.skills.detected.length === 0 ? (
-                        <span className="no-skills font-sans">None detected.</span>
+                      {result.skills?.detected?.length === 0 ? (
+                        <span className="no-skills font-sans" style={{ fontSize: '13px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>None detected</span>
                       ) : (
                         result.skills.detected.map((s, idx) => (
-                          <span key={idx} className="chip chip-primary font-mono">{s}</span>
+                          <span key={idx} className="tag tag-neutral">{s}</span>
                         ))
                       )}
                     </div>
                   </div>
                 </div>
-
-                {/* Feedback Tab Selector */}
-                <div className="card flex-col gap-4">
-                  <div className="tabs-header flex gap-2 border-b" style={{ flexWrap: 'wrap' }}>
-                    {[
-                      { id: 'summary', label: 'Summary' },
-                      { id: 'strengths', label: 'Strengths' },
-                      { id: 'improvements', label: 'Improvements' },
-                      { id: 'wording', label: 'Wording' },
-                      { id: 'advice', label: 'Career Advice' },
-                      { id: 'json', label: 'Structured Resume' },
-                      { id: 'details', label: 'Details' }
-                    ].map((tab) => (
-                      <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        className={`tab-btn font-sans ${activeTab === tab.id ? 'active' : ''}`}
-                      >
-                        {tab.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="tabs-content">
-                    {activeTab === 'summary' && (
-                      <p className="summary-paragraph font-sans">{result.feedback.summary}</p>
-                    )}
-
-                    {activeTab === 'strengths' && (
-                      <ul className="checklist flex-col gap-2">
-                        {result.feedback.strengths.map((str, idx) => (
-                          <li key={idx} className="checklist-item flex gap-2 font-sans align-center">
-                            <span className="check-icon flex" style={{ color: 'var(--success)' }}><CheckIcon size={14} /></span>
-                            <span>{str}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-
-                    {activeTab === 'improvements' && (
-                      <ul className="checklist flex-col gap-2">
-                        {result.feedback.improvements.map((imp, idx) => (
-                          <li key={idx} className="checklist-item flex gap-2 font-sans align-center">
-                            <span className="check-icon flex" style={{ color: 'var(--warning)' }}><SparklesIcon size={14} /></span>
-                            <span>{imp}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-
-                    {activeTab === 'wording' && (
-                      <ul className="checklist flex-col gap-2">
-                        {result.feedback.wordingImprovements && result.feedback.wordingImprovements.length > 0 ? (
-                          result.feedback.wordingImprovements.map((wrd, idx) => (
-                            <li key={idx} className="checklist-item flex gap-2 font-sans align-center">
-                              <span className="check-icon flex" style={{ color: 'var(--primary)' }}><SparklesIcon size={14} /></span>
-                              <span>{wrd}</span>
-                            </li>
-                          ))
-                        ) : (
-                          <li className="checklist-item font-sans text-muted">No specific wording suggestions available.</li>
-                        )}
-                      </ul>
-                    )}
-
-                    {activeTab === 'advice' && (
-                      <p className="summary-paragraph font-sans" style={{ fontStyle: 'italic' }}>
-                        {result.feedback.careerAdvice || "No specific career advice generated."}
-                      </p>
-                    )}
-
-                    {activeTab === 'json' && (
-                      <div className="detailed-markdown font-sans" style={{ maxHeight: '300px' }}>
-                        <pre className="markdown-pre font-mono" style={{ fontSize: '0.75rem', color: 'var(--text-primary)', textAlign: 'left' }}>
-                          {JSON.stringify(result.structuredResume || {}, null, 2)}
-                        </pre>
-                      </div>
-                    )}
-
-                    {activeTab === 'details' && (
-                      <div className="detailed-markdown font-sans">
-                        <pre className="markdown-pre font-sans">{result.feedback.detailedMarkdown}</pre>
-                      </div>
-                    )}
-                  </div>
-                </div>
               </div>
             </div>
-          )}
+          </div>
+
+          {/* Section 5: AI Feedback */}
+          <div className="card">
+            <h3 className="card-title">AI Feedback</h3>
+            <div className="card-divider"></div>
+            
+            <div className="flex-col gap-4">
+              {/* Feedback Navigation Tabs */}
+              <div className="feedback-sub-tabs flex gap-2">
+                {[
+                  { id: 'summary', label: 'Summary' },
+                  { id: 'strengths', label: 'Strengths' },
+                  { id: 'improvements', label: 'Improvements' },
+                  { id: 'advice', label: 'Career Advice' }
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveFeedbackTab(tab.id)}
+                    className={`feedback-tab-btn font-sans ${activeFeedbackTab === tab.id ? 'active' : ''}`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Feedback Tab Content */}
+              <div className="feedback-content" style={{ minHeight: '100px' }}>
+                {activeFeedbackTab === 'summary' && (
+                  <p className="feedback-paragraph">{result.feedback?.summary}</p>
+                )}
+
+                {activeFeedbackTab === 'strengths' && (
+                  <ul className="feedback-list flex-col gap-2">
+                    {result.feedback?.strengths?.map((str, idx) => (
+                      <li key={idx} className="flex align-center gap-2">
+                        <CheckIcon size={14} style={{ color: 'var(--success)', flexShrink: 0 }} />
+                        <span>{str}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                {activeFeedbackTab === 'improvements' && (
+                  <ul className="feedback-list flex-col gap-2">
+                    {result.feedback?.improvements?.map((imp, idx) => (
+                      <li key={idx} className="flex align-center gap-2">
+                        <AlertIcon size={14} style={{ color: 'var(--warning)', flexShrink: 0 }} />
+                        <span>{imp}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                {activeFeedbackTab === 'advice' && (
+                  <p className="feedback-paragraph" style={{ fontStyle: 'italic' }}>
+                    {result.feedback?.careerAdvice || 'No career advice generated for this scan.'}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
       <style jsx>{`
         .workspace {
-          padding: 2rem;
-          overflow-y: auto;
-          flex: 1;
+          width: 100%;
         }
 
-        .section-tabs {
-          display: flex;
-          background-color: var(--bg-secondary);
-          border: 1px solid var(--border-color);
-          padding: 0.3rem;
-          border-radius: 9999px;
-          align-self: center;
-          margin-bottom: 0.5rem;
-          box-shadow: var(--shadow-sm);
-          width: fit-content;
+        .dropzone-area {
+          border: 2px dashed var(--border);
+          border-radius: var(--radius-card);
+          height: 200px;
+          transition: border-color var(--transition-speed) ease, background-color var(--transition-speed) ease;
         }
 
-        .section-tab-btn {
-          background: transparent;
-          border: none;
-          color: var(--text-secondary);
-          cursor: pointer;
-          font-size: 0.85rem;
-          font-weight: 700;
-          padding: 0.5rem 1.75rem;
-          border-radius: 9999px;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .section-tab-btn:hover {
-          color: var(--text-primary);
-        }
-
-        .section-tab-btn.active {
-          background: linear-gradient(135deg, var(--primary), var(--secondary));
-          color: #FFFFFF;
-          box-shadow: var(--btn-shadow);
-        }
-
-        .action-row {
-          margin-top: 2rem;
-          margin-bottom: 1.5rem;
-        }
-
-        .dropzone {
-          border: 2.5px dashed var(--border-color);
-          height: 240px;
-          cursor: pointer;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .dropzone:hover, .dropzone.drag-over {
+        .dropzone-area:hover, .dropzone-area.drag-over {
           border-color: var(--primary);
-          background-color: var(--primary-light);
+          background-color: var(--bg);
         }
 
-        .hidden-input {
-          display: none;
+        .upload-box {
+          width: 100%;
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
         }
 
-        .upload-icon-circle {
-          background-color: var(--primary-light);
-          width: 54px;
-          height: 54px;
+        .upload-icon-wrapper {
+          background-color: var(--bg);
+          border: 1px solid var(--border);
           border-radius: 50%;
-          font-size: 1.5rem;
+          width: 48px;
+          height: 48px;
         }
 
         .upload-title {
-          font-size: 1.05rem;
-          font-weight: 700;
+          font-family: var(--font-primary);
+          font-size: 14px;
+          font-weight: 600;
           color: var(--text-primary);
         }
 
-        .upload-subtitle {
-          font-size: 0.85rem;
+        .upload-desc {
+          font-family: var(--font-secondary);
+          font-size: 12px;
           color: var(--text-secondary);
-          margin-top: 0.15rem;
+          margin-top: 2px;
         }
 
-        .upload-formats {
-          font-size: 0.75rem;
-          color: var(--text-muted);
-          margin-top: 0.4rem;
+        .upload-note {
+          font-size: 11px;
+          color: var(--text-secondary);
+          opacity: 0.8;
+          margin-top: 6px;
         }
 
         .file-icon-wrapper {
-          background: linear-gradient(135deg, var(--primary), var(--secondary));
-          width: 60px;
-          height: 60px;
+          background-color: var(--bg);
+          border: 1px solid var(--border);
           border-radius: 12px;
-        }
-
-        .file-icon-emoji {
-          font-size: 2rem;
+          width: 50px;
+          height: 50px;
         }
 
         .file-name {
-          font-size: 0.95rem;
-          font-weight: 700;
+          font-family: var(--font-primary);
+          font-weight: 600;
+          font-size: 14px;
           color: var(--text-primary);
-          max-width: 250px;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
+          max-width: 220px;
         }
 
         .file-size {
-          font-size: 0.75rem;
-          color: var(--text-secondary);
-          margin-top: 0.15rem;
-        }
-
-        .file-badge {
-          background-color: var(--primary-light);
-          color: var(--primary);
-          font-size: 0.7rem;
-          font-weight: 800;
-          padding: 0.15rem 0.5rem;
-          border-radius: 4px;
-          margin-top: 0.4rem;
-          border: 1px solid var(--border-glow);
-        }
-
-        .btn-sm {
-          padding: 0.4rem 1rem;
-          font-size: 0.8rem;
-          border-radius: 8px;
-        }
-
-        .btn-xs {
-          padding: 0.25rem 0.5rem;
-          font-size: 0.75rem;
-          border-radius: 6px;
-        }
-
-        .jd-box {
-          height: 240px;
-        }
-
-        .label-title {
-          font-size: 0.95rem;
-          font-weight: 700;
-          color: var(--text-primary);
+          font-size: 12px;
         }
 
         .jd-textarea {
-          width: 100%;
           flex: 1;
+          min-height: 120px;
           resize: none;
-          background-color: var(--bg-primary);
-          border: 1px solid var(--border-color);
-          border-radius: 12px;
-          padding: 0.75rem 1rem;
-          color: var(--text-primary);
-          outline: none;
-          transition: border-color 0.2s, box-shadow 0.2s;
-          font-size: 0.85rem;
-          line-height: 1.5;
         }
 
-        .jd-textarea:focus {
-          border-color: var(--primary);
-          box-shadow: 0 0 0 3px var(--border-glow);
+        .jd-stats {
+          font-size: 11px;
+          color: var(--text-secondary);
         }
 
-        .jd-footer {
-          font-size: 0.7rem;
-          color: var(--text-muted);
+        .sample-btn {
+          padding: 6px 12px !important;
+          font-size: 12px !important;
+          border-radius: 8px !important;
         }
 
-        .run-btn {
-          width: 320px;
-          padding: 0.85rem;
-          font-size: 1rem;
-        }
-
-        .error-card {
-          border-color: var(--danger);
-          background-color: var(--danger-bg);
+        .error-banner {
+          background-color: rgba(239, 68, 68, 0.06);
+          border: 1px solid rgba(239, 68, 68, 0.2);
           color: var(--danger);
-          padding: 1rem;
-          border-radius: 16px;
-          border: 1px solid var(--danger);
-        }
-
-        .error-icon {
-          font-size: 1.3rem;
-        }
-
-        .error-message {
-          font-size: 0.85rem;
-          font-weight: 600;
-        }
-
-        /* Skeleton States */
-        .skeleton-circle {
-          width: 100px;
-          height: 100px;
-          border-radius: 50%;
-          background-color: var(--border-color);
-          animation: pulse-skeleton 1.5s infinite ease-in-out;
-        }
-
-        .skeleton-line {
-          height: 16px;
-          border-radius: 4px;
-          background-color: var(--border-color);
-          animation: pulse-skeleton 1.5s infinite ease-in-out;
-        }
-
-        .w-full { width: 100%; }
-        .w-3-4 { width: 75%; }
-        .w-5-6 { width: 83%; }
-        .w-1-2 { width: 50%; }
-
-        @keyframes pulse-skeleton {
-          0% { opacity: 0.6; }
-          50% { opacity: 0.3; }
-          100% { opacity: 0.6; }
-        }
-
-        /* Results Display */
-        .card-title {
-          font-size: 1rem;
-          font-weight: 700;
-          color: var(--text-primary);
-          border-bottom: 1px solid var(--border-color);
-          padding-bottom: 0.5rem;
-        }
-
-        .gauge-svg-wrapper {
-          position: relative;
-          width: 100px;
-          height: 100px;
-        }
-
-        .gauge-svg {
-          transform: rotate(-90deg);
-        }
-
-        .gauge-circle-fill {
-          transition: stroke-dashoffset 0.8s ease-out;
-        }
-
-        .gauge-value {
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          font-size: 1.15rem;
-          font-weight: 800;
-        }
-
-        .gauge-value.good { color: var(--success); }
-        .gauge-value.average { color: var(--warning); }
-        .gauge-value.poor { color: var(--danger); }
-
-        .gauge-label {
-          font-size: 0.8rem;
-          font-weight: 600;
-          color: var(--text-secondary);
-        }
-
-        .breakdown-name {
-          font-size: 0.85rem;
-          font-weight: 600;
-          color: var(--text-secondary);
-        }
-
-        .breakdown-score {
-          font-size: 0.85rem;
-          font-weight: 700;
-          color: var(--text-primary);
-        }
-
-        .breakdown-track {
-          background-color: var(--bg-primary);
-          height: 8px;
-          border-radius: 9999px;
-          overflow: hidden;
+          padding: 12px 16px;
+          border-radius: var(--radius-btn);
+          align-self: center;
+          max-width: 500px;
           width: 100%;
         }
 
-        .breakdown-fill {
-          height: 100%;
-          border-radius: 9999px;
-          transition: width 0.8s ease-out;
+        .error-text {
+          font-family: var(--font-secondary);
+          font-size: 13px;
+          font-weight: 500;
         }
 
-        .breakdown-fill.experience { background-color: var(--primary); }
-        .breakdown-fill.education { background-color: var(--secondary); }
-        .breakdown-fill.formatting { background-color: var(--success); }
-        .breakdown-fill.impact { background-color: var(--warning); }
+        .run-analysis-btn {
+          width: 280px;
+          padding: 14px;
+          font-size: 15px;
+        }
 
-        .group-label {
-          font-size: 0.8rem;
-          font-weight: 700;
+        .cost-subtext {
+          font-family: var(--font-secondary);
+          font-size: 12px;
           color: var(--text-secondary);
         }
 
-        .no-skills {
-          font-size: 0.75rem;
-          color: var(--text-muted);
-          font-style: italic;
+        .feedback-sub-tabs {
+          border-bottom: 1px solid var(--border);
+          padding-bottom: 6px;
         }
 
-        .tabs-header {
-          border-bottom: 1px solid var(--border-color);
-          display: flex;
-        }
-
-        .tab-btn {
+        .feedback-tab-btn {
           background: transparent;
           border: none;
           border-bottom: 2px solid transparent;
           color: var(--text-secondary);
-          cursor: pointer;
-          font-size: 0.85rem;
+          font-size: 13px;
           font-weight: 600;
-          padding: 0.5rem 0.75rem;
-          transition: all 0.2s;
+          padding: 6px 12px;
+          cursor: pointer;
+          transition: color var(--transition-speed) ease, border-color var(--transition-speed) ease;
         }
 
-        .tab-btn.active {
+        .feedback-tab-btn:hover {
+          color: var(--text-primary);
+        }
+
+        .feedback-tab-btn.active {
           color: var(--primary);
           border-bottom-color: var(--primary);
         }
 
-        .tabs-content {
-          min-height: 140px;
-          padding-top: 0.5rem;
-        }
-
-        .summary-paragraph {
-          font-size: 0.85rem;
-          line-height: 1.5;
+        .feedback-paragraph {
+          font-family: var(--font-secondary);
+          font-size: 14px;
+          line-height: 1.6;
           color: var(--text-secondary);
         }
 
-        .checklist {
+        .feedback-list {
           list-style: none;
-        }
-
-        .checklist-item {
-          font-size: 0.85rem;
-          line-height: 1.4;
+          font-family: var(--font-secondary);
+          font-size: 14px;
           color: var(--text-secondary);
-        }
-
-        .check-emoji {
-          flex-shrink: 0;
-        }
-
-        .detailed-markdown {
-          max-height: 250px;
-          overflow-y: auto;
-          background-color: var(--bg-primary);
-          border-radius: 8px;
-          padding: 0.75rem;
-          border: 1px solid var(--border-color);
-        }
-
-        .markdown-pre {
-          white-space: pre-wrap;
-          font-size: 0.8rem;
-          color: var(--text-secondary);
-          line-height: 1.4;
-        }
-
-        .mt-2 { margin-top: 0.75rem; }
-
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-
-        :global(.spin-animation) {
-          animation: spin 2s linear infinite;
-        }
-
-        .credit-warning-banner {
-          border-color: var(--warning);
-          background-color: var(--warning-bg);
-          color: var(--warning);
-          padding: 0.75rem 1rem;
-          border-radius: 12px;
-          margin-top: 1rem;
-          max-width: 450px;
-          align-self: center;
-        }
-
-        .credit-cost-subtext {
-          font-size: 0.75rem;
-          color: var(--text-muted);
-          margin-top: 0.25rem;
-          text-align: center;
         }
       `}</style>
     </div>

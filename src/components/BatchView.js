@@ -362,24 +362,21 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
             {/* Multi File Upload Card */}
             <div className="card">
               <div className="flex justify-between align-center">
-                <h3 className="card-title">
-                  <span className="step-num">1</span> Resumes Batch
-                </h3>
+                <h3 className="card-title">Resumes Batch</h3>
                 {files.length > 0 && (
-                  <button onClick={clearAllFiles} className="button-secondary sample-btn flex align-center gap-2" style={{ borderRadius: '8px' }}>
+                  <button onClick={clearAllFiles} className="button-secondary sample-btn flex align-center gap-2">
                     <TrashIcon size={13} />
                     <span>Clear All</span>
                   </button>
                 )}
               </div>
-              <p className="card-subtitle-desc">Upload the resume batch you want to analyze</p>
+              <div className="card-divider"></div>
               
               <div 
                 className={`dropzone-area flex-col align-center justify-center gap-3 ${dragOver ? 'drag-over' : ''}`}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
-                style={{ height: '220px', backgroundColor: 'rgba(15, 118, 110, 0.02)', border: '2px dashed var(--border)' }}
               >
                 <input 
                   type="file" 
@@ -392,13 +389,13 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
                 
                 {files.length === 0 ? (
                   <label htmlFor="batch-file-input" className="upload-box flex-col align-center justify-center gap-3 cursor-pointer">
-                    <div className="upload-icon-wrapper flex align-center justify-center" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-                      <UploadIcon size={24} style={{ color: 'var(--primary)' }} />
+                    <div className="upload-icon-wrapper flex align-center justify-center">
+                      <UploadIcon size={24} style={{ color: 'var(--text-secondary)' }} />
                     </div>
                     <div className="flex-col align-center text-center">
-                      <span className="upload-title" style={{ fontSize: '15px', fontWeight: '700' }}>Upload Resume Batch</span>
-                      <span className="upload-desc" style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Drag & drop or click to browse</span>
-                      <span className="upload-note font-mono" style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Select up to 20 PDF, LaTeX or Text files</span>
+                      <span className="upload-title">Upload Resume Batch</span>
+                      <span className="upload-desc">Drag & drop or click to browse</span>
+                      <span className="upload-note font-mono">Select up to 20 PDF, LaTeX or Text files</span>
                     </div>
                   </label>
                 ) : (
@@ -428,26 +425,24 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
             {/* Job Description Card */}
             <div className="card">
               <div className="flex justify-between align-center">
-                <h3 className="card-title">
-                  <span className="step-num">2</span> Target Job Description
-                </h3>
-                <button onClick={loadSampleJD} className="button-secondary sample-btn flex align-center gap-2" style={{ borderRadius: '8px' }}>
+                <h3 className="card-title">Job Description</h3>
+                <button onClick={loadSampleJD} className="button-secondary sample-btn flex align-center gap-2">
                   <SparklesIcon size={13} />
                   <span>Sample JD</span>
                 </button>
               </div>
-              <p className="card-subtitle-desc">Paste target job requirements here to rank resumes by ATS score</p>
+              <div className="card-divider"></div>
               
               <div className="flex-col gap-3 h-full">
                 <textarea
                   value={jobDescription}
                   onChange={(e) => setJobDescription(e.target.value)}
-                  placeholder="Paste target job requirements here to rank candidate resumes by ATS match score..."
+                  placeholder="Paste target job requirements here to calculate ATS compatibility score..."
                   className="textarea-text jd-textarea"
-                  style={{ minHeight: '160px' }}
                 />
-                <div className="jd-stats flex justify-between font-sans text-secondary" style={{ fontSize: '12px' }}>
+                <div className="jd-stats flex justify-between font-mono">
                   <span>{jobDescription.split(/\s+/).filter(Boolean).length} words</span>
+                  <span>{jobDescription.length} chars</span>
                 </div>
               </div>
             </div>
@@ -472,30 +467,26 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
           )}
 
           {/* Start button */}
-          <div className="flex-col align-center gap-2">
+          <div className="flex-col align-center gap-2" style={{ marginTop: '8px' }}>
             <button
               onClick={runBatchAnalysis}
               disabled={files.length === 0 || processing || credits < files.length}
-              className="button-primary run-analysis-btn flex align-center justify-center gap-2"
-              style={{ width: '320px', height: '48px', backgroundColor: 'var(--primary)', borderRadius: '12px' }}
+              className="button-primary run-analysis-btn"
             >
               {processing ? (
                 <>
-                  <SettingsIcon size={16} className="spin-animation" />
+                  <SettingsIcon size={16} className="spin-animation" style={{ marginRight: '8px' }} />
                   Processing Batch Scans...
                 </>
               ) : (
-                <>
-                  <SparklesIcon size={16} style={{ color: '#FFFFFF' }} />
-                  Start Batch Analysis
-                </>
+                'Analyze Batch'
               )}
             </button>
-            {files.length > 0 && (
-              <span className="cost-subtext" style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                Will cost {files.length} credits (You have {credits} credits remaining)
-              </span>
-            )}
+            <span className="cost-subtext">
+              {files.length > 0 
+                ? `Costs ${files.length} credit${files.length > 1 ? 's' : ''} — You have ${credits} credits remaining`
+                : `Costs 1 credit per resume — You have ${credits} credits remaining`}
+            </span>
           </div>
 
           {/* Recent Batch Jobs Table */}

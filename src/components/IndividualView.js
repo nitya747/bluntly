@@ -704,7 +704,7 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                     </div>
                     <div className="flex-col align-center text-center">
                       <span className="upload-title" style={{ fontSize: '15px', fontWeight: '700' }}>Drag and drop your file here</span>
-                      <span className="upload-desc" style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>PDF only. Max size 10MB</span>
+                      <span className="upload-desc" style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>PDF or LaTeX. Max size 10MB</span>
                     </div>
                     <span className="button-secondary flex align-center gap-2" style={{ backgroundColor: 'var(--surface)', padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: '600' }}>
                       <UploadIcon size={14} /> Choose File

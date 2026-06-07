@@ -49,7 +49,8 @@ export default function IndividualView({
   setCredits, 
   history = [],
   activeSection,
-  setActiveSection
+  setActiveSection,
+  setActiveView
 }) {
   const [file, setFile] = useState(null);
   const [jobDescription, setJobDescription] = useState('');
@@ -408,34 +409,8 @@ export default function IndividualView({
       }
     });
 
-    // Add special Missing Keywords fix if there are missing skills
-    if (missingSkills && missingSkills.length > 0) {
-      fixes.push({
-        title: "Missing Keywords",
-        desc: "Add these missing target keywords to your resume to optimize your match rate:",
-        impact: missingSkills.length > 5 ? "Critical" : "High",
-        impactColor: missingSkills.length > 5 ? "var(--danger)" : "var(--primary)",
-        impactBg: missingSkills.length > 5 ? "var(--danger-subtle)" : "var(--primary-subtle)",
-        isKeywordFix: true,
-        icon: (
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
-            <line x1="7" y1="7" x2="7.01" y2="7" />
-          </svg>
-        )
-      });
-    }
-
     // Add LLM feedback improvements
     feedbackImprovements.forEach(imp => {
-      const impLower = imp.toLowerCase();
-      // If we already added a dedicated keyword fix, filter out generic keyword/skills advice
-      if (missingSkills && missingSkills.length > 0) {
-        if (impLower.includes('skills') || impLower.includes('keyword') || impLower.includes('tailor')) {
-          return;
-        }
-      }
-
       let impact = "Medium";
       let impactColor = "var(--warning)";
       let impactBg = "var(--warning-subtle)";
@@ -445,6 +420,7 @@ export default function IndividualView({
         </svg>
       );
       
+      const impLower = imp.toLowerCase();
       if (impLower.includes('quantify') || impLower.includes('metric') || impLower.includes('achievement') || impLower.includes('percent') || impLower.includes('number')) {
         impact = "High";
         impactColor = "var(--primary)";
@@ -454,6 +430,17 @@ export default function IndividualView({
             <line x1="18" y1="20" x2="18" y2="10" />
             <line x1="12" y1="20" x2="12" y2="4" />
             <line x1="6" y1="20" x2="6" y2="14" />
+          </svg>
+        );
+      } else if (impLower.includes('tailor') || impLower.includes('keyword') || impLower.includes('match')) {
+        impact = "High";
+        impactColor = "var(--primary)";
+        impactBg = "var(--primary-subtle)";
+        icon = (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <circle cx="12" cy="12" r="6" />
+            <circle cx="12" cy="12" r="2" />
           </svg>
         );
       }
@@ -523,18 +510,14 @@ export default function IndividualView({
       }
     ];
 
-    while (fixes.length < 4 && fallbacks.length > 0) {
+    while (fixes.length < 3 && fallbacks.length > 0) {
       const fb = fallbacks.shift();
-      // If we already added a dedicated keyword fix, filter out fallback keyword suggestions
-      if (missingSkills && missingSkills.length > 0 && fb.title.toLowerCase().includes('skills')) {
-        continue;
-      }
       if (!fixes.some(f => f.title.toLowerCase() === fb.title.toLowerCase())) {
         fixes.push(fb);
       }
     }
 
-    return fixes.slice(0, 4);
+    return fixes.slice(0, 3);
   };
 
   const priorityFixes = getPriorityFixes();
@@ -810,7 +793,7 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                 <ClockIcon size={16} style={{ color: 'var(--text-secondary)' }} />
                 <span>Recent Analyses</span>
               </h3>
-              <button onClick={() => setActiveSection('history')} className="submenu-btn" style={{ fontSize: '13px', fontWeight: '600', color: 'var(--primary)' }}>
+              <button onClick={() => setActiveView('history')} className="submenu-btn" style={{ fontSize: '13px', fontWeight: '600', color: 'var(--primary)' }}>
                 View All &gt;
               </button>
             </div>
@@ -829,7 +812,7 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                       <th>ATS Score</th>
                       <th>Quality Score</th>
                       <th>Analyzed On</th>
-                      <th>Action</th>
+                      <th style={{ textAlign: 'center' }}>Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -838,9 +821,11 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                       const qualityScoreVal = scan.analysis?.qualityScore || 0;
                       return (
                         <tr key={scan.id}>
-                          <td style={{ fontWeight: '700' }} className="flex align-center gap-2">
-                            <FileTextIcon size={16} style={{ color: '#EF4444', marginRight: '4px' }} />
-                            <span>{scan.filename}</span>
+                          <td style={{ fontWeight: '700' }}>
+                            <div className="flex align-center gap-2">
+                              <FileTextIcon size={16} style={{ color: '#EF4444', marginRight: '4px' }} />
+                              <span>{scan.filename}</span>
+                            </div>
                           </td>
                           <td style={{ color: 'var(--text-secondary)', fontWeight: '500' }}>{getJobTitle(scan)}</td>
                           <td>
@@ -868,23 +853,14 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                             </span>
                           </td>
                           <td className="text-secondary">{scan.timestamp || 'Today, 10:30 AM'}</td>
-                          <td>
-                            <div className="flex align-center gap-2">
-                              <button
-                                onClick={() => loadRecentScan(scan)}
-                                className="button-secondary"
-                                style={{ padding: '6px 12px', fontSize: '12px', borderRadius: '8px', fontWeight: '600' }}
-                              >
-                                View Report
-                              </button>
-                              <button className="header-icon-btn" style={{ padding: '4px' }}>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                  <circle cx="12" cy="12" r="1" />
-                                  <circle cx="12" cy="5" r="1" />
-                                  <circle cx="12" cy="19" r="1" />
-                                </svg>
-                              </button>
-                            </div>
+                          <td style={{ textAlign: 'center' }}>
+                            <button
+                              onClick={() => loadRecentScan(scan)}
+                              className="button-secondary"
+                              style={{ padding: '6px 12px', fontSize: '12px', borderRadius: '8px', fontWeight: '600' }}
+                            >
+                              View Report
+                            </button>
                           </td>
                         </tr>
                       );
@@ -1009,7 +985,7 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
               return 'fix-medium';
             };
             return (
-              <div className="flex-col gap-6 w-full fade-in">
+              <div className="flex-col w-full fade-in" style={{ gap: '24px' }}>
                 {/* Score Hero Section */}
                 <div className="score-hero-card">
                   <div className="score-gauge-wrapper">
@@ -1054,7 +1030,7 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                 </div>
 
                 {/* Priority Fixes & Keyword Gaps Card */}
-                <div id="priority-fixes" className="card text-left" style={{ padding: '24px' }}>
+                <div id="priority-fixes" className="card text-left" style={{ padding: '20px' }}>
                   <div className="flex-col gap-1">
                     <h3 className="font-primary card-title" style={{ fontSize: '15.5px', fontWeight: '700', margin: 0, color: 'var(--text-primary)' }}>Priority Fixes</h3>
                     <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Top improvements ranked by estimated impact to optimize your match rate</span>
@@ -1066,10 +1042,9 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                         key={idx} 
                         className={`priority-fix-card ${getFixTierClass(fix.impact)}`}
                         onClick={() => {
-                          if (fix.isKeywordFix) return;
                           const t = fix.title.toLowerCase();
                           if (t.includes('skills') || t.includes('keyword')) {
-                            // no-op
+                            document.getElementById('keyword-gaps-section')?.scrollIntoView({ behavior: 'smooth' });
                           } else if (t.includes('contact') || t.includes('format') || t.includes('experience') || t.includes('education')) {
                             setDetailedExpanded(true);
                             setTimeout(() => {
@@ -1077,7 +1052,7 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                             }, 100);
                           }
                         }}
-                        style={{ cursor: fix.isKeywordFix ? 'default' : 'pointer' }}
+                        style={{ cursor: 'pointer' }}
                       >
                         <div className="priority-fix-icon-box">{fix.icon}</div>
                         <div className="priority-fix-content">
@@ -1088,22 +1063,6 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                             )}
                           </span>
                           <span className="priority-fix-desc">{fix.desc}</span>
-                          
-                          {fix.isKeywordFix && (
-                            <div className="keyword-pills" style={{ marginTop: '10px' }}>
-                              {missingSkills.slice(0, 15).map((skill, idx) => (
-                                <span key={idx} className="keyword-pill missing">
-                                  <span style={{ fontWeight: '700', marginRight: '4px' }}>+</span>
-                                  <span>{skill}</span>
-                                </span>
-                              ))}
-                              {missingSkills.length > 15 && (
-                                <span className="tag tag-neutral" style={{ fontSize: '11px', fontWeight: '600', padding: '3px 8px', borderRadius: '6px' }}>
-                                  +{missingSkills.length - 15} more
-                                </span>
-                              )}
-                            </div>
-                          )}
                         </div>
                         <span 
                           className="priority-fix-impact" 
@@ -1113,6 +1072,33 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                         </span>
                       </div>
                     ))}
+                  </div>
+
+                  <div className="card-divider" style={{ margin: '4px 0 8px 0' }}></div>
+
+                  {/* Missing Keywords Section */}
+                  <div id="keyword-gaps-section" className="flex-col gap-3">
+                    <div className="flex-col gap-1">
+                      <h3 className="font-primary card-title" style={{ fontSize: '14.5px', fontWeight: '700', margin: 0, color: 'var(--text-primary)' }}>Missing Keywords</h3>
+                      <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Add these missing target keywords to your resume to optimize your match rate</span>
+                    </div>
+                    
+                    <div className="keyword-pills" style={{ marginTop: '8px' }}>
+                      {missingSkills.slice(0, 15).map((skill, idx) => (
+                        <span key={idx} className="keyword-pill missing">
+                          <span style={{ fontWeight: '700', marginRight: '4px' }}>+</span>
+                          <span>{skill}</span>
+                        </span>
+                      ))}
+                      {missingSkills.length === 0 && (
+                        <span className="text-secondary" style={{ fontSize: '13px' }}>No missing keywords. Great job!</span>
+                      )}
+                      {missingSkills.length > 15 && (
+                        <span className="tag tag-neutral" style={{ fontSize: '11px', fontWeight: '600', padding: '3px 8px', borderRadius: '6px' }}>
+                          +{missingSkills.length - 15} more
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 

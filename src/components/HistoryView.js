@@ -111,7 +111,7 @@ export default function HistoryView({ history = [], onSelectHistory }) {
                   </div>
                 </th>
                 <th>Timestamp</th>
-                <th>Action</th>
+                <th style={{ textAlign: 'center' }}>Action</th>
               </tr>
             </thead>
             <tbody>
@@ -153,7 +153,7 @@ export default function HistoryView({ history = [], onSelectHistory }) {
                     <td className="font-sans text-secondary" style={{ fontSize: '13px' }}>
                       {formattedTime}
                     </td>
-                    <td>
+                    <td style={{ textAlign: 'center' }}>
                       <button 
                         onClick={() => onSelectHistory(item)}
                         className="button-secondary" 

@@ -227,7 +227,10 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
       const score = res.analysis?.atsScore ?? 0;
       if (score < minScore) return false;
       if (skillFilter.trim() !== '') {
-        const skillsList = (res.analysis?.skills?.matched || []).map(s => s.toLowerCase());
+        const skillsList = [
+          ...(res.analysis?.skills?.matched || []),
+          ...(res.analysis?.skills?.detected || [])
+        ].map(s => s.toLowerCase());
         const searchTerms = skillFilter.toLowerCase().split(',').map(s => s.trim()).filter(Boolean);
         const hasAllSkills = searchTerms.every(term => 
           skillsList.some(s => s.includes(term))
@@ -503,7 +506,7 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
                       <th>Candidates Scanned</th>
                       <th>JD Focus</th>
                       <th>Avg ATS Score</th>
-                      <th>Action</th>
+                      <th style={{ textAlign: 'center' }}>Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -515,7 +518,7 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
                         <td>
                           <span className="tag tag-matched" style={{ backgroundColor: 'var(--success-subtle)', color: 'var(--success)', fontWeight: '700' }}>{job.avgATS}%</span>
                         </td>
-                        <td>
+                        <td style={{ textAlign: 'center' }}>
                           <button
                             onClick={() => loadRecentBatchJob(job)}
                             className="button-secondary"
@@ -752,7 +755,7 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
                         </div>
                       </th>
                       <th>Top Matching Skills</th>
-                      <th>Action</th>
+                      <th style={{ textAlign: 'center' }}>Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -789,12 +792,27 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
                           </td>
                           <td>
                             <div className="flex gap-1 flex-wrap">
-                              {res.analysis?.skills?.matched?.slice(0, 3).map((s, i) => (
-                                <span key={i} className="tag tag-matched" style={{ backgroundColor: 'var(--success-subtle)', color: 'var(--success)', fontWeight: '600', padding: '2px 8px', fontSize: '11px' }}>{s}</span>
-                              )) || <span className="text-secondary font-sans" style={{ fontSize: '12px' }}>None</span>}
+                              {((res.analysis?.skills?.matched && res.analysis.skills.matched.length > 0)
+                                ? res.analysis.skills.matched
+                                : (res.analysis?.skills?.detected || [])
+                              ).slice(0, 3).map((s, i) => {
+                                const isMatched = res.analysis?.skills?.matched && res.analysis.skills.matched.length > 0;
+                                return (
+                                  <span key={i} className={`tag ${isMatched ? 'tag-matched' : ''}`} style={{
+                                    backgroundColor: isMatched ? 'var(--success-subtle)' : 'rgba(148, 163, 184, 0.12)',
+                                    color: isMatched ? 'var(--success)' : 'var(--text-secondary)',
+                                    fontWeight: '600',
+                                    padding: '2px 8px',
+                                    fontSize: '11px'
+                                  }}>{s}</span>
+                                );
+                              })}
+                              {(!res.analysis?.skills?.matched || res.analysis.skills.matched.length === 0) && (!res.analysis?.skills?.detected || res.analysis.skills.detected.length === 0) && (
+                                <span className="text-secondary font-sans" style={{ fontSize: '12px' }}>None</span>
+                              )}
                             </div>
                           </td>
-                          <td>
+                          <td style={{ textAlign: 'center' }}>
                             <button onClick={() => toggleRowExpand(index)} className="button-secondary" style={{ padding: '6px 12px', fontSize: '12px', borderRadius: '8px', fontWeight: '600' }}>
                               {isExpanded ? 'Hide' : 'Report'}
                             </button>

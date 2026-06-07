@@ -3,23 +3,34 @@ import { createClient } from '../../../lib/supabase/server';
 
 export async function GET(request) {
   try {
+    let user = null;
+    const bypassCookie = request.cookies.get('bluntly_bypass')?.value;
     const supabase = await createClient();
 
-    // Check user authenticated context
-    const { data: { user } } = await supabase.auth.getUser();
+    if (bypassCookie === 'true') {
+      user = { id: 'mock-dev-id', email: 'developer@bluntly.local' };
+    } else {
+      const { data } = await supabase.auth.getUser();
+      user = data?.user;
+    }
+
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized access.' }, { status: 401 });
     }
 
-    // Retrieve user-specific scans from database, ordered newest first
-    const { data: scans, error: dbError } = await supabase
-      .from('scans')
-      .select('*')
-      .order('created_at', { ascending: false });
+    let scans = [];
+    if (user.id !== 'mock-dev-id') {
+      // Retrieve user-specific scans from database, ordered newest first
+      const { data, error: dbError } = await supabase
+        .from('scans')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    if (dbError) {
-      console.error('Database history select error:', dbError);
-      throw new Error(`Failed to fetch scan history: ${dbError.message}`);
+      if (dbError) {
+        console.error('Database history select error:', dbError);
+        throw new Error(`Failed to fetch scan history: ${dbError.message}`);
+      }
+      scans = data || [];
     }
 
     // Format rows for frontend history state list

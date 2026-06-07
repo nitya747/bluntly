@@ -173,6 +173,7 @@ export default function Home() {
               history={history}
               activeSection={individualSection}
               setActiveSection={setIndividualSection}
+              setActiveView={setActiveView}
             />
           )}
 

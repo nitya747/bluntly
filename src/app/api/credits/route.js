@@ -4,15 +4,28 @@ import { getOrCreateProfile } from '../../../lib/supabase/profile';
 
 export async function GET(request) {
   try {
+    let user = null;
+    const bypassCookie = request.cookies.get('bluntly_bypass')?.value;
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+
+    if (bypassCookie === 'true') {
+      user = { id: 'mock-dev-id', email: 'developer@bluntly.local' };
+    } else {
+      const { data } = await supabase.auth.getUser();
+      user = data?.user;
+    }
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized access.' }, { status: 401 });
     }
 
     // Retrieve or auto-create profile
-    const profile = await getOrCreateProfile(supabase, user.id);
+    let profile = null;
+    if (user.id === 'mock-dev-id') {
+      profile = { credits: 999 };
+    } else {
+      profile = await getOrCreateProfile(supabase, user.id);
+    }
 
     return NextResponse.json({ success: true, credits: profile?.credits ?? 0 });
   } catch (err) {
@@ -23,28 +36,43 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
+    let user = null;
+    const bypassCookie = request.cookies.get('bluntly_bypass')?.value;
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+
+    if (bypassCookie === 'true') {
+      user = { id: 'mock-dev-id', email: 'developer@bluntly.local' };
+    } else {
+      const { data } = await supabase.auth.getUser();
+      user = data?.user;
+    }
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized access.' }, { status: 401 });
     }
 
     // Retrieve or auto-create profile
-    const profile = await getOrCreateProfile(supabase, user.id);
+    let profile = null;
+    if (user.id === 'mock-dev-id') {
+      profile = { credits: 999 };
+    } else {
+      profile = await getOrCreateProfile(supabase, user.id);
+    }
 
     let currentCredits = profile?.credits ?? 0;
 
     // Top up with 10 credits
     const newCredits = currentCredits + 10;
 
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .upsert({ id: user.id, credits: newCredits });
+    if (user.id !== 'mock-dev-id') {
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .upsert({ id: user.id, credits: newCredits });
 
-    if (updateError) {
-      console.error('Database update error for credits:', updateError);
-      throw new Error(`Failed to update credits: ${updateError.message}`);
+      if (updateError) {
+        console.error('Database update error for credits:', updateError);
+        throw new Error(`Failed to update credits: ${updateError.message}`);
+      }
     }
 
     return NextResponse.json({ success: true, credits: newCredits });

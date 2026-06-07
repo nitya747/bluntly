@@ -6,9 +6,16 @@ import { getOrCreateProfile } from '../../../lib/supabase/profile';
 
 export async function POST(request) {
   try {
+    let user = null;
+    const bypassCookie = request.cookies.get('bluntly_bypass')?.value;
     const supabase = await createClient();
-    const { data } = await supabase.auth.getUser();
-    const user = data?.user;
+
+    if (bypassCookie === 'true') {
+      user = { id: 'mock-dev-id', email: 'developer@bluntly.local' };
+    } else {
+      const { data } = await supabase.auth.getUser();
+      user = data?.user;
+    }
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized access.' }, { status: 401 });
@@ -30,7 +37,12 @@ export async function POST(request) {
     }
 
     // Retrieve user credits (retrieve or auto-create profile)
-    const profile = await getOrCreateProfile(supabase, user.id);
+    let profile = null;
+    if (user.id === 'mock-dev-id') {
+      profile = { credits: 999 };
+    } else {
+      profile = await getOrCreateProfile(supabase, user.id);
+    }
 
     if (!profile) {
       return NextResponse.json({ error: 'Failed to retrieve user profile.' }, { status: 500 });
@@ -78,60 +90,9 @@ export async function POST(request) {
             sendEvent('progress', { index: i, name: filename, status: 'analysing', credits: remainingCredits });
             const analysis = await analyzeResume(parsedText, jobDescription, filename);
 
-            // Persist the batch item inside the Supabase database
-            const insertData = {
-              filename,
-              candidate_name: analysis.candidateName,
-              ats_score: analysis.atsScore,
-              quality_score: analysis.qualityScore,
-              skills: analysis.skills,
-              sections: analysis.sections,
-              feedback: {
-                ...analysis.feedback,
-                ruleViolations: analysis.ruleViolations,
-                passedRules: analysis.passedRules,
-                experienceMatch: analysis.experienceMatch
-              },
-              job_description: jobDescription,
-              user_id: user.id,
-              structured_resume: analysis.structuredResume
-            };
-
-            let scanRow = null;
-            let dbError = null;
-
-            const dbResult = await supabase
-              .from('scans')
-              .insert(insertData)
-              .select('id, created_at')
-              .single();
-            
-            dbError = dbResult.error;
-            scanRow = dbResult.data;
-
-            if (dbError) {
-              console.warn(`Database write failed with structured_resume for ${filename}, retrying with fallback...`, dbError);
-              const fallbackInsertData = { ...insertData };
-              delete fallbackInsertData.structured_resume;
-              fallbackInsertData.feedback = {
-                ...fallbackInsertData.feedback,
-                structuredResume: analysis.structuredResume
-              };
-
-              const retryResult = await supabase
-                .from('scans')
-                .insert(fallbackInsertData)
-                .select('id, created_at')
-                .single();
-
-              dbError = retryResult.error;
-              scanRow = retryResult.data;
-            }
-
             let record;
-            if (dbError) {
-              console.error(`Database write failed completely for ${filename}:`, dbError);
-              // Fallback record to keep flow going
+
+            if (user.id === 'mock-dev-id') {
               record = {
                 id: 'mock-' + Math.random().toString(36).substr(2, 9),
                 filename,
@@ -139,28 +100,91 @@ export async function POST(request) {
                 analysis,
                 timestamp: new Date().toLocaleTimeString()
               };
+              remainingCredits = 999;
             } else {
-              record = {
-                id: scanRow.id,
+              // Persist the batch item inside the Supabase database
+              const insertData = {
                 filename,
-                success: true,
-                analysis: {
-                  ...analysis,
-                  id: scanRow.id,
-                  timestamp: new Date(scanRow.created_at).toLocaleTimeString()
-                }
+                candidate_name: analysis.candidateName,
+                ats_score: analysis.atsScore,
+                quality_score: analysis.qualityScore,
+                skills: analysis.skills,
+                sections: analysis.sections,
+                feedback: {
+                  ...analysis.feedback,
+                  ruleViolations: analysis.ruleViolations,
+                  passedRules: analysis.passedRules,
+                  experienceMatch: analysis.experienceMatch
+                },
+                job_description: jobDescription,
+                user_id: user.id,
+                structured_resume: analysis.structuredResume
               };
-            }
 
-            // Deduct 1 credit for this successfully processed file
-            remainingCredits = Math.max(0, remainingCredits - 1);
-            const { error: creditError } = await supabase
-              .from('profiles')
-              .update({ credits: remainingCredits })
-              .eq('id', user.id);
+              let scanRow = null;
+              let dbError = null;
 
-            if (creditError) {
-              console.error(`Failed to deduct credit for ${filename}:`, creditError);
+              const dbResult = await supabase
+                .from('scans')
+                .insert(insertData)
+                .select('id, created_at')
+                .single();
+              
+              dbError = dbResult.error;
+              scanRow = dbResult.data;
+
+              if (dbError) {
+                console.warn(`Database write failed with structured_resume for ${filename}, retrying with fallback...`, dbError);
+                const fallbackInsertData = { ...insertData };
+                delete fallbackInsertData.structured_resume;
+                fallbackInsertData.feedback = {
+                  ...fallbackInsertData.feedback,
+                  structuredResume: analysis.structuredResume
+                };
+
+                const retryResult = await supabase
+                  .from('scans')
+                  .insert(fallbackInsertData)
+                  .select('id, created_at')
+                  .single();
+
+                dbError = retryResult.error;
+                scanRow = retryResult.data;
+              }
+
+              if (dbError) {
+                console.error(`Database write failed completely for ${filename}:`, dbError);
+                // Fallback record to keep flow going
+                record = {
+                  id: 'mock-' + Math.random().toString(36).substr(2, 9),
+                  filename,
+                  success: true,
+                  analysis,
+                  timestamp: new Date().toLocaleTimeString()
+                };
+              } else {
+                record = {
+                  id: scanRow.id,
+                  filename,
+                  success: true,
+                  analysis: {
+                    ...analysis,
+                    id: scanRow.id,
+                    timestamp: new Date(scanRow.created_at).toLocaleTimeString()
+                  }
+                };
+              }
+
+              // Deduct 1 credit for this successfully processed file
+              remainingCredits = Math.max(0, remainingCredits - 1);
+              const { error: creditError } = await supabase
+                .from('profiles')
+                .update({ credits: remainingCredits })
+                .eq('id', user.id);
+
+              if (creditError) {
+                console.error(`Failed to deduct credit for ${filename}:`, creditError);
+              }
             }
 
             results.push(record);

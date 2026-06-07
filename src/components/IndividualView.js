@@ -141,15 +141,18 @@ export default function IndividualView({
     if (extension !== 'pdf' && extension !== 'tex' && extension !== 'txt') {
       setError('Unsupported file type. Please upload a PDF (.pdf) or LaTeX (.tex) file.');
       setFile(null);
+      setResult(null);
       return;
     }
     setError(null);
     setFile(selectedFile);
+    setResult(null);
   };
 
   const clearFile = () => {
     setFile(null);
     setError(null);
+    setResult(null);
   };
 
   const runAnalysis = async () => {

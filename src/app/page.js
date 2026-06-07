@@ -160,6 +160,10 @@ export default function Home() {
           batchSection={batchSection}
           setBatchSection={setBatchSection}
           isMock={isMock} 
+          user={user}
+          credits={credits}
+          onBuyCredits={handleBuyCredits}
+          onSignOut={handleSignOut}
         />
 
         {/* View Router */}

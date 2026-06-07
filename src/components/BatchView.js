@@ -1,5 +1,5 @@
 'use client';
-
+ 
 import { useState } from 'react';
 import { 
   UploadIcon, 
@@ -15,10 +15,19 @@ import {
   DownloadIcon, 
   ChevronUpIcon, 
   ChevronDownIcon,
-  FileTextIcon
+  FileTextIcon,
+  ConfigureIcon,
+  UsersIcon
 } from './Icons';
 
-export default function BatchView({ onAddHistory, credits, setCredits, history = [] }) {
+export default function BatchView({ 
+  onAddHistory, 
+  credits, 
+  setCredits, 
+  history = [],
+  activeSection,
+  setActiveSection
+}) {
   const [files, setFiles] = useState([]);
   const [jobDescription, setJobDescription] = useState('');
   const [processing, setProcessing] = useState(false);
@@ -35,7 +44,6 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
 
   const [expandedIndex, setExpandedIndex] = useState(null);
   const [dragOver, setDragOver] = useState(false);
-  const [activeSection, setActiveSection] = useState('input'); // 'input' (Configure) or 'analysis' (Analysis Report)
 
   const loadSampleJD = () => {
     setJobDescription(
@@ -538,7 +546,26 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
       )}
 
       {/* 2. Analysis Report Screen Pattern */}
-      {activeSection === 'analysis' && (
+      {activeSection === 'analysis' && results.length === 0 && !processing && (
+        <div className="card flex-col align-center justify-center gap-4 text-center py-12 fade-in" style={{ minHeight: '400px', backgroundColor: 'transparent', width: '100%' }}>
+          <div className="file-icon-wrapper flex align-center justify-center" style={{ backgroundColor: 'var(--primary-subtle)', width: '64px', height: '64px', borderRadius: '50%', marginBottom: '8px' }}>
+            <UsersIcon size={32} style={{ color: 'var(--primary)' }} />
+          </div>
+          <h3 className="font-primary" style={{ fontSize: '18px', fontWeight: '700', color: 'var(--text-primary)' }}>No Batch Ranking Report Loaded</h3>
+          <p className="font-sans text-secondary" style={{ fontSize: '14px', maxWidth: '380px', margin: '0 auto', lineHeight: '1.5' }}>
+            To view the batch ranking report, please upload and analyze a batch of resumes on the Batch Analysis screen, or select a past batch scan from the History page.
+          </p>
+          <button 
+            onClick={() => setActiveSection('input')} 
+            className="button-primary flex align-center gap-2"
+            style={{ padding: '8px 20px', borderRadius: '10px', fontSize: '13px', fontWeight: '600', marginTop: '12px', cursor: 'pointer', backgroundColor: 'var(--primary)', border: 'none', color: '#FFFFFF' }}
+          >
+            <ConfigureIcon size={14} /> Go to Batch Analysis
+          </button>
+        </div>
+      )}
+
+      {activeSection === 'analysis' && (results.length > 0 || processing) && (
         <div className="flex-col gap-6 fade-in">
           {/* Section 1: Batch Status */}
           <div className="card text-left">

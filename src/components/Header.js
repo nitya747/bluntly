@@ -367,17 +367,6 @@ export default function Header({
                 <div className="profile-dropdown-actions flex-col">
                   <button 
                     onClick={() => {
-                      setActiveView('settings');
-                      setShowProfile(false);
-                    }}
-                    className="profile-dropdown-item flex align-center gap-2"
-                  >
-                    <SettingsIcon size={14} />
-                    <span>Configuration</span>
-                  </button>
-
-                  <button 
-                    onClick={() => {
                       if (onSignOut) onSignOut();
                       setShowProfile(false);
                     }}

@@ -1366,7 +1366,7 @@ input[type="range"]::-moz-range-thumb:hover {
   border-radius: 12px;
   padding: 14px 16px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 14px;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   text-align: left;
@@ -1433,6 +1433,7 @@ input[type="range"]::-moz-range-thumb:hover {
   text-transform: uppercase;
   letter-spacing: 0.02em;
   flex-shrink: 0;
+  margin-top: 2px;
 }
 
 /* Pulsing Status Dot */

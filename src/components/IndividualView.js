@@ -1458,67 +1458,6 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                   <p className="feedback-paragraph" style={{ color: 'var(--text-primary)', fontSize: '13px', lineHeight: '1.6' }}>{feedbackSummary}</p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="flex flex-col gap-3">
-                    <h4 style={{ fontWeight: '700', color: 'var(--success)', fontSize: '13.5px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px', borderRadius: '50%', backgroundColor: 'var(--success-subtle)', color: 'var(--success)' }}>
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                      </span>
-                      Bullet Point Rephrasing Suggestions
-                    </h4>
-                    <ul className="feedback-list flex-col gap-2.5" style={{ fontSize: '12.5px', listStyle: 'none', padding: 0 }}>
-                      {feedbackWordingImprovements?.map((word, idx) => (
-                        <li key={idx} className="flex align-start gap-2.5" style={{
-                          padding: '10px 12px',
-                          backgroundColor: 'var(--success-subtle)',
-                           border: '1px solid var(--success-subtle)',
-                          borderRadius: '8px',
-                          color: 'var(--text-primary)'
-                        }}>
-                          <span style={{ color: 'var(--success)', display: 'inline-flex', alignItems: 'center', marginTop: '2px', flexShrink: 0 }}>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M12 20h9" />
-                              <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                            </svg>
-                          </span>
-                          <span style={{ lineHeight: '1.4' }}>{word}</span>
-                        </li>
-                      )) || <li>No phrasing suggestions generated.</li>}
-                    </ul>
-                  </div>
-
-                  <div className="flex flex-col gap-3">
-                    <h4 style={{ fontWeight: '700', color: 'var(--primary)', fontSize: '13.5px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px', borderRadius: '50%', backgroundColor: 'var(--primary-subtle)', color: 'var(--primary)' }}>
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                        </svg>
-                      </span>
-                      Long-Term Career Progression Advice
-                    </h4>
-                    <div style={{
-                      padding: '16px',
-                      backgroundColor: 'var(--primary-subtle)',
-                      border: '1px solid var(--border)',
-                      borderRadius: '12px',
-                      height: '100%'
-                    }}>
-                      <p style={{
-                        lineHeight: '1.6',
-                        fontSize: '13px',
-                        color: 'var(--text-primary)',
-                        fontStyle: 'italic',
-                        borderLeft: '3px solid var(--primary)',
-                        paddingLeft: '12px'
-                      }}>
-                        &ldquo;{feedbackCareerAdvice}&rdquo;
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
                 {/* Diagnosis Grid (Strengths, Needs Attention, ATS Risks) */}
                 <div className="diagnosis-grid" style={{ marginTop: '8px' }}>
                   {/* Strengths */}

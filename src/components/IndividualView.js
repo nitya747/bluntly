@@ -441,206 +441,200 @@ export default function IndividualView({
             </div>
           </div>
 
-          {/* Grid layout for Breakdown and Skills */}
+          {/* Grid layout for Breakdown, Skills, Rules, and Feedback */}
           <div className="grid grid-cols-2 gap-8">
-            {/* Left Column: Breakdown & Rules */}
-            <div className="flex-col gap-8">
-              {/* Section 2: Section Breakdown */}
-              <div className="card">
-                <h3 className="card-title">Section Breakdown</h3>
-                <div className="card-divider"></div>
-                <div className="flex-col gap-4">
-                  {Object.entries(result.sections || {}).map(([key, score]) => (
-                    <div key={key} className="progress-bar-container">
-                      <div className="flex justify-between font-sans" style={{ fontSize: '13px', fontWeight: '500' }}>
-                        <span style={{ textTransform: 'capitalize', color: 'var(--text-secondary)' }}>{key}</span>
-                        <span style={{ fontWeight: '600' }}>{score}%</span>
-                      </div>
-                      <div className="progress-bar-track">
-                        <div 
-                          className="progress-bar-fill primary" 
-                          style={{ width: `${score}%` }}
-                        ></div>
-                      </div>
+            {/* Section 2: Section Breakdown */}
+            <div className="card">
+              <h3 className="card-title">Section Breakdown</h3>
+              <div className="card-divider"></div>
+              <div className="flex-col gap-4">
+                {Object.entries(result.sections || {}).map(([key, score]) => (
+                  <div key={key} className="progress-bar-container">
+                    <div className="flex justify-between font-sans" style={{ fontSize: '13px', fontWeight: '500' }}>
+                      <span style={{ textTransform: 'capitalize', color: 'var(--text-secondary)' }}>{key}</span>
+                      <span style={{ fontWeight: '600' }}>{score}%</span>
                     </div>
-                  ))}
-                  
-                  {/* Experience Match detail line */}
-                  {result.experienceMatch && result.experienceMatch.required > 0 && (
-                    <div className="flex align-center justify-between" style={{
-                      backgroundColor: 'var(--bg)',
-                      border: '1px solid var(--border)',
-                      borderRadius: '12px',
-                      padding: '12px 16px',
-                      fontSize: '13px',
-                      marginTop: '8px'
-                    }}>
-                      <span className="text-secondary">Experience Alignment: Required <strong>{result.experienceMatch.required} yrs</strong> | Detected <strong>{result.experienceMatch.detected} yrs</strong></span>
-                      <span className={`tag ${result.experienceMatch.matched ? 'tag-matched' : 'tag-missing'}`}>
-                        {result.experienceMatch.matched ? 'MATCH' : 'GAP'}
-                      </span>
+                    <div className="progress-bar-track">
+                      <div 
+                        className="progress-bar-fill primary" 
+                        style={{ width: `${score}%` }}
+                      ></div>
                     </div>
-                  )}
-                </div>
+                  </div>
+                ))}
+                
+                {/* Experience Match detail line */}
+                {result.experienceMatch && result.experienceMatch.required > 0 && (
+                  <div className="flex align-center justify-between" style={{
+                    backgroundColor: 'var(--bg)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '12px',
+                    padding: '12px 16px',
+                    fontSize: '13px',
+                    marginTop: '8px'
+                  }}>
+                    <span className="text-secondary">Experience Alignment: Required <strong>{result.experienceMatch.required} yrs</strong> | Detected <strong>{result.experienceMatch.detected} yrs</strong></span>
+                    <span className={`tag ${result.experienceMatch.matched ? 'tag-matched' : 'tag-missing'}`}>
+                      {result.experienceMatch.matched ? 'MATCH' : 'GAP'}
+                    </span>
+                  </div>
+                )}
               </div>
+            </div>
 
-              {/* Section 4: Rule Checks */}
-              <div className="card">
-                <h3 className="card-title">Rule Checks</h3>
-                <div className="card-divider"></div>
-                <div className="flex-col gap-3">
-                  {[
-                    { key: 'email', label: 'Email Contact Information', check: !result.ruleViolations?.includes('Missing email') },
-                    { key: 'phone', label: 'Phone Contact Information', check: !result.ruleViolations?.includes('Missing phone') },
-                    { key: 'length', label: 'Resume Content Length', check: !result.ruleViolations?.includes('Resume too short') },
-                    { key: 'experience', label: 'Work Experience Section', check: !result.ruleViolations?.includes('No experience section') },
-                    { key: 'skills', label: 'Technical Skills Section', check: !result.ruleViolations?.includes('No skills section') }
-                  ].map((rule) => (
-                    <div key={rule.key} className="flex align-center justify-between" style={{ fontSize: '13px' }}>
-                      <span className="flex align-center gap-2" style={{ color: 'var(--text-secondary)' }}>
-                        <span style={{
-                          width: '8px',
-                          height: '8px',
-                          borderRadius: '50%',
-                          backgroundColor: rule.check ? 'var(--success)' : 'var(--danger)',
-                          display: 'inline-block'
-                        }}></span>
-                        {rule.label}
-                      </span>
-                      <span className={`tag ${rule.check ? 'tag-matched' : 'tag-missing'}`}>
-                        {rule.check ? 'Passed' : 'Failed'}
-                      </span>
+            {/* Section 3: Skills Analysis */}
+            <div className="card">
+              <h3 className="card-title">Skills Analysis</h3>
+              <div className="card-divider"></div>
+              <div className="flex-col gap-4">
+                {/* Matched Skills */}
+                <div className="flex-col gap-2">
+                  <span className="font-sans" style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                    Matched Skills ({result.skills?.matched?.length || 0})
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {result.skills?.matched?.length === 0 ? (
+                      <span className="no-skills font-sans" style={{ fontSize: '13px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>None matched</span>
+                    ) : (
+                      result.skills.matched.map((s, idx) => (
+                        <span key={idx} className="tag tag-matched">{s}</span>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {/* Missing Skills */}
+                {result.skills?.missing && result.skills.missing.length > 0 && (
+                  <div className="flex-col gap-2" style={{ marginTop: '8px' }}>
+                    <span className="font-sans" style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                      Missing Keywords ({result.skills.missing.length})
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {result.skills.missing.map((s, idx) => (
+                        <span key={idx} className="tag tag-missing">{s}</span>
+                      ))}
                     </div>
-                  ))}
+                  </div>
+                )}
+
+                {/* Other Detected Skills */}
+                <div className="flex-col gap-2" style={{ marginTop: '8px' }}>
+                  <span className="font-sans" style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                    Other Detected Skills ({result.skills?.detected?.length || 0})
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {result.skills?.detected?.length === 0 ? (
+                      <span className="no-skills font-sans" style={{ fontSize: '13px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>None detected</span>
+                    ) : (
+                      result.skills.detected.map((s, idx) => (
+                        <span key={idx} className="tag tag-neutral">{s}</span>
+                      ))
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Right Column: Skills Analysis */}
-            <div className="flex-col gap-8">
-              {/* Section 3: Skills Analysis */}
-              <div className="card">
-                <h3 className="card-title">Skills Analysis</h3>
-                <div className="card-divider"></div>
-                <div className="flex-col gap-4">
-                  {/* Matched Skills */}
-                  <div className="flex-col gap-2">
-                    <span className="font-sans" style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>
-                      Matched Skills ({result.skills?.matched?.length || 0})
+            {/* Section 4: Rule Checks */}
+            <div className="card">
+              <h3 className="card-title">Rule Checks</h3>
+              <div className="card-divider"></div>
+              <div className="flex-col gap-3">
+                {[
+                  { key: 'email', label: 'Email Contact Information', check: !result.ruleViolations?.includes('Missing email') },
+                  { key: 'phone', label: 'Phone Contact Information', check: !result.ruleViolations?.includes('Missing phone') },
+                  { key: 'length', label: 'Resume Content Length', check: !result.ruleViolations?.includes('Resume too short') },
+                  { key: 'experience', label: 'Work Experience Section', check: !result.ruleViolations?.includes('No experience section') },
+                  { key: 'skills', label: 'Technical Skills Section', check: !result.ruleViolations?.includes('No skills section') }
+                ].map((rule) => (
+                  <div key={rule.key} className="flex align-center justify-between" style={{ fontSize: '13px' }}>
+                    <span className="flex align-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+                      <span style={{
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: '50%',
+                        backgroundColor: rule.check ? 'var(--success)' : 'var(--danger)',
+                        display: 'inline-block'
+                      }}></span>
+                      {rule.label}
                     </span>
-                    <div className="flex flex-wrap gap-2">
-                      {result.skills?.matched?.length === 0 ? (
-                        <span className="no-skills font-sans" style={{ fontSize: '13px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>None matched</span>
-                      ) : (
-                        result.skills.matched.map((s, idx) => (
-                          <span key={idx} className="tag tag-matched">{s}</span>
-                        ))
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Missing Skills */}
-                  {result.skills?.missing && result.skills.missing.length > 0 && (
-                    <div className="flex-col gap-2" style={{ marginTop: '8px' }}>
-                      <span className="font-sans" style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>
-                        Missing Keywords ({result.skills.missing.length})
-                      </span>
-                      <div className="flex flex-wrap gap-2">
-                        {result.skills.missing.map((s, idx) => (
-                          <span key={idx} className="tag tag-missing">{s}</span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Other Detected Skills */}
-                  <div className="flex-col gap-2" style={{ marginTop: '8px' }}>
-                    <span className="font-sans" style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>
-                      Other Detected Skills ({result.skills?.detected?.length || 0})
+                    <span className={`tag ${rule.check ? 'tag-matched' : 'tag-missing'}`}>
+                      {rule.check ? 'Passed' : 'Failed'}
                     </span>
-                    <div className="flex flex-wrap gap-2">
-                      {result.skills?.detected?.length === 0 ? (
-                        <span className="no-skills font-sans" style={{ fontSize: '13px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>None detected</span>
-                      ) : (
-                        result.skills.detected.map((s, idx) => (
-                          <span key={idx} className="tag tag-neutral">{s}</span>
-                        ))
-                      )}
-                    </div>
                   </div>
-                </div>
+                ))}
               </div>
+            </div>
 
-              {/* Section 5: AI Feedback & Recommendations */}
-              <div className="card flex-col gap-3">
-                <div className="flex align-center gap-2 justify-between">
-                  <h3 className="card-title flex align-center gap-2" style={{ margin: 0 }}>
-                    <BotIcon size={16} style={{ color: 'var(--primary)' }} />
-                    AI Feedback
-                  </h3>
-                </div>
-                <div className="feedback-sub-tabs flex gap-2">
-                  <button 
-                    onClick={() => setActiveFeedbackTab('summary')}
-                    className={`feedback-tab-btn ${activeFeedbackTab === 'summary' ? 'active' : ''}`}
-                  >
-                    Summary
-                  </button>
-                  <button 
-                    onClick={() => setActiveFeedbackTab('strengths')}
-                    className={`feedback-tab-btn ${activeFeedbackTab === 'strengths' ? 'active' : ''}`}
-                  >
-                    Strengths
-                  </button>
-                  <button 
-                    onClick={() => setActiveFeedbackTab('improvements')}
-                    className={`feedback-tab-btn ${activeFeedbackTab === 'improvements' ? 'active' : ''}`}
-                  >
-                    Improvements
-                  </button>
-                  <button 
-                    onClick={() => setActiveFeedbackTab('advice')}
-                    className={`feedback-tab-btn ${activeFeedbackTab === 'advice' ? 'active' : ''}`}
-                  >
-                    Advice
-                  </button>
-                </div>
-                <div className="feedback-content" style={{ minHeight: '140px' }}>
-                  {activeFeedbackTab === 'summary' && (
-                    <div className="flex-col gap-2 fade-in">
-                      <p className="feedback-paragraph" style={{ color: 'var(--text-primary)', fontSize: '13px', lineHeight: '1.6', margin: 0 }}>
-                        {result.feedback?.summary}
-                      </p>
-                    </div>
-                  )}
-                  {activeFeedbackTab === 'strengths' && (
-                    <ul className="feedback-list flex-col gap-2 fade-in" style={{ padding: 0, margin: 0, fontSize: '13px' }}>
-                      {result.feedback?.strengths?.map((str, idx) => (
-                        <li key={idx} className="flex align-start gap-2" style={{ padding: '2px 0' }}>
-                          <CheckIcon size={14} style={{ color: 'var(--success)', flexShrink: 0, marginTop: '2px' }} />
-                          <span style={{ color: 'var(--text-primary)' }}>{str}</span>
-                        </li>
-                      )) || <li style={{ color: 'var(--text-secondary)', fontStyle: 'italic' }}>No strengths identified.</li>}
-                    </ul>
-                  )}
-                  {activeFeedbackTab === 'improvements' && (
-                    <ul className="feedback-list flex-col gap-2 fade-in" style={{ padding: 0, margin: 0, fontSize: '13px' }}>
-                      {result.feedback?.improvements?.map((imp, idx) => (
-                        <li key={idx} className="flex align-start gap-2" style={{ padding: '2px 0' }}>
-                          <AlertIcon size={14} style={{ color: 'var(--warning)', flexShrink: 0, marginTop: '2px' }} />
-                          <span style={{ color: 'var(--text-primary)' }}>{imp}</span>
-                        </li>
-                      )) || <li style={{ color: 'var(--text-secondary)', fontStyle: 'italic' }}>No improvements identified.</li>}
-                    </ul>
-                  )}
-                  {activeFeedbackTab === 'advice' && (
-                    <div className="flex-col gap-2 fade-in">
-                      <p className="feedback-paragraph" style={{ fontStyle: 'italic', color: 'var(--text-primary)', fontSize: '13px', lineHeight: '1.6', margin: 0 }}>
-                        {result.feedback?.careerAdvice || 'No career advice generated for this scan.'}
-                      </p>
-                    </div>
-                  )}
-                </div>
+            {/* Section 5: AI Feedback & Recommendations */}
+            <div className="card flex-col gap-3">
+              <div className="flex align-center gap-2 justify-between">
+                <h3 className="card-title flex align-center gap-2" style={{ margin: 0 }}>
+                  <BotIcon size={16} style={{ color: 'var(--primary)' }} />
+                  AI Feedback
+                </h3>
+              </div>
+              <div className="feedback-sub-tabs flex gap-2">
+                <button 
+                  onClick={() => setActiveFeedbackTab('summary')}
+                  className={`feedback-tab-btn ${activeFeedbackTab === 'summary' ? 'active' : ''}`}
+                >
+                  Summary
+                </button>
+                <button 
+                  onClick={() => setActiveFeedbackTab('strengths')}
+                  className={`feedback-tab-btn ${activeFeedbackTab === 'strengths' ? 'active' : ''}`}
+                >
+                  Strengths
+                </button>
+                <button 
+                  onClick={() => setActiveFeedbackTab('improvements')}
+                  className={`feedback-tab-btn ${activeFeedbackTab === 'improvements' ? 'active' : ''}`}
+                >
+                  Improvements
+                </button>
+                <button 
+                  onClick={() => setActiveFeedbackTab('advice')}
+                  className={`feedback-tab-btn ${activeFeedbackTab === 'advice' ? 'active' : ''}`}
+                >
+                  Advice
+                </button>
+              </div>
+              <div className="feedback-content" style={{ minHeight: '140px' }}>
+                {activeFeedbackTab === 'summary' && (
+                  <div className="flex-col gap-2 fade-in">
+                    <p className="feedback-paragraph" style={{ color: 'var(--text-primary)', fontSize: '13px', lineHeight: '1.6', margin: 0 }}>
+                      {result.feedback?.summary}
+                    </p>
+                  </div>
+                )}
+                {activeFeedbackTab === 'strengths' && (
+                  <ul className="feedback-list flex-col gap-2 fade-in" style={{ padding: 0, margin: 0, fontSize: '13px' }}>
+                    {result.feedback?.strengths?.map((str, idx) => (
+                      <li key={idx} className="flex align-start gap-2" style={{ padding: '2px 0' }}>
+                        <CheckIcon size={14} style={{ color: 'var(--success)', flexShrink: 0, marginTop: '2px' }} />
+                        <span style={{ color: 'var(--text-primary)' }}>{str}</span>
+                      </li>
+                    )) || <li style={{ color: 'var(--text-secondary)', fontStyle: 'italic' }}>No strengths identified.</li>}
+                  </ul>
+                )}
+                {activeFeedbackTab === 'improvements' && (
+                  <ul className="feedback-list flex-col gap-2 fade-in" style={{ padding: 0, margin: 0, fontSize: '13px' }}>
+                    {result.feedback?.improvements?.map((imp, idx) => (
+                      <li key={idx} className="flex align-start gap-2" style={{ padding: '2px 0' }}>
+                        <AlertIcon size={14} style={{ color: 'var(--warning)', flexShrink: 0, marginTop: '2px' }} />
+                        <span style={{ color: 'var(--text-primary)' }}>{imp}</span>
+                      </li>
+                    )) || <li style={{ color: 'var(--text-secondary)', fontStyle: 'italic' }}>No improvements identified.</li>}
+                  </ul>
+                )}
+                {activeFeedbackTab === 'advice' && (
+                  <div className="flex-col gap-2 fade-in">
+                    <p className="feedback-paragraph" style={{ fontStyle: 'italic', color: 'var(--text-primary)', fontSize: '13px', lineHeight: '1.6', margin: 0 }}>
+                      {result.feedback?.careerAdvice || 'No career advice generated for this scan.'}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>

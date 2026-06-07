@@ -408,8 +408,34 @@ export default function IndividualView({
       }
     });
 
+    // Add special Missing Keywords fix if there are missing skills
+    if (missingSkills && missingSkills.length > 0) {
+      fixes.push({
+        title: "Missing Keywords",
+        desc: "Add these missing target keywords to your resume to optimize your match rate:",
+        impact: missingSkills.length > 5 ? "Critical" : "High",
+        impactColor: missingSkills.length > 5 ? "var(--danger)" : "var(--primary)",
+        impactBg: missingSkills.length > 5 ? "var(--danger-subtle)" : "var(--primary-subtle)",
+        isKeywordFix: true,
+        icon: (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+            <line x1="7" y1="7" x2="7.01" y2="7" />
+          </svg>
+        )
+      });
+    }
+
     // Add LLM feedback improvements
     feedbackImprovements.forEach(imp => {
+      const impLower = imp.toLowerCase();
+      // If we already added a dedicated keyword fix, filter out generic keyword/skills advice
+      if (missingSkills && missingSkills.length > 0) {
+        if (impLower.includes('skills') || impLower.includes('keyword') || impLower.includes('tailor')) {
+          return;
+        }
+      }
+
       let impact = "Medium";
       let impactColor = "var(--warning)";
       let impactBg = "var(--warning-subtle)";
@@ -419,7 +445,6 @@ export default function IndividualView({
         </svg>
       );
       
-      const impLower = imp.toLowerCase();
       if (impLower.includes('quantify') || impLower.includes('metric') || impLower.includes('achievement') || impLower.includes('percent') || impLower.includes('number')) {
         impact = "High";
         impactColor = "var(--primary)";
@@ -429,17 +454,6 @@ export default function IndividualView({
             <line x1="18" y1="20" x2="18" y2="10" />
             <line x1="12" y1="20" x2="12" y2="4" />
             <line x1="6" y1="20" x2="6" y2="14" />
-          </svg>
-        );
-      } else if (impLower.includes('tailor') || impLower.includes('keyword') || impLower.includes('match')) {
-        impact = "High";
-        impactColor = "var(--primary)";
-        impactBg = "var(--primary-subtle)";
-        icon = (
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10" />
-            <circle cx="12" cy="12" r="6" />
-            <circle cx="12" cy="12" r="2" />
           </svg>
         );
       }
@@ -509,14 +523,18 @@ export default function IndividualView({
       }
     ];
 
-    while (fixes.length < 3 && fallbacks.length > 0) {
+    while (fixes.length < 4 && fallbacks.length > 0) {
       const fb = fallbacks.shift();
+      // If we already added a dedicated keyword fix, filter out fallback keyword suggestions
+      if (missingSkills && missingSkills.length > 0 && fb.title.toLowerCase().includes('skills')) {
+        continue;
+      }
       if (!fixes.some(f => f.title.toLowerCase() === fb.title.toLowerCase())) {
         fixes.push(fb);
       }
     }
 
-    return fixes.slice(0, 3);
+    return fixes.slice(0, 4);
   };
 
   const priorityFixes = getPriorityFixes();
@@ -1042,15 +1060,16 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                     <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Top improvements ranked by estimated impact to optimize your match rate</span>
                   </div>
                   
-                  <div className="priority-fixes-container" style={{ margin: '8px 0 16px 0' }}>
+                  <div className="priority-fixes-container" style={{ margin: '8px 0 0 0' }}>
                     {priorityFixes.map((fix, idx) => (
                       <div 
                         key={idx} 
                         className={`priority-fix-card ${getFixTierClass(fix.impact)}`}
                         onClick={() => {
+                          if (fix.isKeywordFix) return;
                           const t = fix.title.toLowerCase();
                           if (t.includes('skills') || t.includes('keyword')) {
-                            document.getElementById('keyword-gaps-section')?.scrollIntoView({ behavior: 'smooth' });
+                            // no-op
                           } else if (t.includes('contact') || t.includes('format') || t.includes('experience') || t.includes('education')) {
                             setDetailedExpanded(true);
                             setTimeout(() => {
@@ -1058,7 +1077,7 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                             }, 100);
                           }
                         }}
-                        style={{ cursor: 'pointer' }}
+                        style={{ cursor: fix.isKeywordFix ? 'default' : 'pointer' }}
                       >
                         <div className="priority-fix-icon-box">{fix.icon}</div>
                         <div className="priority-fix-content">
@@ -1069,6 +1088,22 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                             )}
                           </span>
                           <span className="priority-fix-desc">{fix.desc}</span>
+                          
+                          {fix.isKeywordFix && (
+                            <div className="keyword-pills" style={{ marginTop: '10px' }}>
+                              {missingSkills.slice(0, 15).map((skill, idx) => (
+                                <span key={idx} className="keyword-pill missing">
+                                  <span style={{ fontWeight: '700', marginRight: '4px' }}>+</span>
+                                  <span>{skill}</span>
+                                </span>
+                              ))}
+                              {missingSkills.length > 15 && (
+                                <span className="tag tag-neutral" style={{ fontSize: '11px', fontWeight: '600', padding: '3px 8px', borderRadius: '6px' }}>
+                                  +{missingSkills.length - 15} more
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
                         <span 
                           className="priority-fix-impact" 
@@ -1078,33 +1113,6 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                         </span>
                       </div>
                     ))}
-                  </div>
-
-                  <div className="card-divider" style={{ margin: '16px 0' }}></div>
-
-                  {/* Missing Keywords Section */}
-                  <div id="keyword-gaps-section" className="flex-col gap-3">
-                    <div className="flex-col gap-1">
-                      <h3 className="font-primary card-title" style={{ fontSize: '14.5px', fontWeight: '700', margin: 0, color: 'var(--text-primary)' }}>Missing Keywords</h3>
-                      <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Add these missing target keywords to your resume to optimize your match rate</span>
-                    </div>
-                    
-                    <div className="keyword-pills" style={{ marginTop: '8px' }}>
-                      {missingSkills.slice(0, 15).map((skill, idx) => (
-                        <span key={idx} className="keyword-pill missing">
-                          <span style={{ fontWeight: '700', marginRight: '4px' }}>+</span>
-                          <span>{skill}</span>
-                        </span>
-                      ))}
-                      {missingSkills.length === 0 && (
-                        <span className="text-secondary" style={{ fontSize: '13px' }}>No missing keywords. Great job!</span>
-                      )}
-                      {missingSkills.length > 15 && (
-                        <span className="tag tag-neutral" style={{ fontSize: '11px', fontWeight: '600', padding: '3px 8px', borderRadius: '6px' }}>
-                          +{missingSkills.length - 15} more
-                        </span>
-                      )}
-                    </div>
                   </div>
                 </div>
 

@@ -242,11 +242,9 @@ function LoginContent() {
         }
 
         .form-label {
-          font-size: 0.8rem;
-          font-weight: 600;
+          font-size: 0.85rem;
+          font-weight: 500;
           color: var(--text-secondary);
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
         }
 
         .input-text {
@@ -286,7 +284,7 @@ function LoginContent() {
         .input-text:-webkit-autofill:hover,
         .input-text:-webkit-autofill:focus,
         .input-text:-webkit-autofill:active {
-          -webkit-box-shadow: 0 0 0 30px var(--surface) inset !important;
+          -webkit-box-shadow: 0 0 0 30px var(--bg) inset !important;
           -webkit-text-fill-color: var(--text-primary) !important;
           transition: background-color 5000s ease-in-out 0s;
         }

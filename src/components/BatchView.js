@@ -313,9 +313,6 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
     downloadFile(jsonString, 'resume_ranking_report.json', 'application/json;charset=utf-8;');
   };
 
-  const exportPDF = () => {
-    window.print();
-  };
 
   const downloadFile = (content, filename, mimeType) => {
     const blob = new Blob([content], { type: mimeType });
@@ -701,10 +698,6 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
                   <button onClick={exportJSON} className="button-secondary flex align-center gap-2" style={{ padding: '8px 14px', fontSize: '13px', borderRadius: '8px', fontWeight: '600' }}>
                     <DownloadIcon size={12} />
                     <span>JSON</span>
-                  </button>
-                  <button onClick={exportPDF} className="button-secondary flex align-center gap-2" style={{ padding: '8px 14px', fontSize: '13px', borderRadius: '8px', fontWeight: '600' }}>
-                    <DownloadIcon size={12} />
-                    <span>PDF</span>
                   </button>
                 </div>
               </div>

@@ -40,6 +40,7 @@
   --surface-elevated: #FFFFFF; /* fallback */
   --primary: #0F766E;
   --primary-hover: #115E59;
+  --primary-subtle: rgba(15, 118, 110, 0.08);
   --text-primary: #0F172A;
   --text-secondary: #64748B;
   --border: #E2E8F0;
@@ -58,6 +59,7 @@
   --surface-elevated: #2B2B30;
   --primary: #14B8A6;
   --primary-hover: #0D9488;
+  --primary-subtle: rgba(20, 184, 166, 0.08);
   --text-primary: #F3F4F6;
   --text-secondary: #9CA3AF;
   --border: #2D2D32;
@@ -1179,6 +1181,726 @@ input[type="range"]::-moz-range-thumb:hover {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 }
+
+/* ==========================================================================
+   Redesigned Overview Report Flow Styles
+   ========================================================================== */
+
+/* 0. Grid Layout */
+.overview-layout-grid {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  gap: 24px;
+  align-items: start;
+  width: 100%;
+}
+
+@media (max-width: 1100px) {
+  .overview-layout-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
+/* 1. Score Hero Section */
+.score-hero-card {
+  background: linear-gradient(135deg, rgba(20, 184, 166, 0.08) 0%, rgba(99, 102, 241, 0.03) 100%);
+  border: 1px solid rgba(20, 184, 166, 0.22);
+  border-radius: var(--radius-card);
+  padding: 28px 32px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05), var(--shadow);
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  position: relative;
+  overflow: hidden;
+  transition: all var(--transition-speed) ease;
+}
+
+[data-theme="light"] .score-hero-card {
+  background: linear-gradient(135deg, rgba(15, 118, 110, 0.05) 0%, rgba(79, 70, 229, 0.02) 100%);
+  border-color: rgba(15, 118, 110, 0.16);
+}
+
+[data-theme="dark"] .score-hero-card {
+  box-shadow: 0 0 25px rgba(20, 184, 166, 0.05), var(--shadow);
+  border-color: rgba(20, 184, 166, 0.28);
+}
+
+.score-hero-card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(20, 184, 166, 0.03) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.score-gauge-wrapper {
+  flex-shrink: 0;
+  position: relative;
+  width: 120px;
+  height: 120px;
+}
+
+.score-gauge-svg {
+  transform: rotate(-90deg);
+}
+
+.score-gauge-bg {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 10;
+}
+
+.score-gauge-fill {
+  fill: none;
+  stroke: var(--primary);
+  stroke-width: 10;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.8s ease-out, stroke var(--transition-speed) ease;
+}
+
+.score-gauge-fill.match-high {
+  stroke: var(--success);
+  filter: drop-shadow(0 0 3px var(--success-subtle));
+}
+
+.score-gauge-fill.match-mid {
+  stroke: var(--warning);
+  filter: drop-shadow(0 0 3px var(--warning-subtle));
+}
+
+.score-gauge-fill.match-low {
+  stroke: var(--danger);
+  filter: drop-shadow(0 0 3px var(--danger-subtle));
+}
+
+.score-gauge-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.score-gauge-number {
+  font-family: var(--font-primary);
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--text-primary);
+  transition: color var(--transition-speed) ease;
+}
+
+.score-gauge-number.match-high { color: var(--success); }
+.score-gauge-number.match-mid { color: var(--warning); }
+.score-gauge-number.match-low { color: var(--danger); }
+
+.score-gauge-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-top: 1px;
+}
+
+.score-hero-info {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  flex: 1;
+  gap: 8px;
+}
+
+.score-hero-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.score-hero-title {
+  font-family: var(--font-primary);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.percentile-badge {
+  background-color: var(--warning-subtle);
+  color: var(--warning);
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-weight: 700;
+  font-size: 11px;
+  border: 1px solid rgba(245, 158, 11, 0.18);
+}
+
+.assessment-text {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/* 2. Priority Fixes */
+.priority-fixes-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+  width: 100%;
+}
+
+.priority-fix-card {
+  background-color: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: left;
+}
+
+.priority-fix-card:hover {
+  transform: translateY(-1.5px);
+  border-color: var(--primary);
+  background-color: var(--surface);
+  box-shadow: 0 4px 14px rgba(20, 184, 166, 0.06);
+}
+
+.priority-fix-card.fix-critical {
+  border-left: 4px solid var(--danger);
+}
+
+.priority-fix-card.fix-high {
+  border-left: 4px solid var(--warning);
+}
+
+.priority-fix-card.fix-medium {
+  border-left: 4px solid var(--primary);
+}
+
+.priority-fix-icon-box {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background-color: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.priority-fix-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.priority-fix-title {
+  font-family: var(--font-primary);
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+}
+
+.priority-fix-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.priority-fix-impact {
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+
+/* Pulsing Status Dot */
+.pulsing-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-left: 8px;
+  animation: pulse-dot 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.pulsing-dot.critical {
+  background-color: var(--danger);
+  box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6);
+}
+
+.pulsing-dot.high {
+  background-color: var(--warning);
+  box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.6);
+}
+
+@keyframes pulse-dot {
+  0% {
+    transform: scale(0.9);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6);
+  }
+  70% {
+    transform: scale(1.1);
+    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+  }
+  100% {
+    transform: scale(0.9);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+/* 3. Diagnosis Columns */
+.diagnosis-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.diagnosis-col {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3.5px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: left;
+  transition: transform var(--transition-speed) ease, box-shadow var(--transition-speed) ease, border-color var(--transition-speed) ease;
+}
+
+.diagnosis-col:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+
+.diagnosis-col-title {
+  font-family: var(--font-primary);
+  font-size: 14.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 10px;
+  margin: 0;
+}
+
+.diagnosis-col.strengths { border-left-color: var(--success); }
+.diagnosis-col.strengths .diagnosis-col-title { color: var(--success); }
+.diagnosis-col.strengths:hover { border-color: var(--success); }
+
+.diagnosis-col.attention { border-left-color: var(--warning); }
+.diagnosis-col.attention .diagnosis-col-title { color: var(--warning); }
+.diagnosis-col.attention:hover { border-color: var(--warning); }
+
+.diagnosis-col.risks { border-left-color: var(--danger); }
+.diagnosis-col.risks .diagnosis-col-title { color: var(--danger); }
+.diagnosis-col.risks:hover { border-color: var(--danger); }
+
+.diagnosis-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.diagnosis-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-primary);
+}
+
+.diagnosis-item-icon {
+  font-size: 13px;
+  flex-shrink: 0;
+  margin-top: 1.5px;
+}
+
+/* 4. Keyword Coverage */
+.keyword-coverage-card {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 18px 20px;
+  text-align: left;
+}
+
+.keyword-coverage-split {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  margin-top: 12px;
+}
+
+.keyword-list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.keyword-list-header {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.keyword-list-header.matched { color: var(--success); }
+.keyword-list-header.missing { color: var(--danger); }
+
+.keyword-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.keyword-pill {
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  cursor: default;
+}
+
+.keyword-pill:hover {
+  transform: translateY(-1px);
+}
+
+.keyword-pill.matched {
+  background-color: var(--success-subtle);
+  color: var(--success);
+}
+.keyword-pill.matched:hover {
+  box-shadow: 0 2px 8px var(--success-subtle);
+}
+
+.keyword-pill.missing {
+  border: 1px dashed rgba(239, 68, 68, 0.35);
+  background-color: transparent;
+  color: var(--danger);
+}
+.keyword-pill.missing:hover {
+  box-shadow: 0 2px 8px var(--danger-subtle);
+  background-color: var(--danger-subtle);
+}
+
+/* 5. Collapsible Detailed Breakdown */
+.collapsible-container {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  transition: all var(--transition-speed) ease;
+}
+
+.collapsible-trigger {
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: background-color var(--transition-speed) ease;
+}
+
+.collapsible-trigger:hover {
+  background-color: var(--bg);
+}
+
+.collapsible-trigger:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+
+.collapsible-trigger-title {
+  font-family: var(--font-primary);
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.collapsible-trigger-subtitle {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.collapsible-chevron {
+  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  color: var(--text-secondary);
+}
+
+.collapsible-chevron.open {
+  transform: rotate(180deg);
+}
+
+.collapsible-content {
+  padding: 20px;
+  border-top: 1px solid var(--border);
+  background-color: var(--surface);
+  animation: slideDown 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 6. AI Feedback Flow Section */
+.ai-feedback-flow-card {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  text-align: left;
+}
+
+.ai-feedback-flow-title {
+  font-family: var(--font-primary);
+  font-size: 15.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-feedback-advice-box {
+  background-color: rgba(20, 184, 166, 0.03);
+  border-left: 3px solid var(--primary);
+  padding: 12px 16px;
+  border-radius: 0 8px 8px 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  font-style: italic;
+}
+
+.wording-tips-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.wording-tip-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background-color: var(--bg);
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  transition: border-color var(--transition-speed) ease;
+}
+
+.wording-tip-item:hover {
+  border-color: var(--primary);
+}
+
+.wording-tip-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.wording-tip-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.wording-copy-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.wording-copy-btn:hover {
+  background-color: var(--bg);
+  color: var(--text-primary);
+  border-color: var(--primary);
+}
+
+.wording-copy-btn.copied {
+  background-color: var(--success-subtle);
+  color: var(--success);
+  border-color: var(--success);
+}
+
+.wording-tip-text {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-primary);
+}
+
+/* Height-based responsive adjustments for new components */
+@media (max-height: 900px) {
+  .score-hero-card {
+    padding: 18px 24px !important;
+    gap: 24px !important;
+  }
+  .score-gauge-wrapper {
+    width: 100px !important;
+    height: 100px !important;
+  }
+  .score-gauge-number {
+    font-size: 28px !important;
+  }
+  .priority-fix-card {
+    padding: 10px 12px !important;
+    gap: 10px !important;
+  }
+  .diagnosis-col {
+    padding: 12px 14px !important;
+    gap: 10px !important;
+  }
+}
+
+@media (max-height: 800px) {
+  .score-hero-card {
+    padding: 12px 18px !important;
+    gap: 16px !important;
+  }
+  .score-gauge-wrapper {
+    width: 80px !important;
+    height: 80px !important;
+  }
+  .score-gauge-number {
+    font-size: 22px !important;
+  }
+  .score-gauge-label {
+    font-size: 8px !important;
+  }
+  .score-hero-title {
+    font-size: 15px !important;
+  }
+  .percentile-badge {
+    padding: 2px 6px !important;
+    font-size: 10px !important;
+  }
+  .assessment-text {
+    font-size: 12px !important;
+  }
+  .priority-fix-card {
+    padding: 8px 10px !important;
+    gap: 8px !important;
+  }
+  .priority-fix-title {
+    font-size: 12px !important;
+  }
+  .priority-fix-desc {
+    font-size: 11px !important;
+  }
+  .priority-fix-icon-box {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 14px !important;
+  }
+  .diagnosis-col {
+    padding: 10px 12px !important;
+    gap: 8px !important;
+  }
+  .diagnosis-col-title {
+    font-size: 12px !important;
+    padding-bottom: 6px !important;
+  }
+  .diagnosis-item {
+    font-size: 11px !important;
+  }
+  .keyword-coverage-card {
+    padding: 10px 12px !important;
+  }
+  .keyword-coverage-split {
+    gap: 12px !important;
+  }
+  .keyword-pill {
+    font-size: 10.5px !important;
+    padding: 2px 6px !important;
+  }
+  .collapsible-trigger {
+    padding: 10px 12px !important;
+  }
+  .collapsible-trigger-title {
+    font-size: 13px !important;
+  }
+  .collapsible-trigger-subtitle {
+    font-size: 11px !important;
+  }
+  .collapsible-content {
+    padding: 12px !important;
+  }
+  .ai-feedback-flow-card {
+    padding: 12px 14px !important;
+    gap: 10px !important;
+  }
+  .ai-feedback-flow-title {
+    font-size: 13px !important;
+  }
+  .ai-feedback-advice-box {
+    padding: 6px 10px !important;
+    font-size: 11px !important;
+  }
+  .wording-tip-item {
+    padding: 6px 8px !important;
+  }
+  .wording-tip-text {
+    font-size: 11px !important;
+  }
+}
+
+
 
 
 

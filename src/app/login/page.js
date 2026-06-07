@@ -3,24 +3,94 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '../../lib/supabase/client';
-import { LogoIcon, AlertIcon, CheckIcon } from '../../components/Icons';
+import { LogoIcon, AlertIcon, CheckIcon, SunIcon, MoonIcon } from '../../components/Icons';
+
+// Local SVG Icons for the redesigned page
+function EnvelopeIcon({ size = 16, ...props }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <rect width="20" height="16" x="2" y="4" rx="2" />
+      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+    </svg>
+  );
+}
+
+// Lock Icon
+function LockIcon({ size = 16, ...props }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
+  );
+}
+
+// Eye Icon
+function EyeIcon({ size = 16, ...props }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+// Eye Off Icon
+function EyeOffIcon({ size = 16, ...props }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+      <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+      <path d="M6.61 6.61A13.52 13.52 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+      <line x1="2" y1="2" x2="22" y2="22" />
+    </svg>
+  );
+}
+
+// Arrow Right Icon
+function ArrowRightIcon({ size = 15, ...props }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <polyline points="9 18 15 12 9 6" />
+    </svg>
+  );
+}
+
+// Spinner Icon
+function SpinnerIcon({ size = 16, ...props }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" {...props}>
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeOpacity="0.25" />
+      <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" />
+    </svg>
+  );
+}
 
 function LoginContent() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
+  const [theme, setTheme] = useState('light');
   
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClient();
 
   useEffect(() => {
+    let themeTimer;
     // Load theme to maintain consistency on mount
     const savedTheme = localStorage.getItem('theme') || 'light';
+    themeTimer = setTimeout(() => {
+      setTheme(savedTheme);
+    }, 0);
     document.documentElement.setAttribute('data-theme', savedTheme);
+    return () => {
+      if (themeTimer) clearTimeout(themeTimer);
+    };
   }, []);
 
   useEffect(() => {
@@ -33,6 +103,13 @@ function LoginContent() {
       return () => clearTimeout(timer);
     }
   }, [searchParams]);
+
+  const toggleTheme = () => {
+    const newTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+    localStorage.setItem('theme', newTheme);
+    document.documentElement.setAttribute('data-theme', newTheme);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -83,11 +160,27 @@ function LoginContent() {
 
   return (
     <div className="login-container flex align-center justify-center">
-      <div className="login-card card">
+      {/* Decorative ambient light glows */}
+      <div className="bg-glow-1"></div>
+      <div className="bg-glow-2"></div>
+
+      {/* Floating Theme Toggle Switcher */}
+      <div className="login-nav">
+        <button 
+          onClick={toggleTheme} 
+          className="theme-toggle-btn flex align-center justify-center"
+          aria-label="Toggle theme"
+          title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
+        >
+          {theme === 'dark' ? <SunIcon size={18} /> : <MoonIcon size={18} />}
+        </button>
+      </div>
+
+      <div className="login-card">
         {/* Brand/Header */}
-        <div className="login-header flex-col align-center gap-3 text-center">
+        <div className="login-header flex-col align-center gap-2 text-center">
           <div className="login-logo flex align-center justify-center">
-            <LogoIcon size={24} style={{ color: '#FFFFFF' }} />
+            <LogoIcon size={20} style={{ color: '#FFFFFF' }} />
           </div>
           <h1 className="login-title">bluntly</h1>
           <p className="login-subtitle font-sans">
@@ -97,14 +190,14 @@ function LoginContent() {
 
         {/* Auth Error/Success Alerts */}
         {errorMsg && (
-          <div className="alert alert-danger flex align-center gap-2 font-sans">
+          <div className="alert alert-danger flex align-center gap-2 font-sans fade-in">
             <AlertIcon size={16} />
             <span>{errorMsg}</span>
           </div>
         )}
         
         {message && (
-          <div className="alert alert-success flex align-center gap-2 font-sans">
+          <div className="alert alert-success flex align-center gap-2 font-sans fade-in">
             <CheckIcon size={16} />
             <span>{message}</span>
           </div>
@@ -114,36 +207,66 @@ function LoginContent() {
         <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group flex-col gap-2">
             <label className="form-label font-sans">Email Address</label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="name@company.com"
-              className="input-text font-sans"
-              disabled={loading}
-            />
+            <div className="input-container">
+              <span className="input-icon">
+                <EnvelopeIcon size={16} />
+              </span>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="name@company.com"
+                className="input-text font-sans with-icon"
+                disabled={loading}
+              />
+            </div>
           </div>
 
           <div className="form-group flex-col gap-2">
             <label className="form-label font-sans">Password</label>
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="input-text font-sans"
-              disabled={loading}
-            />
+            <div className="input-container">
+              <span className="input-icon">
+                <LockIcon size={16} />
+              </span>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="input-text font-sans with-icon with-action"
+                disabled={loading}
+              />
+              <button
+                type="button"
+                className="input-action-btn flex align-center justify-center"
+                onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                title={showPassword ? "Hide password" : "Show password"}
+                disabled={loading}
+              >
+                {showPassword ? <EyeOffIcon size={16} /> : <EyeIcon size={16} />}
+              </button>
+            </div>
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="submit-btn"
+            className="submit-btn font-sans"
           >
-            {loading ? 'Processing...' : isSignUp ? 'Create Free Account' : 'Sign In to Dashboard'}
+            {loading ? (
+              <div className="flex align-center gap-2">
+                <SpinnerIcon size={16} className="spin-animation" />
+                <span>Processing...</span>
+              </div>
+            ) : (
+              <div className="flex align-center gap-2">
+                <span>{isSignUp ? 'Create Free Account' : 'Sign In to Dashboard'}</span>
+                <ArrowRightIcon size={15} className="btn-arrow" />
+              </div>
+            )}
           </button>
         </form>
 
@@ -166,69 +289,172 @@ function LoginContent() {
 
       <style jsx>{`
         .login-container {
+          position: relative;
           min-height: 100vh;
           width: 100vw;
           background-color: var(--bg);
           transition: background-color var(--transition-speed) ease;
+          overflow: hidden;
+        }
+
+        .bg-glow-1,
+        .bg-glow-2 {
+          position: absolute;
+          border-radius: 50%;
+          filter: blur(150px);
+          pointer-events: none;
+          z-index: 1;
+          opacity: 0.06;
+          transition: all 0.8s ease;
+        }
+
+        .bg-glow-1 {
+          width: 500px;
+          height: 500px;
+          top: -150px;
+          left: -150px;
+          background: radial-gradient(circle, var(--primary) 0%, transparent 70%);
+          animation: floatGlow1 25s ease-in-out infinite alternate;
+        }
+
+        .bg-glow-2 {
+          width: 600px;
+          height: 600px;
+          bottom: -200px;
+          right: -150px;
+          background: radial-gradient(circle, var(--primary-hover) 0%, transparent 70%);
+          animation: floatGlow2 30s ease-in-out infinite alternate;
+        }
+
+        [data-theme="dark"] .bg-glow-1,
+        [data-theme="dark"] .bg-glow-2 {
+          opacity: 0.09;
+          filter: blur(180px);
+        }
+
+        @keyframes floatGlow1 {
+          0% { transform: translate(0, 0) scale(1); }
+          100% { transform: translate(60px, 30px) scale(1.1); }
+        }
+
+        @keyframes floatGlow2 {
+          0% { transform: translate(0, 0) scale(1); }
+          100% { transform: translate(-60px, -30px) scale(1.05); }
+        }
+
+        .login-nav {
+          position: absolute;
+          top: 2rem;
+          right: 2rem;
+          z-index: 20;
+        }
+
+        .theme-toggle-btn {
+          background-color: var(--surface);
+          border: 1px solid var(--border);
+          color: var(--text-primary);
+          width: 42px;
+          height: 42px;
+          border-radius: 50%;
+          cursor: pointer;
+          box-shadow: var(--shadow);
+          transition: all var(--transition-speed) ease;
+          outline: none;
+        }
+
+        .theme-toggle-btn:hover {
+          background-color: var(--bg);
+          border-color: var(--text-secondary);
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+        }
+
+        [data-theme="dark"] .theme-toggle-btn:hover {
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
 
         .login-card {
           width: 100%;
-          max-width: 440px;
-          padding: 3rem 2.5rem;
+          max-width: 400px;
+          padding: 3.5rem 2.5rem;
           background-color: var(--surface);
           border: 1px solid var(--border);
-          border-radius: 24px;
-          box-shadow: var(--shadow);
+          border-radius: 20px;
+          box-shadow: 0 20px 40px -15px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04);
           display: flex;
           flex-direction: column;
           gap: 2rem;
           position: relative;
           z-index: 10;
           transition: background-color var(--transition-speed) ease, border-color var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
+          animation: slideUpCard 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
 
-        :global([data-theme="dark"]) .login-card {
-          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
-          background-color: rgba(30, 30, 34, 0.85);
-          backdrop-filter: blur(16px);
-          border-color: rgba(45, 45, 50, 0.6);
+        @keyframes slideUpCard {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .login-card:hover {
+          border-color: rgba(15, 118, 110, 0.2);
+          box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.08);
+        }
+
+        [data-theme="dark"] .login-card {
+          box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.45);
+          background-color: rgba(30, 30, 34, 0.75);
+          backdrop-filter: blur(20px);
+          border-color: rgba(255, 255, 255, 0.06);
+        }
+
+        [data-theme="dark"] .login-card:hover {
+          border-color: rgba(20, 184, 166, 0.2);
+          box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.45);
         }
 
         .login-logo {
-          background-color: var(--primary);
-          width: 52px;
-          height: 52px;
-          border-radius: 14px;
+          background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+          width: 44px;
+          height: 44px;
+          border-radius: 12px;
           color: #FFFFFF;
-          box-shadow: 0 4px 12px rgba(15, 118, 110, 0.2);
+          box-shadow: 0 4px 12px rgba(15, 118, 110, 0.25);
           transition: all var(--transition-speed) ease;
+          border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .login-logo:hover {
           transform: scale(1.05);
-          box-shadow: 0 6px 16px rgba(15, 118, 110, 0.3);
+          box-shadow: 0 4px 10px rgba(15, 118, 110, 0.2);
         }
 
-        :global([data-theme="dark"]) .login-logo {
+        [data-theme="dark"] .login-logo {
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        [data-theme="dark"] .login-logo:hover {
           box-shadow: 0 4px 12px rgba(20, 184, 166, 0.25);
-        }
-
-        :global([data-theme="dark"]) .login-logo:hover {
-          box-shadow: 0 6px 16px rgba(20, 184, 166, 0.35);
         }
 
         .login-title {
           font-family: var(--font-primary);
-          font-size: 1.75rem;
+          font-size: 1.85rem;
           font-weight: 800;
-          color: var(--text-primary);
           letter-spacing: -0.03em;
           margin: 0;
+          background: linear-gradient(135deg, var(--text-primary) 30%, var(--primary) 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
         }
 
         .login-subtitle {
-          font-size: 0.875rem;
+          font-size: 0.85rem;
           color: var(--text-secondary);
           line-height: 1.4;
           margin: 0;
@@ -241,17 +467,45 @@ function LoginContent() {
           gap: 1.5rem;
         }
 
+        .form-group {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+
         .form-label {
-          font-size: 0.85rem;
-          font-weight: 500;
+          font-size: 0.7rem;
+          font-weight: 600;
           color: var(--text-secondary);
+          letter-spacing: 0.05em;
+          text-transform: uppercase;
+        }
+
+        .input-container {
+          position: relative;
+          display: flex;
+          align-items: center;
+          width: 100%;
+        }
+
+        .input-icon {
+          position: absolute;
+          left: 0.95rem;
+          color: var(--text-secondary);
+          opacity: 0.6;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          pointer-events: none;
+          transition: color var(--transition-speed) ease, opacity var(--transition-speed) ease;
+          z-index: 5;
         }
 
         .input-text {
           width: 100%;
-          padding: 0.875rem 1rem;
-          border-radius: var(--radius-input);
-          border: 1px solid var(--border);
+          padding: 0.8rem 1rem;
+          border-radius: 10px;
+          border: 1px solid rgba(226, 232, 240, 0.8);
           background-color: var(--bg);
           color: var(--text-primary);
           font-family: var(--font-secondary);
@@ -260,18 +514,39 @@ function LoginContent() {
           transition: all var(--transition-speed) ease;
         }
 
+        [data-theme="dark"] .input-text {
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          background-color: rgba(18, 18, 20, 0.6);
+        }
+
+        .input-text.with-icon {
+          padding-left: 2.5rem;
+        }
+
+        .input-text.with-action {
+          padding-right: 2.5rem;
+        }
+
         .input-text:hover {
-          border-color: var(--text-secondary);
+          border-color: rgba(20, 184, 166, 0.2);
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+          transform: scale(1.02);
         }
 
         .input-text:focus {
           border-color: var(--primary);
           background-color: var(--surface);
-          box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.15);
+          box-shadow: 0 0 0 2.5px rgba(20, 184, 166, 0.15);
+          transform: scale(1.02);
         }
 
-        :global([data-theme="light"]) .input-text:focus {
-          box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.1);
+        .input-container:focus-within .input-icon {
+          color: var(--primary);
+          opacity: 1;
+        }
+
+        [data-theme="light"] .input-text:focus {
+          box-shadow: 0 0 0 2.5px rgba(15, 118, 110, 0.12);
         }
 
         .input-text::placeholder {
@@ -279,42 +554,74 @@ function LoginContent() {
           opacity: 0.4;
         }
 
-        /* Prevent browser autofill from ruining the theme */
         .input-text:-webkit-autofill,
         .input-text:-webkit-autofill:hover,
-        .input-text:-webkit-autofill:focus,
         .input-text:-webkit-autofill:active {
           -webkit-box-shadow: 0 0 0 30px var(--bg) inset !important;
           -webkit-text-fill-color: var(--text-primary) !important;
           transition: background-color 5000s ease-in-out 0s;
         }
 
+        .input-text:-webkit-autofill:focus {
+          -webkit-box-shadow: 0 0 0 30px var(--surface) inset !important;
+          -webkit-text-fill-color: var(--text-primary) !important;
+          transition: background-color 5000s ease-in-out 0s;
+        }
+
+        .input-action-btn {
+          position: absolute;
+          right: 0.65rem;
+          background: transparent;
+          border: none;
+          color: var(--text-secondary);
+          opacity: 0.6;
+          cursor: pointer;
+          padding: 5px;
+          border-radius: 6px;
+          transition: all var(--transition-speed) ease;
+          z-index: 5;
+        }
+
+        .input-action-btn:hover {
+          color: var(--text-primary);
+          opacity: 1;
+          background-color: rgba(0, 0, 0, 0.04);
+        }
+
+        [data-theme="dark"] .input-action-btn:hover {
+          background-color: rgba(255, 255, 255, 0.04);
+        }
+
         .submit-btn {
           width: 100%;
-          padding: 0.875rem;
-          font-size: 0.95rem;
+          padding: 0.85rem;
+          font-size: 0.9rem;
           font-weight: 600;
-          border-radius: var(--radius-btn);
+          border-radius: 10px;
           background-color: var(--primary);
           color: #FFFFFF !important;
           border: none;
           cursor: pointer;
           transition: all var(--transition-speed) ease;
-          box-shadow: 0 4px 12px rgba(15, 118, 110, 0.2);
+          box-shadow: 0 4px 12px rgba(15, 118, 110, 0.15);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
         }
 
         .submit-btn:hover:not(:disabled) {
           background-color: var(--primary-hover);
           transform: translateY(-1px);
-          box-shadow: 0 6px 16px rgba(15, 118, 110, 0.3);
+          box-shadow: 0 6px 16px -4px rgba(15, 118, 110, 0.3);
         }
 
-        :global([data-theme="dark"]) .submit-btn {
-          box-shadow: 0 4px 12px rgba(20, 184, 166, 0.25);
+        [data-theme="dark"] .submit-btn {
+          box-shadow: 0 4px 12px rgba(20, 184, 166, 0.2);
         }
 
-        :global([data-theme="dark"]) .submit-btn:hover:not(:disabled) {
-          box-shadow: 0 6px 16px rgba(20, 184, 166, 0.35);
+        [data-theme="dark"] .submit-btn:hover:not(:disabled) {
+          box-shadow: 0 6px 16px -4px rgba(20, 184, 166, 0.35);
         }
 
         .submit-btn:active:not(:disabled) {
@@ -326,57 +633,99 @@ function LoginContent() {
           cursor: not-allowed;
         }
 
+        .submit-btn:hover:not(:disabled) .btn-arrow {
+          transform: translateX(3px);
+        }
+
+        .btn-arrow {
+          transition: transform 0.2s ease;
+        }
+
         .alert {
-          border-radius: 12px;
-          padding: 0.875rem 1rem;
-          font-size: 0.85rem;
+          border-radius: 10px;
+          padding: 0.75rem 0.95rem;
+          font-size: 0.8rem;
           font-weight: 500;
           border: 1px solid transparent;
+          line-height: 1.4;
         }
 
         .alert-danger {
           background-color: var(--danger-subtle);
           color: var(--danger);
-          border-color: rgba(239, 68, 68, 0.1);
+          border-color: rgba(239, 68, 68, 0.15);
         }
 
         .alert-success {
           background-color: var(--success-subtle);
           color: var(--success);
-          border-color: rgba(16, 185, 129, 0.1);
+          border-color: rgba(16, 185, 129, 0.15);
         }
 
         .toggle-section {
-          font-size: 0.875rem;
+          font-size: 0.85rem;
           color: var(--text-secondary);
         }
 
         .toggle-btn {
+          position: relative;
           background: transparent;
           border: none;
           color: var(--primary);
           font-weight: 600;
           cursor: pointer;
-          font-size: 0.875rem;
+          font-size: 0.85rem;
           text-decoration: none;
           margin-left: 0.375rem;
           transition: color var(--transition-speed) ease;
+          padding-bottom: 2px;
+        }
+
+        .toggle-btn::after {
+          content: '';
+          position: absolute;
+          width: 100%;
+          transform: scaleX(0);
+          height: 2px;
+          bottom: 0;
+          left: 0;
+          background-color: var(--primary-hover);
+          transform-origin: bottom right;
+          transition: transform 0.25s ease-out;
         }
 
         .toggle-btn:hover {
           color: var(--primary-hover);
-          text-decoration: underline;
+          text-decoration: none;
+        }
+
+        .toggle-btn:hover::after {
+          transform: scaleX(1);
+          transform-origin: bottom left;
+        }
+
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+
+        .spin-animation {
+          animation: spin 1s linear infinite;
         }
 
         @media (max-width: 480px) {
           .login-card {
-            padding: 2.5rem 1.5rem;
-            border-radius: 20px;
+            padding: 2.25rem 1.75rem;
+            border-radius: 16px;
             max-width: 90%;
             gap: 1.5rem;
           }
           .login-title {
-            font-size: 1.5rem;
+            font-size: 1.6rem;
+          }
+          .login-nav {
+            top: 1.5rem;
+            right: 1.5rem;
           }
         }
       `}</style>
@@ -388,7 +737,7 @@ export default function LoginPage() {
   return (
     <Suspense fallback={
       <div className="login-container flex align-center justify-center">
-        <div className="login-card card flex-col align-center justify-center p-6" style={{ width: '420px', height: '200px' }}>
+        <div className="login-card flex-col align-center justify-center p-6" style={{ width: '420px', height: '200px' }}>
           <span className="font-sans text-secondary" style={{ color: 'var(--text-secondary)', textAlign: 'center' }}>
             Loading authentication screen...
           </span>
@@ -399,4 +748,3 @@ export default function LoginPage() {
     </Suspense>
   );
 }
-

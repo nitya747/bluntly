@@ -14,7 +14,9 @@ import {
   ChevronLeftIcon,
   DownloadIcon,
   ClockIcon,
-  ConfigureIcon
+  ConfigureIcon,
+  ChevronDownIcon,
+  ChevronUpIcon
 } from './Icons';
 
 function highlightJSON(json) {
@@ -59,6 +61,8 @@ export default function IndividualView({
   const [dragOver, setDragOver] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showExportDropdown, setShowExportDropdown] = useState(false);
+  const [detailedExpanded, setDetailedExpanded] = useState(false);
+  const [copiedTipIndex, setCopiedTipIndex] = useState(null);
 
   const handleCopyJSON = () => {
     if (result && result.structuredResume) {
@@ -66,6 +70,12 @@ export default function IndividualView({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
+  };
+
+  const handleCopyTip = (text, index) => {
+    navigator.clipboard.writeText(text);
+    setCopiedTipIndex(index);
+    setTimeout(() => setCopiedTipIndex(null), 2000);
   };
 
   // Load selected analysis if loaded from history
@@ -319,9 +329,177 @@ export default function IndividualView({
         "Utilized modern tools and frameworks to optimize workflow efficiency and code quality."
       ];
 
-  const exportPDF = () => {
-    window.print();
+  const getPriorityFixes = () => {
+    const fixes = [];
+    
+    // Add rule violations (high priority/impact)
+    ruleViolations.forEach(violation => {
+      const vLower = violation.toLowerCase();
+      if (vLower.includes('email')) {
+        fixes.push({
+          title: "Add Contact Details (Email)",
+          desc: "Your email address is missing or couldn't be parsed. Recruiters need a clear email to contact you.",
+          impact: "Critical",
+          impactColor: "var(--danger)",
+          impactBg: "var(--danger-subtle)",
+          icon: "📧"
+        });
+      } else if (vLower.includes('phone')) {
+        fixes.push({
+          title: "Add Contact Details (Phone)",
+          desc: "A valid phone number is essential for recruiter outreach and interview scheduling.",
+          impact: "Critical",
+          impactColor: "var(--danger)",
+          impactBg: "var(--danger-subtle)",
+          icon: "📞"
+        });
+      } else if (vLower.includes('experience')) {
+        fixes.push({
+          title: "Create Experience Section",
+          desc: "No work experience section was found. A standard timeline of roles is required for ATS matching.",
+          impact: "Critical",
+          impactColor: "var(--danger)",
+          impactBg: "var(--danger-subtle)",
+          icon: "💼"
+        });
+      } else if (vLower.includes('skills')) {
+        fixes.push({
+          title: "Create Technical Skills Section",
+          desc: "A dedicated skills section is vital for ATS tools to quickly parse and register your expertise.",
+          impact: "Critical",
+          impactColor: "var(--danger)",
+          impactBg: "var(--danger-subtle)",
+          icon: "🛠️"
+        });
+      } else if (vLower.includes('short')) {
+        fixes.push({
+          title: "Increase Resume Content Depth",
+          desc: "Your resume is brief. Elaborate further on project scopes and technical roles to provide context.",
+          impact: "Medium",
+          impactColor: "var(--warning)",
+          impactBg: "var(--warning-subtle)",
+          icon: "📝"
+        });
+      }
+    });
+
+    // Add LLM feedback improvements
+    feedbackImprovements.forEach(imp => {
+      let impact = "Medium";
+      let impactColor = "var(--warning)";
+      let impactBg = "var(--warning-subtle)";
+      let icon = "⚡";
+      
+      const impLower = imp.toLowerCase();
+      if (impLower.includes('quantify') || impLower.includes('metric') || impLower.includes('achievement') || impLower.includes('percent') || impLower.includes('number')) {
+        impact = "High";
+        impactColor = "var(--primary)";
+        impactBg = "var(--primary-subtle)";
+        icon = "📊";
+      } else if (impLower.includes('tailor') || impLower.includes('keyword') || impLower.includes('match')) {
+        impact = "High";
+        impactColor = "var(--primary)";
+        impactBg = "var(--primary-subtle)";
+        icon = "🎯";
+      }
+      
+      const cleanTitle = imp.includes(':') ? imp.split(':')[0] : "Resume Improvement";
+      const cleanDesc = imp.includes(':') ? imp.substring(imp.indexOf(':') + 1).trim() : imp;
+
+      // Prevent duplicate descriptions or titles
+      if (!fixes.some(f => f.desc.toLowerCase() === cleanDesc.toLowerCase() || f.title.toLowerCase() === cleanTitle.toLowerCase())) {
+        fixes.push({
+          title: cleanTitle,
+          desc: cleanDesc,
+          impact,
+          impactColor,
+          impactBg,
+          icon
+        });
+      }
+    });
+
+    // Fallbacks if we don't have enough
+    const fallbacks = [
+      {
+        title: "Quantify Achievements",
+        desc: "Add metrics, percentages, and performance indicators to your experience descriptions.",
+        impact: "High",
+        impactColor: "var(--primary)",
+        impactBg: "var(--primary-subtle)",
+        icon: "📊"
+      },
+      {
+        title: "Target Missing Skills",
+        desc: "Explicitly list required keywords like React, Next.js, or TypeScript where appropriate.",
+        impact: "High",
+        impactColor: "var(--primary)",
+        impactBg: "var(--primary-subtle)",
+        icon: "🎯"
+      },
+      {
+        title: "Structure Formatting",
+        desc: "Ensure simple, parser-friendly layout templates are used instead of dual columns.",
+        impact: "Medium",
+        impactColor: "var(--warning)",
+        impactBg: "var(--warning-subtle)",
+        icon: "📐"
+      }
+    ];
+
+    while (fixes.length < 3 && fallbacks.length > 0) {
+      const fb = fallbacks.shift();
+      if (!fixes.some(f => f.title.toLowerCase() === fb.title.toLowerCase())) {
+        fixes.push(fb);
+      }
+    }
+
+    return fixes.slice(0, 3);
   };
+
+  const priorityFixes = getPriorityFixes();
+
+  const strengthsList = [];
+  const needsAttentionList = [];
+  const atsRisksList = [];
+
+  // Strengths
+  feedbackStrengths.forEach(s => strengthsList.push(s));
+
+  // ATS Risks (critical violations & matching risks)
+  ruleViolations.forEach(v => {
+    const vLower = v.toLowerCase();
+    if (vLower.includes('email') || vLower.includes('phone') || vLower.includes('experience') || vLower.includes('skills')) {
+      atsRisksList.push(v);
+    } else {
+      needsAttentionList.push(v);
+    }
+  });
+
+  const displayAtsScore = result?.atsScore !== null && result?.atsScore !== undefined ? result.atsScore : 37;
+  if (result?.atsScore !== null && displayAtsScore < 60) {
+    atsRisksList.push(`Low overall job compatibility score (${displayAtsScore}%)`);
+  }
+  if (missingSkills.length > 6) {
+    atsRisksList.push(`High volume of missing required keywords (${missingSkills.length} missing)`);
+  }
+
+  // Needs Attention
+  feedbackImprovements.forEach(imp => {
+    const impLower = imp.toLowerCase();
+    if (impLower.includes('email') || impLower.includes('phone') || impLower.includes('experience') || impLower.includes('skills')) return;
+    needsAttentionList.push(imp);
+  });
+  
+  feedbackWordingImprovements.forEach(w => {
+    needsAttentionList.push(`Wording tip: ${w}`);
+  });
+
+  const uniqueStrengths = Array.from(new Set(strengthsList)).slice(0, 4);
+  const uniqueNeedsAttention = Array.from(new Set(needsAttentionList)).slice(0, 4);
+  const uniqueAtsRisks = Array.from(new Set(atsRisksList)).slice(0, 4);
+
+
 
   const downloadFile = (content, filename, mimeType) => {
     const blob = new Blob([content], { type: mimeType });
@@ -439,11 +617,11 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
-                style={{ backgroundColor: 'rgba(15, 118, 110, 0.02)', border: '2px dashed var(--border)' }}
+                style={{ backgroundColor: 'var(--primary-subtle)', border: '2px dashed var(--border)' }}
               >
                 {file ? (
                   <div className="file-details flex-col align-center gap-3 w-full p-4">
-                    <div className="file-icon-wrapper flex align-center justify-center" style={{ backgroundColor: 'var(--danger-subtle)', borderColor: 'rgba(239, 68, 68, 0.2)' }}>
+                    <div className="file-icon-wrapper flex align-center justify-center" style={{ backgroundColor: 'var(--danger-subtle)', borderColor: 'var(--border)' }}>
                       <FileTextIcon size={24} style={{ color: '#EF4444' }} />
                     </div>
                     <div className="file-info flex-col align-center text-center">
@@ -502,7 +680,7 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
 
           {/* Credit warnings */}
           {file && !file.isSavedRecord && credits < 1 && (
-            <div className="credit-warning-banner card flex align-center gap-3" style={{ alignSelf: 'center', maxWidth: '500px', width: '100%', borderColor: 'var(--danger)', backgroundColor: 'rgba(239,68,68,0.06)', color: 'var(--danger)' }}>
+            <div className="credit-warning-banner card flex align-center gap-3" style={{ alignSelf: 'center', maxWidth: '500px', width: '100%', borderColor: 'var(--danger)', backgroundColor: 'var(--danger-subtle)', color: 'var(--danger)' }}>
               <span className="error-icon flex align-center">⚠️</span>
               <span className="error-message font-sans" style={{ fontSize: '13px' }}>
                 Insufficient credits. This scan requires <strong>1 credit</strong>, but you have <strong>0 credits</strong> remaining. Please buy credits in the sidebar.
@@ -661,15 +839,6 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
             
             {/* Actions */}
             <div className="flex align-center gap-3 export-dropdown-container" style={{ position: 'relative' }}>
-              <button onClick={exportPDF} className="actions-btn button-secondary flex align-center gap-2" style={{ backgroundColor: 'var(--surface)', borderRadius: '8px', fontWeight: '600', border: '1px solid var(--border)', color: 'var(--text-primary)' }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                  <polyline points="14 2 14 8 20 8" />
-                  <polyline points="16 13 12 9 8 13" />
-                  <line x1="12" y1="9" x2="12" y2="17" />
-                </svg>
-                <span>Export PDF</span>
-              </button>
               <button onClick={downloadReport} className="actions-btn button-secondary flex align-center gap-2" style={{ backgroundColor: 'var(--surface)', borderRadius: '8px', fontWeight: '600', border: '1px solid var(--border)', color: 'var(--text-primary)' }}>
                 <DownloadIcon size={14} />
                 <span>Download Report</span>
@@ -726,14 +895,6 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                     <DownloadIcon size={14} style={{ marginRight: '6px' }} />
                     <span style={{ fontSize: '13px', fontWeight: '500' }}>Export JSON</span>
                   </button>
-                  <button 
-                    onClick={() => { exportPDF(); setShowExportDropdown(false); }}
-                    className="submenu-btn flex align-center gap-2 w-full text-left" 
-                    style={{ padding: '8px 12px', borderRadius: '8px', border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-primary)', display: 'flex', alignItems: 'center' }}
-                  >
-                    <DownloadIcon size={14} style={{ marginRight: '6px' }} />
-                    <span style={{ fontSize: '13px', fontWeight: '500' }}>Export PDF</span>
-                  </button>
                 </div>
               )}
             </div>
@@ -759,557 +920,408 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
           </div>
 
           {/* Overview Tab Content */}
-          {activeReportTab === 'overview' && (
-            <div className="flex-col gap-4 w-full">
-              {/* Section 1: KPI Cards */}
-              <div className="grid grid-cols-4 gap-8">
-                {/* ATS Match Score */}
-                <div className="kpi-card">
-                  <div className="flex align-center justify-between">
-                    <span className="kpi-title" style={{ display: 'flex', alignItems: 'center' }}>
-                      ATS Match Score
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: '6px', opacity: 0.5 }}>
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="16" x2="12" y2="12" />
-                        <line x1="12" y1="8" x2="12.01" y2="8" />
+          {activeReportTab === 'overview' && (() => {
+            const scoreTierClass = displayAtsScore >= 75 ? 'match-high' : (displayAtsScore >= 50 ? 'match-mid' : 'match-low');
+            const getFixTierClass = (impact) => {
+              const imp = impact.toLowerCase();
+              if (imp === 'critical') return 'fix-critical';
+              if (imp === 'high') return 'fix-high';
+              return 'fix-medium';
+            };
+            return (
+              <div className="overview-layout-grid fade-in">
+                {/* Left Column: Metrics & Analysis */}
+                <div className="flex-col gap-6 w-full">
+                  {/* Score Hero Section */}
+                  <div className="score-hero-card">
+                    <div className="score-gauge-wrapper">
+                      <svg className="score-gauge-svg" width="120" height="120" viewBox="0 0 120 120">
+                        <circle className="score-gauge-bg" cx="60" cy="60" r="50" />
+                        <circle 
+                          className={`score-gauge-fill ${scoreTierClass}`}
+                          cx="60" 
+                          cy="60" 
+                          r="50" 
+                          strokeDasharray="314"
+                          strokeDashoffset={314 - (displayAtsScore / 100) * 314}
+                        />
                       </svg>
-                    </span>
+                      <div className="score-gauge-text">
+                        <span className={`score-gauge-number ${scoreTierClass}`}>{displayAtsScore}</span>
+                        <span className="score-gauge-label">Match</span>
+                      </div>
+                    </div>
+                    
+                    <div className="score-hero-info">
+                      <div className="score-hero-meta">
+                        <h3 className="score-hero-title">Resume Match Score</h3>
+                        <span className="percentile-badge">Top {displayRankPercent}%</span>
+                      </div>
+                      <p className="assessment-text">
+                        {feedbackSummary.split(/[.!?]/)[0] + '.'}
+                      </p>
+                      <button 
+                        onClick={() => {
+                          document.getElementById('priority-fixes')?.scrollIntoView({ behavior: 'smooth' });
+                        }}
+                        className="button-primary"
+                        style={{ width: 'fit-content', padding: '8px 16px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                      >
+                        <span>Improve Resume</span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="6 9 12 15 18 9" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
-                  
-                  <div className="flex-col text-left" style={{ margin: '2px 0 4px 0' }}>
-                    <div className="flex align-baseline">
-                      <span className="kpi-score" style={{ color: (result.atsScore !== null && result.atsScore !== undefined ? result.atsScore : 37) >= 70 ? 'var(--success)' : 'var(--danger)' }}>
-                        {result.atsScore !== null && result.atsScore !== undefined ? result.atsScore : '37'}
+
+                  {/* Diagnosis Grid (Strengths, Needs Attention, ATS Risks) */}
+                  <div className="diagnosis-grid">
+                    {/* Strengths */}
+                    <div className="diagnosis-col strengths">
+                      <h4 className="diagnosis-col-title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: '4px' }}>
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        <span>Strengths</span>
+                      </h4>
+                      <ul className="diagnosis-list">
+                        {uniqueStrengths.length > 0 ? (
+                          uniqueStrengths.map((str, idx) => (
+                            <li key={idx} className="diagnosis-item">
+                              <span className="diagnosis-item-icon" style={{ color: 'var(--success)' }}>✓</span>
+                              <span>{str}</span>
+                            </li>
+                          ))
+                        ) : (
+                          <li className="diagnosis-item" style={{ color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                            No qualitative strengths identified.
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+
+                    {/* Needs Attention */}
+                    <div className="diagnosis-col attention">
+                      <h4 className="diagnosis-col-title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: '4px' }}>
+                          <circle cx="12" cy="12" r="10" />
+                          <line x1="12" y1="16" x2="12" y2="12" />
+                          <line x1="12" y1="8" x2="12.01" y2="8" />
+                        </svg>
+                        <span>Needs Attention</span>
+                      </h4>
+                      <ul className="diagnosis-list">
+                        {uniqueNeedsAttention.length > 0 ? (
+                          uniqueNeedsAttention.map((item, idx) => (
+                            <li key={idx} className="diagnosis-item">
+                              <span className="diagnosis-item-icon" style={{ color: 'var(--warning)' }}>⚡</span>
+                              <span>{item}</span>
+                            </li>
+                          ))
+                        ) : (
+                          <li className="diagnosis-item" style={{ color: 'var(--success)', fontStyle: 'italic' }}>
+                            ✓ All secondary items look solid!
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+
+                    {/* ATS Risks */}
+                    <div className="diagnosis-col risks">
+                      <h4 className="diagnosis-col-title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: '4px' }}>
+                          <line x1="18" y1="6" x2="6" y2="18" />
+                          <line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                        <span>ATS Risks</span>
+                      </h4>
+                      <ul className="diagnosis-list">
+                        {uniqueAtsRisks.length > 0 ? (
+                          uniqueAtsRisks.map((risk, idx) => (
+                            <li key={idx} className="diagnosis-item">
+                              <span className="diagnosis-item-icon" style={{ color: 'var(--danger)' }}>⚠️</span>
+                              <span>{risk}</span>
+                            </li>
+                          ))
+                        ) : (
+                          <li className="diagnosis-item" style={{ color: 'var(--success)', fontStyle: 'italic', fontWeight: '600' }}>
+                            ✓ No severe ATS risks detected!
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+                  </div>
+
+                  {/* Keyword Coverage Block */}
+                  <div id="keyword-coverage" className="keyword-coverage-card">
+                    <div className="flex-col gap-1 text-left">
+                      <h3 className="font-primary" style={{ fontSize: '14.5px', fontWeight: '700', margin: 0, color: 'var(--text-primary)' }}>Keyword Coverage</h3>
+                      <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Analysis of match criteria keywords present in job description vs. resume</span>
+                    </div>
+                    
+                    <div className="keyword-coverage-split">
+                      {/* Matched Skills */}
+                      <div className="keyword-list-container">
+                        <div className="keyword-list-header matched">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: '4px' }}>
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                          <span>Matched Skills ({displayMatchedCount})</span>
+                        </div>
+                        <div className="keyword-pills">
+                          {matchedSkills.slice(0, 10).map((skill, idx) => (
+                            <span key={idx} className="keyword-pill matched">
+                              <span>{skill}</span>
+                              <span style={{ fontSize: '10px' }}>✓</span>
+                            </span>
+                          ))}
+                          {matchedSkills.length > 10 && (
+                            <span className="tag tag-neutral" style={{ fontSize: '11px', fontWeight: '600', padding: '3px 8px', borderRadius: '6px' }}>
+                              +{matchedSkills.length - 10} more
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Missing Skills */}
+                      <div className="keyword-list-container">
+                        <div className="keyword-list-header missing">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: '4px' }}>
+                            <line x1="18" y1="6" x2="6" y2="18" />
+                            <line x1="6" y1="6" x2="18" y2="18" />
+                          </svg>
+                          <span>Missing Skills ({displayMissingCount})</span>
+                        </div>
+                        <div className="keyword-pills">
+                          {missingSkills.slice(0, 10).map((skill, idx) => (
+                            <span key={idx} className="keyword-pill missing">
+                              <span>{skill}</span>
+                              <span style={{ fontSize: '10px', fontWeight: '700' }}>+</span>
+                            </span>
+                          ))}
+                          {missingSkills.length > 10 && (
+                            <span className="tag tag-neutral" style={{ fontSize: '11px', fontWeight: '600', padding: '3px 8px', borderRadius: '6px' }}>
+                              +{missingSkills.length - 10} more
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Collapsible Detailed Breakdown Section */}
+                  <div id="detailed-breakdown" className="collapsible-container">
+                    <button 
+                      onClick={() => setDetailedExpanded(!detailedExpanded)}
+                      className="collapsible-trigger"
+                    >
+                      <span className="collapsible-trigger-title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" style={{ marginRight: '4px' }}>
+                          <rect x="3" y="3" width="18" height="18" rx="2" />
+                          <line x1="9" y1="3" x2="9" y2="21" />
+                        </svg>
+                        <span>Detailed Breakdown Analysis</span>
                       </span>
-                      <span style={{ color: '#94A3B8', fontSize: '12px', fontWeight: '600', marginLeft: '2px' }}>/ 100</span>
-                    </div>
-                    <span className="kpi-status" style={{ color: (result.atsScore !== null && result.atsScore !== undefined ? result.atsScore : 37) >= 70 ? 'var(--success)' : 'var(--danger)', fontWeight: '700', marginTop: '2px' }}>
-                      {result.atsScore !== null && result.atsScore !== undefined ? getStatusLabel(result.atsScore) : 'Needs Improvement'}
-                    </span>
-                  </div>
+                      <div className="flex align-center gap-2">
+                        <span className="collapsible-trigger-subtitle">
+                          {detailedExpanded ? "Hide detailed metrics" : "View experience, formatting, and section scores"}
+                        </span>
+                        <div className={`collapsible-chevron ${detailedExpanded ? 'open' : ''}`} style={{ display: 'inline-flex', alignItems: 'center' }}>
+                          <ChevronDownIcon size={16} />
+                        </div>
+                      </div>
+                    </button>
+                    
+                    {detailedExpanded && (
+                      <div className="collapsible-content">
+                        <div className="grid grid-cols-2 gap-6">
+                          {/* Left: Progress Bars */}
+                          <div className="flex-col gap-4 text-left">
+                            <h4 style={{ margin: 0, fontSize: '13.5px', fontWeight: '700', color: 'var(--text-primary)' }}>Section Scores</h4>
+                            <div className="flex-col gap-3">
+                              {['experience', 'education', 'skills', 'formatting', 'impact'].map((key) => {
+                                const score = result.sections?.[key] !== undefined && result.sections?.[key] !== null
+                                  ? result.sections[key]
+                                  : (key === 'experience' ? 30 : key === 'education' ? 90 : key === 'skills' ? 80 : key === 'formatting' ? 100 : 55);
 
-                  <div className="progress-bar-track" style={{ height: '5px', backgroundColor: 'rgba(148, 163, 184, 0.1)', borderRadius: '999px', overflow: 'hidden' }}>
-                    <div 
-                      className="progress-bar-fill" 
-                      style={{ 
-                        width: `${result.atsScore !== null && result.atsScore !== undefined ? result.atsScore : 37}%`, 
-                        height: '100%',
-                        backgroundColor: (result.atsScore !== null && result.atsScore !== undefined ? result.atsScore : 37) >= 70 ? 'var(--success)' : 'var(--danger)',
-                        borderRadius: '999px'
-                      }}
-                    ></div>
-                  </div>
-                </div>
-
-                {/* Resume Quality */}
-                <div className="kpi-card">
-                  <div className="flex align-center justify-between">
-                    <span className="kpi-title" style={{ display: 'flex', alignItems: 'center' }}>
-                      Resume Quality Score
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: '6px', opacity: 0.5 }}>
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="16" x2="12" y2="12" />
-                        <line x1="12" y1="8" x2="12.01" y2="8" />
-                      </svg>
-                    </span>
-                  </div>
-
-                  <div className="flex-col text-left" style={{ margin: '2px 0 4px 0' }}>
-                    <div className="flex align-baseline">
-                      <span className="kpi-score" style={{ color: (result.qualityScore || 70) >= 70 ? 'var(--success)' : 'var(--danger)' }}>
-                        {result.qualityScore !== null && result.qualityScore !== undefined ? result.qualityScore : '70'}
-                      </span>
-                      <span style={{ color: '#94A3B8', fontSize: '12px', fontWeight: '600', marginLeft: '2px' }}>/ 100</span>
-                    </div>
-                    <span className="kpi-status" style={{ color: (result.qualityScore || 70) >= 70 ? 'var(--success)' : 'var(--danger)', fontWeight: '700', marginTop: '2px' }}>
-                      {getStatusLabel(result.qualityScore || 70)}
-                    </span>
-                  </div>
-
-                  <div className="progress-bar-track" style={{ height: '5px', backgroundColor: 'rgba(148, 163, 184, 0.1)', borderRadius: '999px', overflow: 'hidden' }}>
-                    <div 
-                      className="progress-bar-fill" 
-                      style={{ 
-                        width: `${result.qualityScore !== null && result.qualityScore !== undefined ? result.qualityScore : 70}%`, 
-                        height: '100%',
-                        backgroundColor: (result.qualityScore || 70) >= 70 ? 'var(--success)' : 'var(--danger)',
-                        borderRadius: '999px'
-                      }}
-                    ></div>
-                  </div>
-                </div>
-
-                {/* Keyword Match */}
-                <div className="kpi-card">
-                  <div className="flex align-center justify-between">
-                    <span className="kpi-title" style={{ display: 'flex', alignItems: 'center' }}>
-                      Keyword Match
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: '6px', opacity: 0.5 }}>
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="16" x2="12" y2="12" />
-                        <line x1="12" y1="8" x2="12.01" y2="8" />
-                      </svg>
-                    </span>
-                  </div>
-
-                  <div className="flex-col text-left" style={{ margin: '2px 0 4px 0' }}>
-                    <span className="kpi-score" style={{ color: 'var(--primary)' }}>
-                      {displayKeywordScore}%
-                    </span>
-                    <span className="kpi-status" style={{ fontWeight: '600', marginTop: '4px' }}>
-                      {displayMatchedCount} / {displayTotalCount} Matched
-                    </span>
-                  </div>
-
-                  <div className="progress-bar-track" style={{ height: '5px', backgroundColor: 'rgba(148, 163, 184, 0.1)', borderRadius: '999px', overflow: 'hidden' }}>
-                    <div 
-                      className="progress-bar-fill" 
-                      style={{ 
-                        width: `${displayKeywordScore}%`, 
-                        height: '100%',
-                        backgroundColor: 'var(--primary)',
-                        borderRadius: '999px'
-                      }}
-                    ></div>
-                  </div>
-                </div>
-
-                {/* Overall Ranking */}
-                <div className="kpi-card">
-                  <div className="flex align-center justify-between">
-                    <span className="kpi-title" style={{ display: 'flex', alignItems: 'center' }}>
-                      Overall Ranking
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: '6px', opacity: 0.5 }}>
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="16" x2="12" y2="12" />
-                        <line x1="12" y1="8" x2="12.01" y2="8" />
-                      </svg>
-                    </span>
-                  </div>
-
-                  <div className="flex-col text-left" style={{ margin: '2px 0 4px 0' }}>
-                    <span className="kpi-score" style={{ color: 'var(--warning)' }}>
-                      Top {displayRankPercent}%
-                    </span>
-                    <span className="kpi-status" style={{ fontWeight: '600', marginTop: '4px' }}>
-                      Better than {displayRankPercent}% of resumes
-                    </span>
-                  </div>
-
-                  <div className="progress-bar-track" style={{ height: '5px', backgroundColor: 'rgba(148, 163, 184, 0.1)', borderRadius: '999px', overflow: 'hidden' }}>
-                    <div 
-                      className="progress-bar-fill" 
-                      style={{ 
-                        width: `${displayRankPercent}%`, 
-                        height: '100%',
-                        backgroundColor: 'var(--warning)',
-                        borderRadius: '999px'
-                      }}
-                    ></div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Grid layout for Breakdown and Skills */}
-              <div className="grid grid-cols-2 gap-4">
-                {/* Section Breakdown */}
-                <div className="card" style={{ padding: '16px', backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '16px' }}>
-                  <div className="flex align-center justify-between" style={{ marginBottom: '8px' }}>
-                    <div className="flex align-center gap-1.5 justify-start">
-                      <h3 className="card-title" style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>Section Breakdown</h3>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-secondary)', opacity: 0.5, cursor: 'pointer' }}>
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="16" x2="12" y2="12" />
-                        <line x1="12" y1="8" x2="12.01" y2="8" />
-                      </svg>
-                    </div>
-                  </div>
-                  
-                  <div className="flex-col gap-2" style={{ marginTop: '4px' }}>
-                    {['experience', 'education', 'skills', 'formatting', 'impact'].map((key) => {
-                      // Get score with mockup fallback if missing
-                      const score = result.sections?.[key] !== undefined && result.sections?.[key] !== null
-                        ? result.sections[key]
-                        : (key === 'experience' ? 30 : key === 'education' ? 90 : key === 'skills' ? 80 : key === 'formatting' ? 100 : 55);
-
-                      // Lookup config for icons
-                      let icon = null;
-                      let label = key;
-                      if (key.toLowerCase() === 'experience') {
-                        label = 'Experience';
-                        icon = (
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                            <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
-                            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-                          </svg>
-                        );
-                      } else if (key.toLowerCase() === 'education') {
-                        label = 'Education';
-                        icon = (
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
-                            <path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5" />
-                          </svg>
-                        );
-                      } else if (key.toLowerCase() === 'skills') {
-                        label = 'Skills';
-                        icon = (
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="16 18 22 12 16 6" />
-                            <polyline points="8 6 2 12 8 18" />
-                          </svg>
-                        );
-                      } else if (key.toLowerCase() === 'formatting') {
-                        label = 'Formatting';
-                        icon = (
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                            <polyline points="14 2 14 8 20 8" />
-                            <line x1="16" y1="13" x2="8" y2="13" />
-                            <line x1="16" y1="17" x2="8" y2="17" />
-                          </svg>
-                        );
-                      } else if (key.toLowerCase() === 'impact') {
-                        label = 'Impact';
-                        icon = (
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                            <circle cx="12" cy="12" r="10" />
-                            <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
-                          </svg>
-                        );
-                      }
-
-                      return (
-                        <div key={key} className="flex align-center w-full gap-4" style={{ margin: '2px 0' }}>
-                          <div style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '20px', flexShrink: 0 }}>
-                            {icon}
+                                let label = key.charAt(0).toUpperCase() + key.slice(1);
+                                
+                                return (
+                                  <div key={key} className="flex-col gap-1.5">
+                                    <div className="flex justify-between align-center" style={{ fontSize: '12px' }}>
+                                      <span style={{ fontWeight: '600', color: 'var(--text-secondary)' }}>{label}</span>
+                                      <strong style={{ color: score >= 70 ? 'var(--success)' : 'var(--warning)' }}>{score} / 100</strong>
+                                    </div>
+                                    <div className="progress-bar-track" style={{ height: '6px' }}>
+                                      <div 
+                                        className="progress-bar-fill" 
+                                        style={{ 
+                                          width: `${score}%`, 
+                                          height: '100%',
+                                          backgroundColor: score >= 70 ? 'var(--success)' : 'var(--warning)',
+                                          borderRadius: '999px'
+                                        }}
+                                      ></div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
                           </div>
-                          <span style={{ fontSize: '12px', fontWeight: '500', color: 'var(--text-secondary)', width: '90px', textAlign: 'left', flexShrink: 0 }}>
-                            {label}
-                          </span>
-                          <div className="flex-1 progress-bar-track" style={{ height: '6px', backgroundColor: 'rgba(148, 163, 184, 0.1)', borderRadius: '999px', overflow: 'hidden' }}>
-                            <div 
-                              className="progress-bar-fill" 
-                              style={{ 
-                                width: `${score}%`, 
-                                height: '100%',
-                                backgroundColor: score >= 70 ? 'var(--success)' : 'var(--warning)',
-                                borderRadius: '999px'
-                              }}
-                            ></div>
-                          </div>
-                          <div style={{ fontSize: '12px', fontWeight: '700', width: '70px', textAlign: 'right', flexShrink: 0, fontFamily: 'var(--font-primary)' }}>
-                            <span style={{ color: score >= 70 ? 'var(--success)' : 'var(--warning)' }}>{score}</span>
-                            <span style={{ color: '#94A3B8' }}> / 100</span>
+
+                          {/* Right: Metadata Details */}
+                          <div className="flex-col gap-4 text-left" style={{ borderLeft: '1px solid var(--border)', paddingLeft: '24px' }}>
+                            <h4 style={{ margin: 0, fontSize: '13.5px', fontWeight: '700', color: 'var(--text-primary)' }}>Resume Parsing Metadata</h4>
+                            <div className="grid grid-cols-2 gap-3" style={{ fontSize: '12px' }}>
+                              <div className="flex-col gap-1" style={{ backgroundColor: 'var(--bg)', padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                                <span style={{ color: 'var(--text-secondary)', fontWeight: '600', fontSize: '10px', textTransform: 'uppercase' }}>Experience</span>
+                                <strong style={{ color: 'var(--text-primary)' }}>{result.structuredResume?.experienceYears || 0} years</strong>
+                              </div>
+                              <div className="flex-col gap-1" style={{ backgroundColor: 'var(--bg)', padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                                <span style={{ color: 'var(--text-secondary)', fontWeight: '600', fontSize: '10px', textTransform: 'uppercase' }}>Education Records</span>
+                                <strong style={{ color: 'var(--text-primary)' }}>{result.structuredResume?.education?.length || 0} found</strong>
+                              </div>
+                              <div className="flex-col gap-1" style={{ backgroundColor: 'var(--bg)', padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                                <span style={{ color: 'var(--text-secondary)', fontWeight: '600', fontSize: '10px', textTransform: 'uppercase' }}>Email Address</span>
+                                <span className="truncate" style={{ fontWeight: '700', color: 'var(--text-primary)' }} title={result.structuredResume?.email || 'N/A'}>
+                                  {result.structuredResume?.email || 'N/A'}
+                                </span>
+                              </div>
+                              <div className="flex-col gap-1" style={{ backgroundColor: 'var(--bg)', padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                                <span style={{ color: 'var(--text-secondary)', fontWeight: '600', fontSize: '10px', textTransform: 'uppercase' }}>Phone Number</span>
+                                <span className="truncate" style={{ fontWeight: '700', color: 'var(--text-primary)' }} title={result.structuredResume?.phone || 'N/A'}>
+                                  {result.structuredResume?.phone || 'N/A'}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex-col gap-1.5" style={{ marginTop: '8px' }}>
+                              <span style={{ color: 'var(--text-secondary)', fontSize: '11px', fontWeight: '500' }}>
+                                Sections Identified:
+                              </span>
+                              <div className="flex flex-wrap gap-1">
+                                {(result.structuredResume?.sectionsFound || []).map((sec, idx) => (
+                                  <span key={idx} className="tag tag-neutral" style={{ padding: '2px 8px', fontSize: '10px', textTransform: 'capitalize' }}>
+                                    {sec}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
-
-                  <div className="flex justify-center w-full" style={{ marginTop: '12px', borderTop: '1px solid var(--border)', paddingTop: '12px' }}>
-                    <button 
-                      onClick={() => setActiveReportTab('detailed')} 
-                      style={{ 
-                        background: 'none', 
-                        border: 'none', 
-                        color: 'var(--primary)', 
-                        fontWeight: '700', 
-                        fontSize: '13px', 
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        fontFamily: 'var(--font-primary)'
-                      }}
-                    >
-                      <span>View Detailed Analysis</span>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="5" y1="12" x2="19" y2="12"/>
-                        <polyline points="12 5 19 12 12 19"/>
-                      </svg>
-                    </button>
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                {/* Keywords & Skills Analysis */}
-                <div className="card" style={{ padding: '24px', backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '16px', display: 'flex', flexDirection: 'column', height: '100%' }}>
-                  <div className="flex align-center justify-between" style={{ marginBottom: '16px' }}>
-                    <div className="flex align-center gap-1.5 justify-start">
-                      <h3 className="card-title" style={{ margin: 0, fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)' }}>Keywords & Skills Analysis</h3>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-secondary)', opacity: 0.5, cursor: 'pointer' }}>
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="16" x2="12" y2="12" />
-                        <line x1="12" y1="8" x2="12.01" y2="8" />
-                      </svg>
+                {/* Right Column: Recommendations & Action Plan */}
+                <div className="flex-col gap-6 w-full">
+                  {/* Priority Fixes Section */}
+                  <div id="priority-fixes" className="card text-left" style={{ padding: '24px' }}>
+                    <div className="flex-col gap-1">
+                      <h3 className="font-primary card-title" style={{ fontSize: '15.5px', fontWeight: '700', margin: 0, color: 'var(--text-primary)' }}>Priority Fixes</h3>
+                      <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Top 3 improvements ranked by estimated impact to optimize your match rate</span>
                     </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-8 flex-1" style={{ marginTop: '12px', marginBottom: '16px' }}>
-                    {/* Matched Skills */}
-                    <div className="flex flex-col gap-4 text-left">
-                      <span className="font-sans" style={{ fontSize: '13px', fontWeight: '700', color: 'var(--success)', display: 'flex', alignItems: 'center', marginBottom: '4px' }}>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}>
-                          <circle cx="12" cy="12" r="10" fill="var(--success-subtle)" />
-                          <polyline points="16 9 11 14 8 11" />
-                        </svg>
-                        Matched Skills ({displayMatchedCount})
-                      </span>
-                      <div className="flex flex-wrap gap-2">
-                        {matchedSkills.slice(0, 8).map((s, idx) => (
-                          <span key={idx} style={{ backgroundColor: 'var(--success-subtle)', color: 'var(--success)', padding: '5px 12px', borderRadius: '9999px', fontSize: '12px', fontWeight: '600', display: 'inline-flex', alignItems: 'center' }}>{s}</span>
-                        ))}
-                        {!hasMatchedSkills && (
-                          <span style={{ backgroundColor: 'var(--success-subtle)', color: 'var(--success)', padding: '5px 12px', borderRadius: '9999px', fontSize: '12px', fontWeight: '600', display: 'inline-flex', alignItems: 'center' }}>+10 more</span>
-                        )}
-                        {hasMatchedSkills && result.skills?.matched?.length > 8 && (
-                          <span style={{ backgroundColor: 'var(--success-subtle)', color: 'var(--success)', padding: '5px 12px', borderRadius: '9999px', fontSize: '12px', fontWeight: '600', display: 'inline-flex', alignItems: 'center' }}>+{(result.skills.matched.length - 8)} more</span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Missing Skills */}
-                    <div className="flex flex-col gap-4 text-left">
-                      <span className="font-sans" style={{ fontSize: '13px', fontWeight: '700', color: 'var(--danger)', display: 'flex', alignItems: 'center', marginBottom: '4px' }}>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}>
-                          <circle cx="12" cy="12" r="10" fill="var(--danger-subtle)" />
-                          <line x1="15" y1="9" x2="9" y2="15" />
-                          <line x1="9" y1="9" x2="15" y2="15" />
-                        </svg>
-                        Missing Skills ({displayMissingCount})
-                      </span>
-                      <div className="flex flex-wrap gap-2">
-                        {missingSkills.slice(0, 8).map((s, idx) => (
-                          <span key={idx} style={{ backgroundColor: 'var(--danger-subtle)', color: 'var(--danger)', padding: '5px 12px', borderRadius: '9999px', fontSize: '12px', fontWeight: '600', display: 'inline-flex', alignItems: 'center' }}>{s}</span>
-                        ))}
-                        {!hasMissingSkills && (
-                          <span style={{ backgroundColor: 'var(--danger-subtle)', color: 'var(--danger)', padding: '5px 12px', borderRadius: '9999px', fontSize: '12px', fontWeight: '600', display: 'inline-flex', alignItems: 'center' }}>+6 more</span>
-                        )}
-                        {hasMissingSkills && result.skills?.missing?.length > 8 && (
-                          <span style={{ backgroundColor: 'var(--danger-subtle)', color: 'var(--danger)', padding: '5px 12px', borderRadius: '9999px', fontSize: '12px', fontWeight: '600', display: 'inline-flex', alignItems: 'center' }}>+{(result.skills.missing.length - 8)} more</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-center w-full" style={{ marginTop: 'auto', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
-                    <button 
-                      onClick={() => setActiveReportTab('detailed')} 
-                      style={{ 
-                        background: 'none', 
-                        border: 'none', 
-                        color: 'var(--primary)', 
-                        fontWeight: '700', 
-                        fontSize: '13px', 
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        fontFamily: 'var(--font-primary)'
-                      }}
-                    >
-                      <span>View All Skills</span>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="12 5 19 12 12 19"/>
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Third Row: Rule Checks & AI Summary */}
-              <div className="grid grid-cols-2 gap-4">
-                {/* Programmatic Rule Checks */}
-                <div className="card" style={{ padding: '16px', backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '16px' }}>
-                  <div className="flex align-center justify-between" style={{ marginBottom: '8px' }}>
-                    <div className="flex align-center gap-1.5 justify-start">
-                      <h3 className="card-title" style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>Programmatic Rule Checks</h3>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-secondary)', opacity: 0.5, cursor: 'pointer' }}>
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="16" x2="12" y2="12" />
-                        <line x1="12" y1="8" x2="12.01" y2="8" />
-                      </svg>
-                    </div>
-                  </div>
-                  
-                  <div className="flex-col gap-1.5" style={{ marginTop: '4px' }}>
-                    {[
-                      { key: 'email', label: 'Email Address', check: !ruleViolations.includes('Missing email') },
-                      { key: 'phone', label: 'Phone Number', check: !ruleViolations.includes('Missing phone') },
-                      { key: 'length', label: 'Resume Length (1-2 pages)', check: !ruleViolations.includes('Resume too short') },
-                      { key: 'experience', label: 'Section Headings', check: !ruleViolations.includes('No experience section') },
-                      { key: 'skills', label: 'Skills Section', check: !ruleViolations.includes('No skills section') }
-                    ].map((rule) => (
-                      <div key={rule.key} className="flex align-center justify-between" style={{ fontSize: '13px', padding: '3px 0' }}>
-                        <span className="flex align-center gap-2" style={{ color: 'var(--text-primary)', fontWeight: '600', fontSize: '12px' }}>
-                          {rule.check ? (
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                              <circle cx="12" cy="12" r="10" fill="var(--success-subtle)" />
-                              <polyline points="16 9 11 14 8 11" />
-                            </svg>
-                          ) : (
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                              <circle cx="12" cy="12" r="10" fill="var(--danger-subtle)" />
-                              <line x1="15" y1="9" x2="9" y2="15" />
-                              <line x1="9" y1="9" x2="15" y2="15" />
-                            </svg>
-                          )}
-                          {rule.label}
-                        </span>
-                        <span 
-                          style={{ 
-                            backgroundColor: rule.check ? 'var(--success-subtle)' : 'var(--danger-subtle)',
-                            color: rule.check ? 'var(--success)' : 'var(--danger)',
-                            fontWeight: '700',
-                            fontSize: '11px',
-                            padding: '3px 8px',
-                            borderRadius: '6px',
-                            fontFamily: 'var(--font-primary)'
+                    <div className="card-divider" style={{ margin: '8px 0' }}></div>
+                    <div className="priority-fixes-container">
+                      {priorityFixes.map((fix, idx) => (
+                        <div 
+                          key={idx} 
+                          className={`priority-fix-card ${getFixTierClass(fix.impact)}`}
+                          onClick={() => {
+                            const t = fix.title.toLowerCase();
+                            if (t.includes('skills') || t.includes('keyword')) {
+                              document.getElementById('keyword-coverage')?.scrollIntoView({ behavior: 'smooth' });
+                            } else if (t.includes('contact') || t.includes('format') || t.includes('experience') || t.includes('education')) {
+                              setDetailedExpanded(true);
+                              setTimeout(() => {
+                                document.getElementById('detailed-breakdown')?.scrollIntoView({ behavior: 'smooth' });
+                              }, 100);
+                            } else {
+                              document.getElementById('ai-feedback-flow')?.scrollIntoView({ behavior: 'smooth' });
+                            }
                           }}
+                          style={{ cursor: 'pointer' }}
                         >
-                          {rule.check ? 'Passed' : 'Not Found'}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="flex justify-center w-full" style={{ marginTop: '12px', borderTop: '1px solid var(--border)', paddingTop: '12px' }}>
-                    <button 
-                      onClick={() => setActiveReportTab('similarity')} 
-                      style={{ 
-                        background: 'none', 
-                        border: 'none', 
-                        color: 'var(--primary)', 
-                        fontWeight: '700', 
-                        fontSize: '13px', 
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        fontFamily: 'var(--font-primary)'
-                      }}
-                    >
-                      <span>View All Rules</span>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="5" y1="12" x2="19" y2="12"/>
-                        <polyline points="12 5 19 12 12 19"/>
-                      </svg>
-                    </button>
-                  </div>
-                </div>                {/* AI Summary & Feedback */}
-                <div className="card" style={{ padding: '16px', backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '16px' }}>
-                  <div className="flex align-center justify-between" style={{ marginBottom: '8px' }}>
-                    <div className="flex align-center gap-1.5 justify-start">
-                      <h3 className="card-title" style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>AI Summary & Feedback</h3>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-secondary)', opacity: 0.5, cursor: 'pointer' }}>
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="16" x2="12" y2="12" />
-                        <line x1="12" y1="8" x2="12.01" y2="8" />
-                      </svg>
-                    </div>
-                  </div>
-                  
-                  <div className="flex-col gap-3" style={{ marginTop: '4px' }}>
-                    {/* Capsule subtabs */}
-                    <div className="flex align-center gap-2" style={{ marginBottom: '2px' }}>
-                      {[
-                        { id: 'summary', label: 'Summary' },
-                        { id: 'strengths', label: 'Strengths' },
-                        { id: 'improvements', label: 'Improvements' },
-                        { id: 'advice', label: 'Career Advice' }
-                      ].map((tab) => {
-                        const isActive = activeFeedbackTab === tab.id;
-                        return (
-                          <button
-                            key={tab.id}
-                            onClick={() => setActiveFeedbackTab(tab.id)}
-                            style={{
-                              backgroundColor: 'var(--surface)',
-                              border: isActive ? '1.5px solid var(--primary)' : '1px solid var(--border)',
-                              color: isActive ? 'var(--primary)' : 'var(--text-secondary)',
-                              fontWeight: isActive ? '700' : '500',
-                              padding: '3px 10px',
-                              borderRadius: '9999px',
-                              fontSize: '11px',
-                              cursor: 'pointer',
-                              fontFamily: 'var(--font-primary)',
-                              transition: 'all 0.15s ease'
-                            }}
+                          <div className="priority-fix-icon-box">{fix.icon}</div>
+                          <div className="priority-fix-content">
+                            <span className="priority-fix-title">
+                              {fix.title}
+                              {(fix.impact === 'Critical' || fix.impact === 'High') && (
+                                <span className={`pulsing-dot ${fix.impact.toLowerCase()}`} title={`${fix.impact} Action Required`} />
+                              )}
+                            </span>
+                            <span className="priority-fix-desc">{fix.desc}</span>
+                          </div>
+                          <span 
+                            className="priority-fix-impact" 
+                            style={{ color: fix.impactColor, backgroundColor: fix.impactBg }}
                           >
-                            {tab.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    {/* Tab contents */}
-                    <div style={{ minHeight: '90px', padding: '4px 0' }}>
-                      {activeFeedbackTab === 'summary' && (
-                        <p style={{ textAlign: 'left', fontSize: '13px', lineHeight: '1.5', color: 'var(--text-primary)', margin: 0 }}>
-                          {feedbackSummary}
-                        </p>
-                      )}
-
-                      {activeFeedbackTab === 'strengths' && (
-                        <ul className="flex-col gap-2 text-left" style={{ fontSize: '13px', listStyle: 'none', padding: 0, margin: 0 }}>
-                          {feedbackStrengths?.map((str, idx) => (
-                            <li key={idx} className="flex align-center gap-2" style={{ padding: '2px 0' }}>
-                              <span style={{ color: 'var(--success)', fontWeight: 'bold' }}>✓</span>
-                              <span style={{ color: 'var(--text-primary)' }}>{str}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-
-                      {activeFeedbackTab === 'improvements' && (
-                        <ul className="flex-col gap-2 text-left" style={{ fontSize: '13px', listStyle: 'none', padding: 0, margin: 0 }}>
-                          {feedbackImprovements?.map((imp, idx) => (
-                            <li key={idx} className="flex align-center gap-2" style={{ padding: '2px 0' }}>
-                              <span style={{ color: 'var(--warning)', fontWeight: 'bold' }}>⚠️</span>
-                              <span style={{ color: 'var(--text-primary)' }}>{imp}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-
-                      {activeFeedbackTab === 'advice' && (
-                        <p style={{ fontStyle: 'italic', textAlign: 'left', fontSize: '13px', lineHeight: '1.5', color: 'var(--text-primary)', margin: 0 }}>
-                          {feedbackCareerAdvice}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Callout box: Key Recommendation */}
-                    <div className="recommendation-box" style={{ marginTop: '8px' }}>
-                      <div className="recommendation-icon" style={{
-                        backgroundColor: 'rgba(20, 184, 166, 0.08)',
-                        border: '1px solid rgba(20, 184, 166, 0.15)',
-                        borderRadius: '50%',
-                        width: '32px',
-                        height: '32px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'var(--primary)',
-                        flexShrink: 0
-                      }}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A5 5 0 0 0 8 8c0 1 .3 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5" />
-                          <path d="M9 18h6" />
-                          <path d="M10 22h4" />
-                        </svg>
-                      </div>
-                      <div className="recommendation-content" style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                        <span className="recommendation-title" style={{ fontFamily: 'var(--font-primary)', fontSize: '12px', fontWeight: '700', color: 'var(--primary)', textAlign: 'left' }}>Key Recommendation</span>
-                        <span className="recommendation-text" style={{ fontSize: '12px', lineHeight: '1.4', color: 'var(--text-primary)', textAlign: 'left', fontWeight: '500' }}>
-                          Add more action verbs, quantify your achievements, and include missing keywords from the job description to improve your match score.
-                        </span>
-                      </div>
+                            {fix.impact}
+                          </span>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                </div></div>
+
+                  {/* AI Feedback Flow Card */}
+                  <div id="ai-feedback-flow" className="ai-feedback-flow-card">
+                    <div className="ai-feedback-flow-title">
+                      <SparklesIcon size={16} style={{ color: 'var(--primary)', marginRight: '4px' }} />
+                      <span>AI Recommendation & Career Guidance</span>
+                    </div>
+                    
+                    {/* Summary Statement */}
+                    <p style={{ margin: 0, fontSize: '13px', lineHeight: '1.6', color: 'var(--text-primary)' }}>
+                      {feedbackSummary}
+                    </p>
+
+                    {/* Phrasing & Wording Rewrites */}
+                    {feedbackWordingImprovements.length > 0 && (
+                      <div className="flex-col gap-3">
+                        <span style={{ fontSize: '12.5px', fontWeight: '700', color: 'var(--text-primary)' }}>Suggested Experience Phrasing Rewrites</span>
+                        <div className="wording-tips-list">
+                          {feedbackWordingImprovements.map((tip, idx) => (
+                            <div key={idx} className="wording-tip-item">
+                              <div className="wording-tip-header">
+                                <span className="wording-tip-label">REWRITE TIP #{idx + 1}</span>
+                                <button 
+                                  onClick={() => handleCopyTip(tip, idx)}
+                                  className={`wording-copy-btn ${copiedTipIndex === idx ? 'copied' : ''}`}
+                                >
+                                  {copiedTipIndex === idx ? (
+                                    <>
+                                      <CheckIcon size={12} />
+                                      <span>Copied!</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+                                        <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+                                      </svg>
+                                      <span>Copy Phrasing</span>
+                                    </>
+                                  )}
+                                </button>
+                              </div>
+                              <span className="wording-tip-text">“{tip}”</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Career Advice Box */}
+                    <div className="ai-feedback-advice-box">
+                      <strong>Career Progression Tip:</strong> {feedbackCareerAdvice}
+                    </div>
+                  </div>
+                </div>
               </div>
-          )}
+            );
+          })()}
 
           {/* Detailed Analysis Tab Content */}
           {activeReportTab === 'detailed' && (
@@ -1322,7 +1334,7 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                 <div className="flex flex-col gap-5">
                   <div className="profile-hero-card" style={{
                     padding: '16px',
-                    background: 'linear-gradient(135deg, rgba(15, 118, 110, 0.05) 0%, rgba(20, 184, 166, 0.02) 100%)',
+                    background: 'linear-gradient(135deg, var(--primary-subtle) 0%, var(--bg) 100%)',
                     border: '1px solid var(--border)',
                     borderRadius: '12px',
                     display: 'flex',
@@ -1545,7 +1557,7 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
               <div className="flex-col gap-6">
                 <div style={{
                   padding: '16px',
-                  background: 'linear-gradient(135deg, rgba(15, 118, 110, 0.04) 0%, rgba(20, 184, 166, 0.01) 100%)',
+                   background: 'linear-gradient(135deg, var(--primary-subtle) 0%, var(--bg) 100%)',
                   border: '1px solid var(--border)',
                   borderLeft: '4px solid var(--primary)',
                   borderRadius: '12px'
@@ -1565,7 +1577,7 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                         <li key={idx} className="flex align-start gap-2.5" style={{
                           padding: '10px 12px',
                           backgroundColor: 'var(--success-subtle)',
-                          border: '1px solid rgba(16, 185, 129, 0.15)',
+                           border: '1px solid var(--success-subtle)',
                           borderRadius: '8px',
                           color: 'var(--text-primary)'
                         }}>
@@ -1583,8 +1595,8 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                     </h4>
                     <div style={{
                       padding: '16px',
-                      backgroundColor: 'rgba(20, 184, 166, 0.04)',
-                      border: '1px solid rgba(20, 184, 166, 0.15)',
+                      backgroundColor: 'var(--primary-subtle)',
+                      border: '1px solid var(--border)',
                       borderRadius: '12px',
                       height: '100%'
                     }}>
@@ -1593,7 +1605,7 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                         fontSize: '13px',
                         color: 'var(--text-primary)',
                         fontStyle: 'italic',
-                        borderLeft: '3px solid rgba(20, 184, 166, 0.4)',
+                        borderLeft: '3px solid var(--primary)',
                         paddingLeft: '12px'
                       }}>
                         &ldquo;{feedbackCareerAdvice}&rdquo;
@@ -1708,7 +1720,7 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                             backgroundColor: 'var(--danger-subtle)',
                             padding: '4px 8px',
                             borderRadius: '4px',
-                            border: '1px solid rgba(239, 68, 68, 0.1)',
+                             border: '1px solid var(--danger-subtle)',
                             display: 'flex',
                             alignItems: 'center',
                             gap: '4px'
@@ -1724,7 +1736,7 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                           backgroundColor: 'var(--success-subtle)',
                           padding: '6px 8px',
                           borderRadius: '6px',
-                          border: '1px solid rgba(16, 185, 129, 0.1)',
+                           border: '1px solid var(--success-subtle)',
                           display: 'flex',
                           alignItems: 'center',
                           gap: '6px',
@@ -1751,7 +1763,7 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                   <div className="flex align-center justify-between">
                     <h4 style={{ fontWeight: '700', color: 'var(--text-primary)' }}>Skills Match</h4>
                     <span className="tag" style={{
-                      backgroundColor: 'rgba(20, 184, 166, 0.08)',
+                      backgroundColor: 'var(--primary-subtle)',
                       color: 'var(--primary)',
                       fontWeight: '700'
                     }}>
@@ -1828,8 +1840,8 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
 
       {/* Fallback empty state for Analysis Report if no analysis result is loaded */}
       {activeSection === 'analysis' && !result && (
-        <div className="card flex-col align-center justify-center gap-4 text-center py-12 fade-in" style={{ minHeight: '400px', backgroundColor: 'rgba(15, 118, 110, 0.01)', width: '100%' }}>
-          <div className="file-icon-wrapper flex align-center justify-center" style={{ backgroundColor: 'rgba(15, 118, 110, 0.05)', width: '64px', height: '64px', borderRadius: '50%', marginBottom: '8px' }}>
+        <div className="card flex-col align-center justify-center gap-4 text-center py-12 fade-in" style={{ minHeight: '400px', backgroundColor: 'transparent', width: '100%' }}>
+          <div className="file-icon-wrapper flex align-center justify-center" style={{ backgroundColor: 'var(--primary-subtle)', width: '64px', height: '64px', borderRadius: '50%', marginBottom: '8px' }}>
             <FileTextIcon size={32} style={{ color: 'var(--primary)' }} />
           </div>
           <h3 className="font-primary" style={{ fontSize: '18px', fontWeight: '700', color: 'var(--text-primary)' }}>No Analysis Report Loaded</h3>

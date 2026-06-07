@@ -139,18 +139,6 @@ export default function Sidebar({
         {/* User Card */}
         {user && (
           <div className="user-card flex flex-col gap-3">
-            <div className="flex align-center gap-3 w-full">
-              <div className="user-avatar flex align-center justify-center">
-                A
-              </div>
-              <div className="user-details flex-col flex-1 overflow-hidden">
-                <span className="user-email truncate" title={user.email}>
-                  {user.email}
-                </span>
-                <span className="user-status">Administrator</span>
-              </div>
-            </div>
-            
             {/* Credits Section */}
             <div className="credits-section w-full">
               <div className="sidebar-credits">

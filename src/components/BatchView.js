@@ -942,6 +942,7 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
           flex: 1;
           min-height: 120px;
           resize: none;
+          font-family: inherit;
         }
 
         .jd-stats {

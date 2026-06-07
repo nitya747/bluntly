@@ -85,6 +85,11 @@ body {
   height: 100vh;
 }
 
+input, textarea, button, select {
+  font-family: inherit;
+}
+
+
 /* Layout System */
 .dashboard-layout {
   display: flex;

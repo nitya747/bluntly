@@ -75,59 +75,10 @@ export default function Home() {
         const res = await fetch('/api/history');
         const data = await res.json();
         if (data.success) {
-          let historyData = data.history;
-          if (historyData.length === 0) {
-            // Seed a default mock record matching the reference mockup
-            const defaultMock = {
-              id: 'mock-default-id',
-              filename: 'Google Step Internship.pdf',
-              timestamp: 'May 14, 2025 at 10:30 AM',
-              analysis: {
-                candidateName: 'Google Step Internship.pdf',
-                atsScore: 37,
-                qualityScore: 70,
-                jobDescription: 'Software Engineering Intern',
-                skills: {
-                  matched: ['React.js', 'JavaScript', 'HTML', 'CSS', 'Node.js', 'Git', 'GitHub', 'REST API'],
-                  missing: ['Next.js', 'TypeScript', 'Tailwind CSS', 'GraphQL', 'AWS', 'Docker', 'CI/CD', 'Jest']
-                },
-                sections: {
-                  experience: 30,
-                  education: 90,
-                  skills: 80,
-                  formatting: 100,
-                  impact: 55
-                },
-                feedback: {
-                  summary: 'The resume shows a decent alignment with the Software Engineering Intern role. The candidate has relevant skills and education, but the experience section lacks depth and measurable impact. Improving keyword usage and adding more quantifiable achievements will significantly boost the ATS score.',
-                  strengths: [
-                    "Good foundation of industry experience with a clear career progression.",
-                    "Clear section separation and structural layout."
-                  ],
-                  improvements: [
-                    "Quantify achievements: include metrics, scale, or percentage improvements in role descriptions.",
-                    "Tailor bullet points to explicitly match technologies requested in target job descriptions."
-                  ],
-                  wordingImprovements: [
-                    "Collaborated with cross-functional teams to design, develop, and deploy features.",
-                    "Utilized modern tools and frameworks to optimize workflow efficiency and code quality."
-                  ],
-                  careerAdvice: 'To progress to more senior positions, aim to lead projects or design architectures. Document those scale and design contributions clearly in your project listings.'
-                },
-                ruleViolations: ['No skills section'],
-                passedRules: ['Email Address', 'Phone Number', 'Resume Length (1-2 pages)', 'Section Headings'],
-                experienceMatch: null
-              }
-            };
-            historyData = [defaultMock];
-          }
+          const historyData = data.history;
           setHistory(historyData);
           if (historyData.length > 0) {
             setCurrentAnalysis(historyData[0]);
-            // If the user is starting with the mock record, navigate directly to the analysis view
-            if (historyData[0].id === 'mock-default-id') {
-              setIndividualSection('analysis');
-            }
           }
         }
       } catch (err) {

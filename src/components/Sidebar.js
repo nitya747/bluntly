@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { 
-  SettingsIcon, 
   HistoryIcon,
   LogoIcon, 
   LogOutIcon, 
@@ -35,7 +34,6 @@ export default function Sidebar({
   const isBatchActive = activeView === 'batch' && batchSection === 'input';
   const isBatchRankingActive = activeView === 'batch' && batchSection === 'analysis';
   const isHistoryActive = activeView === 'history';
-  const isSettingsActive = activeView === 'settings';
 
   return (
     <aside className={`sidebar flex-col justify-between ${isCollapsed ? 'collapsed' : ''}`}>
@@ -120,15 +118,6 @@ export default function Sidebar({
               <HistoryIcon size={18} />
               {!isCollapsed && <span className="nav-label">History</span>}
               {!isCollapsed && isHistoryActive && <span className="active-indicator" />}
-            </button>
-            <button
-              onClick={() => setActiveView('settings')}
-              className={`nav-item-btn ${isSettingsActive ? 'active' : ''}`}
-              title={isCollapsed ? "Settings" : undefined}
-            >
-              <SettingsIcon size={18} />
-              {!isCollapsed && <span className="nav-label">Settings</span>}
-              {!isCollapsed && isSettingsActive && <span className="active-indicator" />}
             </button>
           </div>
         </nav>

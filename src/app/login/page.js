@@ -18,6 +18,12 @@ function LoginContent() {
   const supabase = createClient();
 
   useEffect(() => {
+    // Load theme to maintain consistency on mount
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+  }, []);
+
+  useEffect(() => {
     // Check if redirect query param contains error
     const err = searchParams.get('error');
     if (err === 'auth-callback-failed') {
@@ -76,14 +82,14 @@ function LoginContent() {
   };
 
   return (
-    <div className="login-container polka-dot-bg flex align-center justify-center">
-      <div className="login-card card flex-col gap-6">
+    <div className="login-container flex align-center justify-center">
+      <div className="login-card card flex-col gap-8">
         {/* Brand/Header */}
-        <div className="login-header flex-col align-center gap-2 text-center">
+        <div className="login-header flex-col align-center gap-3 text-center">
           <div className="login-logo flex align-center justify-center" style={{ color: '#FFFFFF' }}>
             <LogoIcon size={24} />
           </div>
-          <h1 className="heading-primary font-sans">blunlty</h1>
+          <h1 className="heading-primary font-primary" style={{ fontSize: '28px', fontWeight: '700', color: 'var(--text-primary)', letterSpacing: '-0.5px' }}>bluntly</h1>
           <p className="login-subtitle font-sans">
             {isSignUp ? 'Create an account to start parsing resumes' : 'Sign in to access your dashboard'}
           </p>
@@ -105,8 +111,8 @@ function LoginContent() {
         )}
 
         {/* Input Form */}
-        <form onSubmit={handleSubmit} className="login-form flex-col gap-4">
-          <div className="form-group flex-col gap-1">
+        <form onSubmit={handleSubmit} className="login-form flex-col gap-5">
+          <div className="form-group flex-col gap-2">
             <label className="form-label font-sans">Email Address</label>
             <input
               type="email"
@@ -119,7 +125,7 @@ function LoginContent() {
             />
           </div>
 
-          <div className="form-group flex-col gap-1">
+          <div className="form-group flex-col gap-2">
             <label className="form-label font-sans">Password</label>
             <input
               type="password"
@@ -135,7 +141,7 @@ function LoginContent() {
           <button
             type="submit"
             disabled={loading}
-            className="button-primary submit-btn font-sans"
+            className="button-primary submit-btn font-primary"
           >
             {loading ? 'Processing...' : isSignUp ? 'Create Free Account' : 'Sign In to Dashboard'}
           </button>
@@ -162,23 +168,28 @@ function LoginContent() {
         .login-container {
           min-height: 100vh;
           width: 100vw;
-          background-color: var(--bg-primary);
+          background-color: var(--bg);
+          transition: background-color var(--transition-speed) ease;
         }
 
         .login-card {
           width: 100%;
-          max-width: 420px;
-          padding: 2.5rem 2rem;
-          box-shadow: var(--shadow-drop);
-          border-color: var(--border-color);
+          max-width: 440px;
+          padding: 3rem 2.5rem;
+          background-color: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-card);
+          box-shadow: var(--shadow);
+          transition: background-color var(--transition-speed) ease, border-color var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
         }
 
         .login-logo {
-          background: linear-gradient(135deg, var(--primary), var(--secondary));
+          background-color: var(--primary);
           width: 48px;
           height: 48px;
           border-radius: 12px;
           font-size: 1.5rem;
+          transition: background-color var(--transition-speed) ease;
         }
 
         .login-subtitle {
@@ -198,9 +209,9 @@ function LoginContent() {
 
         .submit-btn {
           width: 100%;
-          padding: 0.8rem;
+          padding: 0.9rem;
           font-size: 0.95rem;
-          margin-top: 0.5rem;
+          margin-top: 1rem;
         }
 
         .alert {
@@ -212,13 +223,13 @@ function LoginContent() {
         }
 
         .alert-danger {
-          background-color: var(--danger-bg);
+          background-color: var(--danger-subtle);
           color: var(--danger);
           border-color: rgba(239, 68, 68, 0.15);
         }
 
         .alert-success {
-          background-color: var(--success-bg);
+          background-color: var(--success-subtle);
           color: var(--success);
           border-color: rgba(16, 185, 129, 0.15);
         }
@@ -236,10 +247,11 @@ function LoginContent() {
           cursor: pointer;
           font-size: 0.85rem;
           text-decoration: underline;
+          transition: color var(--transition-speed) ease;
         }
 
         .toggle-btn:hover {
-          color: var(--secondary);
+          color: var(--primary-hover);
         }
       `}</style>
     </div>
@@ -249,7 +261,7 @@ function LoginContent() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="login-container polka-dot-bg flex align-center justify-center">
+      <div className="login-container flex align-center justify-center">
         <div className="login-card card flex-col align-center justify-center p-6" style={{ width: '420px', height: '200px' }}>
           <span className="font-sans text-secondary" style={{ color: 'var(--text-secondary)', textAlign: 'center' }}>
             Loading authentication screen...
@@ -261,3 +273,4 @@ export default function LoginPage() {
     </Suspense>
   );
 }
+

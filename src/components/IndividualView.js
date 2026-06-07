@@ -13,7 +13,8 @@ import {
   SettingsIcon,
   ChevronLeftIcon,
   DownloadIcon,
-  ClockIcon
+  ClockIcon,
+  ConfigureIcon
 } from './Icons';
 
 function highlightJSON(json) {
@@ -422,10 +423,16 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
           <div className="grid grid-cols-2 gap-8">
             {/* Resume Upload Card */}
             <div className="card">
-              <h3 className="card-title">
-                <span className="step-num">1</span> Resume Upload
-              </h3>
-              <p className="card-subtitle-desc">Upload the resume you want to analyze</p>
+              <div className="flex justify-between align-center">
+                <h3 className="card-title">Resume Upload</h3>
+                {file && (
+                  <button onClick={clearFile} className="button-secondary sample-btn flex align-center gap-2" style={{ padding: '6px 12px', borderRadius: '8px' }}>
+                    <XIcon size={13} />
+                    <span>Clear File</span>
+                  </button>
+                )}
+              </div>
+              <div className="card-divider"></div>
               
               <div 
                 className={`dropzone-area flex-col align-center justify-center gap-3 ${dragOver ? 'drag-over' : ''}`}
@@ -447,9 +454,6 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                         <span className="file-size text-secondary">{Math.round(file.size / 1024)} KB</span>
                       )}
                     </div>
-                    <button onClick={clearFile} className="button-secondary flex align-center gap-2" style={{ padding: '6px 16px', borderRadius: '8px', fontSize: '12px' }}>
-                      <XIcon size={14} /> Clear File
-                    </button>
                   </div>
                 ) : (
                   <label className="upload-box flex-col align-center justify-center gap-3 cursor-pointer">
@@ -472,15 +476,13 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
             {/* Job Description Card */}
             <div className="card">
               <div className="flex justify-between align-center">
-                <h3 className="card-title">
-                  <span className="step-num">2</span> Target Job Description
-                </h3>
+                <h3 className="card-title">Job Description</h3>
                 <button onClick={loadSampleJD} className="button-secondary sample-btn flex align-center gap-2" style={{ padding: '6px 12px', borderRadius: '8px' }}>
-                  <FileTextIcon size={13} />
-                  <span>Load Sample JD</span>
+                  <SparklesIcon size={13} />
+                  <span>Sample JD</span>
                 </button>
               </div>
-              <p className="card-subtitle-desc">Paste the target job description to calculate ATS compatibility</p>
+              <div className="card-divider"></div>
               
               <div className="flex-col gap-3 h-full">
                 <textarea
@@ -497,6 +499,16 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
               </div>
             </div>
           </div>
+
+          {/* Credit warnings */}
+          {file && !file.isSavedRecord && credits < 1 && (
+            <div className="credit-warning-banner card flex align-center gap-3" style={{ alignSelf: 'center', maxWidth: '500px', width: '100%', borderColor: 'var(--danger)', backgroundColor: 'rgba(239,68,68,0.06)', color: 'var(--danger)' }}>
+              <span className="error-icon flex align-center">⚠️</span>
+              <span className="error-message font-sans" style={{ fontSize: '13px' }}>
+                Insufficient credits. This scan requires <strong>1 credit</strong>, but you have <strong>0 credits</strong> remaining. Please buy credits in the sidebar.
+              </span>
+            </div>
+          )}
 
           {/* Error display */}
           {error && (
@@ -529,7 +541,7 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
             <span className="cost-subtext" style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
               {file?.isSavedRecord 
                 ? 'Viewing saved scan' 
-                : 'Click to start the analysis. You will be redirected to the analysis report.'}
+                : `Costs 1 credit — You have ${credits} credits remaining`}
             </span>
           </div>
 
@@ -1584,7 +1596,7 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                         borderLeft: '3px solid rgba(20, 184, 166, 0.4)',
                         paddingLeft: '12px'
                       }}>
-                        "{feedbackCareerAdvice}"
+                        &ldquo;{feedbackCareerAdvice}&rdquo;
                       </p>
                     </div>
                   </div>
@@ -1811,6 +1823,26 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Fallback empty state for Analysis Report if no analysis result is loaded */}
+      {activeSection === 'analysis' && !result && (
+        <div className="card flex-col align-center justify-center gap-4 text-center py-12 fade-in" style={{ minHeight: '400px', backgroundColor: 'rgba(15, 118, 110, 0.01)', width: '100%' }}>
+          <div className="file-icon-wrapper flex align-center justify-center" style={{ backgroundColor: 'rgba(15, 118, 110, 0.05)', width: '64px', height: '64px', borderRadius: '50%', marginBottom: '8px' }}>
+            <FileTextIcon size={32} style={{ color: 'var(--primary)' }} />
+          </div>
+          <h3 className="font-primary" style={{ fontSize: '18px', fontWeight: '700', color: 'var(--text-primary)' }}>No Analysis Report Loaded</h3>
+          <p className="font-sans text-secondary" style={{ fontSize: '14px', maxWidth: '380px', margin: '0 auto', lineHeight: '1.5' }}>
+            To view an analysis report, please upload and analyze a resume on the Configure screen, or select a past scan from the History page.
+          </p>
+          <button 
+            onClick={() => setActiveSection('input')} 
+            className="button-primary flex align-center gap-2"
+            style={{ padding: '8px 20px', borderRadius: '10px', fontSize: '13px', fontWeight: '600', marginTop: '12px', cursor: 'pointer', backgroundColor: 'var(--primary)', border: 'none', color: '#FFFFFF' }}
+          >
+            <ConfigureIcon size={14} /> Go to Configure
+          </button>
         </div>
       )}
 

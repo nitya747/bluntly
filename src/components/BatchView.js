@@ -14,7 +14,8 @@ import {
   XIcon, 
   DownloadIcon, 
   ChevronUpIcon, 
-  ChevronDownIcon 
+  ChevronDownIcon,
+  FileTextIcon
 } from './Icons';
 
 export default function BatchView({ onAddHistory, credits, setCredits, history = [] }) {
@@ -38,7 +39,7 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
 
   const loadSampleJD = () => {
     setJobDescription(
-      "Looking for a Senior React Developer with experience in React, Next.js, and TypeScript. Skills in Custom CSS, Tailwind, and Kubernetes are a plus."
+      "Looking for a Senior Software Engineer with experience in React, Next.js, and TypeScript. Skills in Custom CSS, Tailwind, and REST APIs are a plus."
     );
   };
 
@@ -75,7 +76,6 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
       setError(null);
     }
 
-    // Limit to 20 files
     const updatedFiles = [...files, ...validFiles].slice(0, 20);
     setFiles(updatedFiles);
   };
@@ -124,7 +124,6 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
         throw new Error(errorData.error || 'Failed to start batch analysis.');
       }
 
-      // Read SSE stream
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
@@ -136,7 +135,6 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n\n');
         
-        // Save the last incomplete line back to buffer
         buffer = lines.pop();
 
         for (const line of lines) {
@@ -161,7 +159,7 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
   };
 
   const handleSSEEvent = (eventData) => {
-    const { event, index, name, status, result, error, results: finalResults, credits: sseCredits } = eventData;
+    const { event, index, status, result, error, results: finalResults, credits: sseCredits } = eventData;
 
     if (sseCredits !== undefined) {
       setCredits(sseCredits);
@@ -178,7 +176,6 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
     } else if (event === 'complete') {
       setProcessing(false);
       
-      // Parse results list
       const formattedResults = finalResults.map((res, rankIdx) => ({
         id: res.id || Math.random().toString(36).substr(2, 9),
         filename: res.filename,
@@ -189,7 +186,6 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
 
       setResults(formattedResults);
 
-      // Save to local batch list
       const avgATS = formattedResults.length > 0 
         ? Math.round(formattedResults.reduce((acc, r) => acc + (r.analysis?.atsScore || 0), 0) / formattedResults.length)
         : 0;
@@ -203,19 +199,20 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
       };
       setRecentBatchJobs(prev => [newJob, ...prev]);
 
-      // Add each successfully parsed result to global scan history
       formattedResults.forEach(res => {
         onAddHistory({
           id: res.id,
           filename: res.filename,
-          analysis: res.analysis,
+          analysis: {
+            ...res.analysis,
+            jobDescription: jobDescription
+          },
           timestamp: res.analysis.timestamp || new Date().toLocaleTimeString(),
         });
       });
     }
   };
 
-  // Sorting Handler
   const handleSort = (field) => {
     if (sortField === field) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -225,22 +222,21 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
     }
   };
 
-  // Apply filters and sorting
   const getFilteredAndSortedResults = () => {
-    // 1. Filter
     const filtered = results.filter(res => {
       const score = res.analysis?.atsScore ?? 0;
       if (score < minScore) return false;
       if (skillFilter.trim() !== '') {
-        const skillsList = res.analysis?.skills?.matched || [];
-        const filterText = skillFilter.toLowerCase();
-        const hasSkill = skillsList.some(s => s.toLowerCase().includes(filterText));
-        if (!hasSkill) return false;
+        const skillsList = (res.analysis?.skills?.matched || []).map(s => s.toLowerCase());
+        const searchTerms = skillFilter.toLowerCase().split(',').map(s => s.trim()).filter(Boolean);
+        const hasAllSkills = searchTerms.every(term => 
+          skillsList.some(s => s.includes(term))
+        );
+        if (!hasAllSkills) return false;
       }
       return true;
     });
 
-    // 2. Sort
     return filtered.sort((a, b) => {
       let valA, valB;
 
@@ -276,21 +272,33 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
     setExpandedIndex(null);
   };
 
-  // CSV Exporter
+  const getJobTitle = (scan) => {
+    const jd = scan?.analysis?.jobDescription || jobDescription || '';
+    if (jd) {
+      const match = jd.match(/(?:looking for a|position:|role:|job title:)\s*([a-zA-Z\s\+\#]+)/i);
+      if (match && match[1]) {
+        return match[1].trim();
+      }
+      const firstWords = jd.split(/\s+/).slice(0, 3).join(' ');
+      if (firstWords) return firstWords;
+    }
+    return 'Software Developer';
+  };
+
   const exportCSV = () => {
     if (results.length === 0) return;
     const headers = ['Rank', 'Candidate Name', 'File Name', 'Format', 'ATS Score (%)', 'Quality Score (%)', 'Top Skills'];
     const sorted = getFilteredAndSortedResults();
     const rows = sorted.map((res, idx) => {
       const extension = res.filename.split('.').pop().toUpperCase();
-      const topSkills = res.analysis.skills.matched.slice(0, 3).join(', ') || 'None';
+      const topSkills = res.analysis?.skills?.matched?.slice(0, 3).join(', ') || 'None';
       return [
         idx + 1,
-        `"${res.analysis.candidateName}"`,
+        `"${res.analysis?.candidateName || 'N/A'}"`,
         `"${res.filename}"`,
         extension,
-        res.analysis.atsScore !== null ? res.analysis.atsScore : 'N/A',
-        res.analysis.qualityScore,
+        res.analysis?.atsScore !== null ? res.analysis?.atsScore : 'N/A',
+        res.analysis?.qualityScore || 0,
         `"${topSkills}"`
       ];
     });
@@ -298,7 +306,6 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
     downloadFile(csvContent, 'resume_ranking_report.csv', 'text/csv;charset=utf-8;');
   };
 
-  // JSON Exporter
   const exportJSON = () => {
     if (results.length === 0) return;
     const sorted = getFilteredAndSortedResults();
@@ -306,9 +313,7 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
     downloadFile(jsonString, 'resume_ranking_report.json', 'application/json;charset=utf-8;');
   };
 
-  // PDF Exporter (Mock/Print)
   const exportPDF = () => {
-    alert('PDF Export: Printing layout triggered. Please use the system browser dialog to save as PDF.');
     window.print();
   };
 
@@ -324,43 +329,32 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
     document.body.removeChild(link);
   };
 
-  // Progress metrics
   const completedCount = progressLog.filter(l => l.status === 'completed' || l.status === 'error').length;
   const totalCount = progressLog.length;
   const percentComplete = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
-  // Summary statistics
-  const totalResumes = results.length;
+  const filteredResults = getFilteredAndSortedResults();
+  const totalResumes = filteredResults.length;
   const avgATS = totalResumes > 0 
-    ? Math.round(results.reduce((acc, r) => acc + (r.analysis?.atsScore || 0), 0) / totalResumes)
+    ? Math.round(filteredResults.reduce((acc, r) => acc + (r.analysis?.atsScore || 0), 0) / totalResumes)
     : 0;
-  const highestATS = totalResumes > 0 ? Math.max(...results.map(r => r.analysis?.atsScore || 0)) : 0;
-  const lowestATS = totalResumes > 0 ? Math.min(...results.map(r => r.analysis?.atsScore || 0)) : 0;
+  const highestATS = totalResumes > 0 ? Math.max(...filteredResults.map(r => r.analysis?.atsScore || 0)) : 0;
+  const lowestATS = totalResumes > 0 ? Math.min(...filteredResults.map(r => r.analysis?.atsScore || 0)) : 0;
+
+  const getProgressColorClass = (score) => {
+    if (score >= 80) return 'success';
+    if (score >= 65) return 'warning';
+    return 'danger';
+  };
+
+  const getStatusLabel = (score) => {
+    if (score >= 80) return 'Excellent';
+    if (score >= 65) return 'Good Match';
+    return 'Needs Review';
+  };
 
   return (
     <div className="workspace flex-col gap-6 fade-in">
-      {/* Secondary Navigation */}
-      <div className="tabs-navigation">
-        <button
-          onClick={() => setActiveSection('input')}
-          className={`tab-nav-btn ${activeSection === 'input' ? 'active' : ''}`}
-        >
-          Configure
-        </button>
-        <button
-          onClick={() => {
-            if (results.length > 0 || processing) {
-              setActiveSection('analysis');
-            }
-          }}
-          disabled={results.length === 0 && !processing}
-          className={`tab-nav-btn ${activeSection === 'analysis' ? 'active' : ''}`}
-          style={{ opacity: (results.length > 0 || processing) ? 1 : 0.5, cursor: (results.length > 0 || processing) ? 'pointer' : 'not-allowed' }}
-        >
-          Analysis Report
-        </button>
-      </div>
-
       {/* 1. Configure Screen Pattern */}
       {activeSection === 'input' && (
         <div className="flex-col gap-8 fade-in">
@@ -368,22 +362,24 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
             {/* Multi File Upload Card */}
             <div className="card">
               <div className="flex justify-between align-center">
-                <h3 className="card-title">Resumes Batch</h3>
+                <h3 className="card-title">
+                  <span className="step-num">1</span> Resumes Batch
+                </h3>
                 {files.length > 0 && (
-                  <button onClick={clearAllFiles} className="button-secondary sample-btn flex align-center gap-2">
+                  <button onClick={clearAllFiles} className="button-secondary sample-btn flex align-center gap-2" style={{ borderRadius: '8px' }}>
                     <TrashIcon size={13} />
                     <span>Clear All</span>
                   </button>
                 )}
               </div>
-              <div className="card-divider"></div>
+              <p className="card-subtitle-desc">Upload the resume batch you want to analyze</p>
               
               <div 
                 className={`dropzone-area flex-col align-center justify-center gap-3 ${dragOver ? 'drag-over' : ''}`}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
-                style={{ height: '220px' }}
+                style={{ height: '220px', backgroundColor: 'rgba(15, 118, 110, 0.02)', border: '2px dashed var(--border)' }}
               >
                 <input 
                   type="file" 
@@ -396,30 +392,30 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
                 
                 {files.length === 0 ? (
                   <label htmlFor="batch-file-input" className="upload-box flex-col align-center justify-center gap-3 cursor-pointer">
-                    <div className="upload-icon-wrapper flex align-center justify-center">
-                      <UploadIcon size={24} style={{ color: 'var(--text-secondary)' }} />
+                    <div className="upload-icon-wrapper flex align-center justify-center" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+                      <UploadIcon size={24} style={{ color: 'var(--primary)' }} />
                     </div>
                     <div className="flex-col align-center text-center">
-                      <span className="upload-title">Upload Resume Batch</span>
-                      <span className="upload-desc">Drag & drop or click to browse</span>
-                      <span className="upload-note font-mono">Select up to 20 PDF, LaTeX or Text files</span>
+                      <span className="upload-title" style={{ fontSize: '15px', fontWeight: '700' }}>Upload Resume Batch</span>
+                      <span className="upload-desc" style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Drag & drop or click to browse</span>
+                      <span className="upload-note font-mono" style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Select up to 20 PDF, LaTeX or Text files</span>
                     </div>
                   </label>
                 ) : (
                   <div className="batch-files-list flex-col w-full h-full p-2" style={{ overflowY: 'auto' }}>
-                    <span className="font-sans font-bold text-secondary" style={{ fontSize: '13px', display: 'block', marginBottom: '8px' }}>
+                    <span className="font-sans font-bold text-secondary" style={{ fontSize: '13px', display: 'block', marginBottom: '8px', textAlign: 'left' }}>
                       {files.length} files selected:
                     </span>
-                    <div className="flex-col gap-2">
+                    <div className="flex flex-col gap-2">
                       {files.map((f, i) => (
                         <div key={i} className="file-row flex align-center justify-between" style={{
-                          backgroundColor: 'var(--bg)',
+                          backgroundColor: 'var(--surface)',
                           border: '1px solid var(--border)',
                           borderRadius: '8px',
-                          padding: '6px 12px',
+                          padding: '8px 12px',
                           fontSize: '12px'
                         }}>
-                          <span className="truncate" style={{ maxWidth: '80%' }}>{f.name}</span>
+                          <span className="truncate font-sans" style={{ maxWidth: '80%', fontWeight: '600' }}>{f.name}</span>
                           <button onClick={() => removeFile(i)} className="remove-btn">✕</button>
                         </div>
                       ))}
@@ -432,23 +428,25 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
             {/* Job Description Card */}
             <div className="card">
               <div className="flex justify-between align-center">
-                <h3 className="card-title">Job Description</h3>
-                <button onClick={loadSampleJD} className="button-secondary sample-btn flex align-center gap-2">
+                <h3 className="card-title">
+                  <span className="step-num">2</span> Target Job Description
+                </h3>
+                <button onClick={loadSampleJD} className="button-secondary sample-btn flex align-center gap-2" style={{ borderRadius: '8px' }}>
                   <SparklesIcon size={13} />
                   <span>Sample JD</span>
                 </button>
               </div>
-              <div className="card-divider"></div>
+              <p className="card-subtitle-desc">Paste target job requirements here to rank resumes by ATS score</p>
               
               <div className="flex-col gap-3 h-full">
                 <textarea
                   value={jobDescription}
                   onChange={(e) => setJobDescription(e.target.value)}
-                  placeholder="Paste the target job description here to rank candidate resumes by ATS match score..."
+                  placeholder="Paste target job requirements here to rank candidate resumes by ATS match score..."
                   className="textarea-text jd-textarea"
-                  style={{ minHeight: '140px' }}
+                  style={{ minHeight: '160px' }}
                 />
-                <div className="jd-stats flex justify-between font-mono">
+                <div className="jd-stats flex justify-between font-sans text-secondary" style={{ fontSize: '12px' }}>
                   <span>{jobDescription.split(/\s+/).filter(Boolean).length} words</span>
                 </div>
               </div>
@@ -465,7 +463,7 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
             </div>
           )}
 
-          {/* Error Bound */}
+          {/* Error display */}
           {error && (
             <div className="error-banner flex align-center gap-3">
               <AlertIcon size={16} />
@@ -478,20 +476,23 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
             <button
               onClick={runBatchAnalysis}
               disabled={files.length === 0 || processing || credits < files.length}
-              className="button-primary run-analysis-btn"
-              style={{ width: '320px' }}
+              className="button-primary run-analysis-btn flex align-center justify-center gap-2"
+              style={{ width: '320px', height: '48px', backgroundColor: 'var(--primary)', borderRadius: '12px' }}
             >
               {processing ? (
                 <>
-                  <SettingsIcon size={16} className="spin-animation" style={{ marginRight: '8px' }} />
+                  <SettingsIcon size={16} className="spin-animation" />
                   Processing Batch Scans...
                 </>
               ) : (
-                'Start Batch Analysis'
+                <>
+                  <SparklesIcon size={16} style={{ color: '#FFFFFF' }} />
+                  Start Batch Analysis
+                </>
               )}
             </button>
             {files.length > 0 && (
-              <span className="cost-subtext">
+              <span className="cost-subtext" style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
                 Will cost {files.length} credits (You have {credits} credits remaining)
               </span>
             )}
@@ -524,13 +525,13 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
                         <td className="font-mono">{job.candidateCount} Resumes</td>
                         <td style={{ color: 'var(--text-secondary)' }}>{job.jobSnippet}</td>
                         <td>
-                          <span className="tag tag-matched">{job.avgATS}%</span>
+                          <span className="tag tag-matched" style={{ backgroundColor: 'var(--success-subtle)', color: 'var(--success)', fontWeight: '700' }}>{job.avgATS}%</span>
                         </td>
                         <td>
                           <button
                             onClick={() => loadRecentBatchJob(job)}
                             className="button-secondary"
-                            style={{ padding: '6px 12px', fontSize: '12px', borderRadius: '8px' }}
+                            style={{ padding: '6px 12px', fontSize: '12px', borderRadius: '8px', fontWeight: '600' }}
                           >
                             View Job
                           </button>
@@ -547,9 +548,9 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
 
       {/* 2. Analysis Report Screen Pattern */}
       {activeSection === 'analysis' && (
-        <div className="flex-col gap-8 fade-in">
+        <div className="flex-col gap-6 fade-in">
           {/* Section 1: Batch Status */}
-          <div className="card">
+          <div className="card text-left">
             <h3 className="card-title">Batch Progress</h3>
             <div className="card-divider"></div>
             <div className="flex-col gap-4">
@@ -568,7 +569,7 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
               {progressLog.length > 0 && (
                 <div className="grid grid-cols-4 gap-3" style={{ maxHeight: '140px', overflowY: 'auto', marginTop: '8px' }}>
                   {progressLog.map((log) => (
-                    <div key={log.index} className="flex-col gap-1" style={{
+                    <div key={log.index} className="flex-col gap-1 text-left" style={{
                       backgroundColor: 'var(--bg)',
                       border: '1px solid var(--border)',
                       borderRadius: '8px',
@@ -591,7 +592,10 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
             <div className="grid grid-cols-4 gap-6">
               {/* Total Resumes */}
               <div className="kpi-card">
-                <span className="kpi-title">Total Resumes</span>
+                <div className="flex align-center justify-between">
+                  <span className="kpi-title">Total Resumes</span>
+                  <span className="tooltip-icon">ℹ️</span>
+                </div>
                 <span className="kpi-score">{totalResumes}</span>
                 <span className="kpi-status">Candidates parsed</span>
                 <div className="progress-bar-track">
@@ -601,37 +605,52 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
 
               {/* Average ATS Score */}
               <div className="kpi-card">
-                <span className="kpi-title">Average ATS Match</span>
-                <span className="kpi-score">{avgATS}%</span>
-                <span className="kpi-status" style={{ color: `var(--${getProgressColorClass(avgATS)})`, fontWeight: '600' }}>
+                <div className="flex align-center justify-between">
+                  <span className="kpi-title">Average ATS Match</span>
+                  <span className="tooltip-icon">ℹ️</span>
+                </div>
+                <span className="kpi-score" style={{ color: avgATS >= 80 ? 'var(--success)' : avgATS >= 65 ? 'var(--warning)' : 'var(--danger)' }}>
+                  {avgATS}%
+                </span>
+                <span className="kpi-status" style={{ color: avgATS >= 80 ? 'var(--success)' : avgATS >= 65 ? 'var(--warning)' : 'var(--danger)', fontWeight: '700' }}>
                   {getStatusLabel(avgATS)}
                 </span>
-                <div className="progress-bar-track">
-                  <div className={`progress-bar-fill ${getProgressColorClass(avgATS)}`} style={{ width: `${avgATS}%` }}></div>
+                <div className="progress-bar-track" style={{ backgroundColor: 'rgba(148, 163, 184, 0.1)', height: '5px', borderRadius: '999px', overflow: 'hidden' }}>
+                  <div className="progress-bar-fill" style={{ width: `${avgATS}%`, backgroundColor: avgATS >= 80 ? 'var(--success)' : avgATS >= 65 ? 'var(--warning)' : 'var(--danger)' }}></div>
                 </div>
               </div>
 
               {/* Highest Score */}
               <div className="kpi-card">
-                <span className="kpi-title">Highest ATS Match</span>
-                <span className="kpi-score">{highestATS}%</span>
-                <span className="kpi-status" style={{ color: `var(--${getProgressColorClass(highestATS)})`, fontWeight: '600' }}>
-                  Top Match
+                <div className="flex align-center justify-between">
+                  <span className="kpi-title">Highest ATS Match</span>
+                  <span className="tooltip-icon">ℹ️</span>
+                </div>
+                <span className="kpi-score" style={{ color: highestATS >= 80 ? 'var(--success)' : highestATS >= 65 ? 'var(--warning)' : 'var(--danger)' }}>
+                  {highestATS}%
                 </span>
-                <div className="progress-bar-track">
-                  <div className={`progress-bar-fill ${getProgressColorClass(highestATS)}`} style={{ width: `${highestATS}%` }}></div>
+                <span className="kpi-status" style={{ color: highestATS >= 80 ? 'var(--success)' : highestATS >= 65 ? 'var(--warning)' : 'var(--danger)', fontWeight: '700' }}>
+                  Top Candidate
+                </span>
+                <div className="progress-bar-track" style={{ backgroundColor: 'rgba(148, 163, 184, 0.1)', height: '5px', borderRadius: '999px', overflow: 'hidden' }}>
+                  <div className="progress-bar-fill" style={{ width: `${highestATS}%`, backgroundColor: highestATS >= 80 ? 'var(--success)' : highestATS >= 65 ? 'var(--warning)' : 'var(--danger)' }}></div>
                 </div>
               </div>
 
               {/* Lowest Score */}
               <div className="kpi-card">
-                <span className="kpi-title">Lowest ATS Match</span>
-                <span className="kpi-score">{lowestATS}%</span>
-                <span className="kpi-status" style={{ color: `var(--${getProgressColorClass(lowestATS)})`, fontWeight: '600' }}>
+                <div className="flex align-center justify-between">
+                  <span className="kpi-title">Lowest ATS Match</span>
+                  <span className="tooltip-icon">ℹ️</span>
+                </div>
+                <span className="kpi-score" style={{ color: lowestATS >= 80 ? 'var(--success)' : lowestATS >= 65 ? 'var(--warning)' : 'var(--danger)' }}>
+                  {lowestATS}%
+                </span>
+                <span className="kpi-status" style={{ color: lowestATS >= 80 ? 'var(--success)' : lowestATS >= 65 ? 'var(--warning)' : 'var(--danger)', fontWeight: '700' }}>
                   Floor Score
                 </span>
-                <div className="progress-bar-track">
-                  <div className={`progress-bar-fill ${getProgressColorClass(lowestATS)}`} style={{ width: `${lowestATS}%` }}></div>
+                <div className="progress-bar-track" style={{ backgroundColor: 'rgba(148, 163, 184, 0.1)', height: '5px', borderRadius: '999px', overflow: 'hidden' }}>
+                  <div className="progress-bar-fill" style={{ width: `${lowestATS}%`, backgroundColor: lowestATS >= 80 ? 'var(--success)' : lowestATS >= 65 ? 'var(--warning)' : 'var(--danger)' }}></div>
                 </div>
               </div>
             </div>
@@ -639,13 +658,12 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
 
           {/* Section 4: Filters Toolbar */}
           {results.length > 0 && (
-            <div className="card">
+            <div className="card text-left">
               <h3 className="card-title">Filter Candidates</h3>
               <div className="card-divider"></div>
               <div className="flex align-center gap-6 flex-wrap" style={{ fontSize: '13px' }}>
-                {/* Score slider */}
                 <div className="flex align-center gap-3">
-                  <span className="text-secondary" style={{ fontWeight: '500' }}>Min Score:</span>
+                  <span className="text-secondary" style={{ fontWeight: '700' }}>Min Score:</span>
                   <input 
                     type="range" 
                     min="0" 
@@ -654,12 +672,11 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
                     onChange={(e) => setMinScore(Number(e.target.value))} 
                     style={{ cursor: 'pointer' }}
                   />
-                  <span className="font-mono" style={{ fontWeight: '600', width: '30px' }}>{minScore}%</span>
+                  <span className="font-mono" style={{ fontWeight: '700', width: '30px' }}>{minScore}%</span>
                 </div>
 
-                {/* Skill input */}
                 <div className="flex align-center gap-3 flex-1" style={{ minWidth: '200px' }}>
-                  <span className="text-secondary" style={{ fontWeight: '500' }}>Required Skill:</span>
+                  <span className="text-secondary" style={{ fontWeight: '700' }}>Required Skill:</span>
                   <input 
                     type="text" 
                     className="input-text" 
@@ -677,19 +694,24 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
           {results.length > 0 && (
             <div className="flex-col gap-4">
               <div className="flex justify-between align-center">
-                <h3 className="card-title" style={{ border: 'none', padding: '0' }}>Ranked Candidate Match List</h3>
+                <h3 className="card-title" style={{ border: 'none', padding: '0' }}>
+                  Ranked Candidate Match List
+                  <span className="font-sans text-secondary" style={{ fontSize: '13px', fontWeight: '500', marginLeft: '8px' }}>
+                    (Showing {filteredResults.length} of {results.length})
+                  </span>
+                </h3>
                 
                 {/* Export Buttons */}
                 <div className="flex gap-2">
-                  <button onClick={exportCSV} className="button-secondary flex align-center gap-2" style={{ padding: '6px 12px', fontSize: '12px', borderRadius: '8px' }}>
+                  <button onClick={exportCSV} className="button-secondary flex align-center gap-2" style={{ padding: '8px 14px', fontSize: '13px', borderRadius: '8px', fontWeight: '600' }}>
                     <DownloadIcon size={12} />
                     <span>CSV</span>
                   </button>
-                  <button onClick={exportJSON} className="button-secondary flex align-center gap-2" style={{ padding: '6px 12px', fontSize: '12px', borderRadius: '8px' }}>
+                  <button onClick={exportJSON} className="button-secondary flex align-center gap-2" style={{ padding: '8px 14px', fontSize: '13px', borderRadius: '8px', fontWeight: '600' }}>
                     <DownloadIcon size={12} />
                     <span>JSON</span>
                   </button>
-                  <button onClick={exportPDF} className="button-secondary flex align-center gap-2" style={{ padding: '6px 12px', fontSize: '12px', borderRadius: '8px' }}>
+                  <button onClick={exportPDF} className="button-secondary flex align-center gap-2" style={{ padding: '8px 14px', fontSize: '13px', borderRadius: '8px', fontWeight: '600' }}>
                     <DownloadIcon size={12} />
                     <span>PDF</span>
                   </button>
@@ -737,33 +759,35 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
                           <td style={{ fontWeight: '700', color: rank <= 3 ? 'var(--primary)' : 'var(--text-secondary)' }}>
                             #{rank}
                           </td>
-                          <td style={{ fontWeight: '600' }}>{res.analysis?.candidateName || 'N/A'}</td>
+                          <td style={{ fontWeight: '700' }}>{res.analysis?.candidateName || 'N/A'}</td>
                           <td className="font-mono text-secondary" style={{ fontSize: '13px' }}>
+                            <FileTextIcon size={14} style={{ color: '#EF4444', marginRight: '4px' }} />
                             {res.filename} <span style={{ opacity: 0.6 }}>({extension})</span>
                           </td>
                           <td style={{ textAlign: 'center' }}>
                             <span 
                               className="tag"
                               style={{ 
-                                backgroundColor: score >= 80 ? 'rgba(16, 185, 129, 0.1)' : score >= 65 ? 'rgba(245, 158, 11, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                                color: score >= 80 ? 'var(--success)' : score >= 65 ? 'var(--warning)' : 'var(--danger)'
+                                backgroundColor: score >= 80 ? 'var(--success-subtle)' : score >= 65 ? 'var(--warning-subtle)' : 'var(--danger-subtle)',
+                                color: score >= 80 ? 'var(--success)' : score >= 65 ? 'var(--warning)' : 'var(--danger)',
+                                fontWeight: '700'
                               }}
                             >
                               {res.analysis?.atsScore !== null && res.analysis?.atsScore !== undefined ? `${res.analysis.atsScore}%` : 'N/A'}
                             </span>
                           </td>
-                          <td style={{ textAlign: 'center', fontWeight: '600' }}>
+                          <td style={{ textAlign: 'center', fontWeight: '700' }}>
                             {res.analysis?.qualityScore}%
                           </td>
                           <td>
                             <div className="flex gap-1 flex-wrap">
                               {res.analysis?.skills?.matched?.slice(0, 3).map((s, i) => (
-                                <span key={i} className="tag tag-matched" style={{ padding: '2px 8px', fontSize: '11px' }}>{s}</span>
+                                <span key={i} className="tag tag-matched" style={{ backgroundColor: 'var(--success-subtle)', color: 'var(--success)', fontWeight: '600', padding: '2px 8px', fontSize: '11px' }}>{s}</span>
                               )) || <span className="text-secondary font-sans" style={{ fontSize: '12px' }}>None</span>}
                             </div>
                           </td>
                           <td>
-                            <button onClick={() => toggleRowExpand(index)} className="button-secondary" style={{ padding: '6px 12px', fontSize: '12px', borderRadius: '8px' }}>
+                            <button onClick={() => toggleRowExpand(index)} className="button-secondary" style={{ padding: '6px 12px', fontSize: '12px', borderRadius: '8px', fontWeight: '600' }}>
                               {isExpanded ? 'Hide' : 'Report'}
                             </button>
                           </td>
@@ -776,52 +800,50 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
 
               {/* Accordion expand detail panel */}
               {expandedIndex !== null && getFilteredAndSortedResults()[expandedIndex] && (
-                <div className="card fade-in" style={{ borderColor: 'var(--primary)', marginTop: '8px' }}>
+                <div className="card fade-in text-left" style={{ borderColor: 'var(--primary)', marginTop: '8px' }}>
                   <div className="flex justify-between align-center">
                     <h4 className="font-primary" style={{ fontSize: '15px', fontWeight: '700' }}>
-                      Detailed Report for: <strong>{getFilteredAndSortedResults()[expandedIndex].analysis.candidateName}</strong>
+                      Detailed Report for: <strong>{getFilteredAndSortedResults()[expandedIndex].analysis?.candidateName}</strong>
                     </h4>
                     <button onClick={() => setExpandedIndex(null)} className="remove-btn">✕</button>
                   </div>
                   <div className="card-divider"></div>
                   
                   <div className="grid grid-cols-2 gap-8" style={{ fontSize: '13px' }}>
-                    {/* Score detail and summary text */}
                     <div className="flex-col gap-3">
                       <div className="flex justify-around bg-primary-light" style={{ backgroundColor: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '12px' }}>
                         <div className="flex-col align-center">
                           <span style={{ fontSize: '18px', fontWeight: '700', color: 'var(--primary)' }}>
-                            {getFilteredAndSortedResults()[expandedIndex].analysis.atsScore}%
+                            {getFilteredAndSortedResults()[expandedIndex].analysis?.atsScore}%
                           </span>
-                          <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>ATS Score</span>
+                          <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '600' }}>ATS Score</span>
                         </div>
                         <div className="flex-col align-center">
                           <span style={{ fontSize: '18px', fontWeight: '700', color: 'var(--text-primary)' }}>
-                            {getFilteredAndSortedResults()[expandedIndex].analysis.qualityScore}%
+                            {getFilteredAndSortedResults()[expandedIndex].analysis?.qualityScore}%
                           </span>
-                          <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Quality Score</span>
+                          <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '600' }}>Quality Score</span>
                         </div>
                       </div>
-                      <p className="text-secondary" style={{ lineHeight: '1.5' }}>
-                        {getFilteredAndSortedResults()[expandedIndex].analysis.feedback?.summary}
+                      <p className="text-secondary" style={{ lineHeight: '1.5', fontSize: '13px' }}>
+                        {getFilteredAndSortedResults()[expandedIndex].analysis?.feedback?.summary}
                       </p>
                     </div>
 
-                    {/* Strengths & Improvements */}
                     <div className="flex-col gap-3">
                       <div className="flex-col gap-1">
-                        <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>Strengths</span>
+                        <span style={{ fontWeight: '700', color: 'var(--text-primary)' }}>Strengths</span>
                         <ul style={{ listStyle: 'none', paddingLeft: '0', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
-                          {getFilteredAndSortedResults()[expandedIndex].analysis.feedback?.strengths?.slice(0, 3).map((s, i) => (
-                            <li key={i}>• {s}</li>
+                          {getFilteredAndSortedResults()[expandedIndex].analysis?.feedback?.strengths?.slice(0, 3).map((s, i) => (
+                            <li key={i}>✓ {s}</li>
                           )) || <li>None</li>}
                         </ul>
                       </div>
                       <div className="flex-col gap-1" style={{ marginTop: '8px' }}>
-                        <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>Areas to Improve</span>
+                        <span style={{ fontWeight: '700', color: 'var(--text-primary)' }}>Areas to Improve</span>
                         <ul style={{ listStyle: 'none', paddingLeft: '0', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
-                          {getFilteredAndSortedResults()[expandedIndex].analysis.feedback?.improvements?.slice(0, 3).map((s, i) => (
-                            <li key={i}>• {s}</li>
+                          {getFilteredAndSortedResults()[expandedIndex].analysis?.feedback?.improvements?.slice(0, 3).map((s, i) => (
+                            <li key={i}>⚠ {s}</li>
                           )) || <li>None</li>}
                         </ul>
                       </div>
@@ -837,6 +859,28 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
       <style jsx>{`
         .workspace {
           width: 100%;
+        }
+
+        .step-num {
+          background-color: var(--primary);
+          color: #FFFFFF;
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 13px;
+          font-weight: 700;
+          margin-right: 8px;
+        }
+
+        .card-subtitle-desc {
+          font-family: var(--font-secondary);
+          font-size: 13px;
+          color: var(--text-secondary);
+          margin-top: -8px;
+          text-align: left;
         }
 
         .dropzone-area {

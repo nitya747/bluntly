@@ -10,7 +10,8 @@ import {
   SearchIcon, 
   AlertIcon, 
   CheckIcon, 
-  SettingsIcon 
+  SettingsIcon,
+  BotIcon
 } from './Icons';
 
 export default function IndividualView({ 
@@ -569,66 +570,77 @@ export default function IndividualView({
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
 
-          {/* Section 5: AI Feedback */}
-          <div className="card">
-            <h3 className="card-title">AI Feedback</h3>
-            <div className="card-divider"></div>
-            
-            <div className="flex-col gap-4">
-              {/* Feedback Navigation Tabs */}
-              <div className="feedback-sub-tabs flex gap-2">
-                {[
-                  { id: 'summary', label: 'Summary' },
-                  { id: 'strengths', label: 'Strengths' },
-                  { id: 'improvements', label: 'Improvements' },
-                  { id: 'advice', label: 'Career Advice' }
-                ].map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveFeedbackTab(tab.id)}
-                    className={`feedback-tab-btn font-sans ${activeFeedbackTab === tab.id ? 'active' : ''}`}
+              {/* Section 5: AI Feedback & Recommendations */}
+              <div className="card flex-col gap-3">
+                <div className="flex align-center gap-2 justify-between">
+                  <h3 className="card-title flex align-center gap-2" style={{ margin: 0 }}>
+                    <BotIcon size={16} style={{ color: 'var(--primary)' }} />
+                    AI Feedback
+                  </h3>
+                </div>
+                <div className="feedback-sub-tabs flex gap-2">
+                  <button 
+                    onClick={() => setActiveFeedbackTab('summary')}
+                    className={`feedback-tab-btn ${activeFeedbackTab === 'summary' ? 'active' : ''}`}
                   >
-                    {tab.label}
+                    Summary
                   </button>
-                ))}
-              </div>
-
-              {/* Feedback Tab Content */}
-              <div className="feedback-content" style={{ minHeight: '100px' }}>
-                {activeFeedbackTab === 'summary' && (
-                  <p className="feedback-paragraph">{result.feedback?.summary}</p>
-                )}
-
-                {activeFeedbackTab === 'strengths' && (
-                  <ul className="feedback-list flex-col gap-2">
-                    {result.feedback?.strengths?.map((str, idx) => (
-                      <li key={idx} className="flex align-center gap-2">
-                        <CheckIcon size={14} style={{ color: 'var(--success)', flexShrink: 0 }} />
-                        <span>{str}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-
-                {activeFeedbackTab === 'improvements' && (
-                  <ul className="feedback-list flex-col gap-2">
-                    {result.feedback?.improvements?.map((imp, idx) => (
-                      <li key={idx} className="flex align-center gap-2">
-                        <AlertIcon size={14} style={{ color: 'var(--warning)', flexShrink: 0 }} />
-                        <span>{imp}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-
-                {activeFeedbackTab === 'advice' && (
-                  <p className="feedback-paragraph" style={{ fontStyle: 'italic' }}>
-                    {result.feedback?.careerAdvice || 'No career advice generated for this scan.'}
-                  </p>
-                )}
+                  <button 
+                    onClick={() => setActiveFeedbackTab('strengths')}
+                    className={`feedback-tab-btn ${activeFeedbackTab === 'strengths' ? 'active' : ''}`}
+                  >
+                    Strengths
+                  </button>
+                  <button 
+                    onClick={() => setActiveFeedbackTab('improvements')}
+                    className={`feedback-tab-btn ${activeFeedbackTab === 'improvements' ? 'active' : ''}`}
+                  >
+                    Improvements
+                  </button>
+                  <button 
+                    onClick={() => setActiveFeedbackTab('advice')}
+                    className={`feedback-tab-btn ${activeFeedbackTab === 'advice' ? 'active' : ''}`}
+                  >
+                    Advice
+                  </button>
+                </div>
+                <div className="feedback-content" style={{ minHeight: '140px' }}>
+                  {activeFeedbackTab === 'summary' && (
+                    <div className="flex-col gap-2 fade-in">
+                      <p className="feedback-paragraph" style={{ color: 'var(--text-primary)', fontSize: '13px', lineHeight: '1.6', margin: 0 }}>
+                        {result.feedback?.summary}
+                      </p>
+                    </div>
+                  )}
+                  {activeFeedbackTab === 'strengths' && (
+                    <ul className="feedback-list flex-col gap-2 fade-in" style={{ padding: 0, margin: 0, fontSize: '13px' }}>
+                      {result.feedback?.strengths?.map((str, idx) => (
+                        <li key={idx} className="flex align-start gap-2" style={{ padding: '2px 0' }}>
+                          <CheckIcon size={14} style={{ color: 'var(--success)', flexShrink: 0, marginTop: '2px' }} />
+                          <span style={{ color: 'var(--text-primary)' }}>{str}</span>
+                        </li>
+                      )) || <li style={{ color: 'var(--text-secondary)', fontStyle: 'italic' }}>No strengths identified.</li>}
+                    </ul>
+                  )}
+                  {activeFeedbackTab === 'improvements' && (
+                    <ul className="feedback-list flex-col gap-2 fade-in" style={{ padding: 0, margin: 0, fontSize: '13px' }}>
+                      {result.feedback?.improvements?.map((imp, idx) => (
+                        <li key={idx} className="flex align-start gap-2" style={{ padding: '2px 0' }}>
+                          <AlertIcon size={14} style={{ color: 'var(--warning)', flexShrink: 0, marginTop: '2px' }} />
+                          <span style={{ color: 'var(--text-primary)' }}>{imp}</span>
+                        </li>
+                      )) || <li style={{ color: 'var(--text-secondary)', fontStyle: 'italic' }}>No improvements identified.</li>}
+                    </ul>
+                  )}
+                  {activeFeedbackTab === 'advice' && (
+                    <div className="flex-col gap-2 fade-in">
+                      <p className="feedback-paragraph" style={{ fontStyle: 'italic', color: 'var(--text-primary)', fontSize: '13px', lineHeight: '1.6', margin: 0 }}>
+                        {result.feedback?.careerAdvice || 'No career advice generated for this scan.'}
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>

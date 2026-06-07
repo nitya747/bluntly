@@ -138,8 +138,8 @@ export default function RightPanel({ history = [], onSelectHistory, currentAnaly
           display: flex;
           flex-direction: column;
           gap: 1.5rem;
-          background-color: var(--bg-secondary);
-          border-left: 1px solid var(--border-color);
+          background-color: var(--bg);
+          border-left: 1px solid var(--border);
           padding: 2rem 1.5rem;
           height: 100vh;
           position: sticky;
@@ -149,7 +149,7 @@ export default function RightPanel({ history = [], onSelectHistory, currentAnaly
         }
 
         .section-header {
-          border-bottom: 1px solid var(--border-color);
+          border-bottom: 1px solid var(--border);
           padding-bottom: 0.75rem;
         }
 
@@ -160,14 +160,14 @@ export default function RightPanel({ history = [], onSelectHistory, currentAnaly
         }
 
         .analytics-card {
-          background: linear-gradient(135deg, var(--bg-card), var(--secondary-glow));
-          border: 1px solid var(--border-color);
-          box-shadow: var(--shadow-sm);
+          background: linear-gradient(135deg, var(--surface), rgba(20, 184, 166, 0.05));
+          border: 1px solid var(--border);
+          box-shadow: var(--shadow);
         }
 
         .analytics-card:hover {
           border-color: var(--primary);
-          box-shadow: var(--shadow-drop);
+          box-shadow: 0 4px 20px rgba(15, 118, 110, 0.08);
         }
 
         .stats-row {
@@ -201,12 +201,12 @@ export default function RightPanel({ history = [], onSelectHistory, currentAnaly
         .stat-divider {
           width: 1px;
           height: 36px;
-          background-color: var(--border-color);
+          background-color: var(--border);
         }
 
         .card-divider {
           height: 1px;
-          background-color: var(--border-color);
+          background-color: var(--border);
           margin: 0.25rem 0;
         }
 
@@ -225,7 +225,7 @@ export default function RightPanel({ history = [], onSelectHistory, currentAnaly
         .top-match-badge {
           font-size: 0.7rem;
           font-weight: 700;
-          color: var(--text-muted);
+          color: var(--text-secondary);
           text-transform: uppercase;
           letter-spacing: 0.05em;
         }
@@ -234,7 +234,7 @@ export default function RightPanel({ history = [], onSelectHistory, currentAnaly
           font-size: 0.95rem;
           font-weight: 800;
           color: var(--success);
-          background-color: var(--success-bg);
+          background-color: var(--success-subtle);
           padding: 0.15rem 0.5rem;
           border-radius: 6px;
         }
@@ -249,7 +249,7 @@ export default function RightPanel({ history = [], onSelectHistory, currentAnaly
           width: 36px;
           height: 36px;
           border-radius: 50%;
-          background: linear-gradient(135deg, var(--primary), var(--secondary));
+          background: linear-gradient(135deg, var(--primary), var(--primary-hover));
           color: #FFFFFF;
           font-weight: 700;
           font-size: 0.95rem;
@@ -257,7 +257,7 @@ export default function RightPanel({ history = [], onSelectHistory, currentAnaly
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
-          box-shadow: var(--btn-shadow);
+          box-shadow: var(--shadow);
         }
 
         .candidate-name {
@@ -271,7 +271,7 @@ export default function RightPanel({ history = [], onSelectHistory, currentAnaly
 
         .candidate-file {
           font-size: 0.7rem;
-          color: var(--text-muted);
+          color: var(--text-secondary);
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
@@ -302,7 +302,7 @@ export default function RightPanel({ history = [], onSelectHistory, currentAnaly
         }
 
         .toggle-icon {
-          color: var(--text-muted);
+          color: var(--text-secondary);
           transition: color 0.2s ease, transform 0.2s ease;
         }
 
@@ -317,7 +317,7 @@ export default function RightPanel({ history = [], onSelectHistory, currentAnaly
 
         .empty-text {
           font-size: 0.85rem;
-          color: var(--text-muted);
+          color: var(--text-secondary);
         }
 
         .history-list {
@@ -327,23 +327,23 @@ export default function RightPanel({ history = [], onSelectHistory, currentAnaly
         }
 
         .history-item {
-          background: var(--bg-card);
+          background: var(--surface);
           padding: 0.75rem 1rem;
           cursor: pointer;
           width: 100%;
-          border: 1px solid var(--border-color);
+          border: 1px solid var(--border);
           border-radius: 12px;
           transition: all 0.2s ease;
         }
 
         .history-item:hover {
           border-color: var(--primary);
-          background: var(--primary-light);
+          background: rgba(15, 118, 110, 0.05);
         }
 
         .history-item.active {
-          border-color: var(--secondary);
-          background: var(--secondary-glow);
+          border-color: var(--primary-hover);
+          background: rgba(20, 184, 166, 0.05);
         }
 
         .history-name {
@@ -354,7 +354,7 @@ export default function RightPanel({ history = [], onSelectHistory, currentAnaly
 
         .history-file {
           font-size: 0.65rem;
-          color: var(--text-muted);
+          color: var(--text-secondary);
           margin-top: 0.15rem;
         }
 
@@ -368,29 +368,29 @@ export default function RightPanel({ history = [], onSelectHistory, currentAnaly
         .history-score.low { color: var(--danger); }
 
         .tips-section {
-          background: linear-gradient(135deg, rgba(99, 102, 241, 0.04), rgba(168, 85, 247, 0.02));
-          border: 1px solid rgba(99, 102, 241, 0.15);
-          border-left: 4px solid #6366F1;
+          background: linear-gradient(135deg, rgba(20, 184, 166, 0.04), rgba(13, 148, 136, 0.02));
+          border: 1px solid rgba(20, 184, 166, 0.15);
+          border-left: 4px solid var(--primary);
           padding: 1rem 1.25rem;
           border-radius: 12px;
         }
 
         [data-theme="dark"] .tips-section {
-          background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(168, 85, 247, 0.04));
-          border: 1px solid rgba(99, 102, 241, 0.25);
-          border-left: 4px solid #818CF8;
+          background: linear-gradient(135deg, rgba(20, 184, 166, 0.1), rgba(13, 148, 136, 0.04));
+          border: 1px solid rgba(20, 184, 166, 0.25);
+          border-left: 4px solid var(--primary);
         }
 
         .tips-title {
           font-size: 0.85rem;
           font-weight: 700;
-          color: #6366F1;
+          color: var(--primary);
           display: flex;
           align-items: center;
         }
 
         [data-theme="dark"] .tips-title {
-          color: #A5B4FC;
+          color: var(--primary);
         }
 
         .tip-content {

@@ -12,7 +12,9 @@ import { SettingsIcon } from '../components/Icons';
 
 export default function Home() {
   const [activeView, setActiveView] = useState('individual');
-  const [theme, setTheme] = useState('dark'); // Default to dark for premium aesthetic
+  const [individualSection, setIndividualSection] = useState('input'); // 'input' or 'analysis'
+  const [batchSection, setBatchSection] = useState('input'); // 'input' or 'analysis'
+  const [theme, setTheme] = useState('light'); // Default to light for matching the mockup
   const [history, setHistory] = useState([]);
   const [currentAnalysis, setCurrentAnalysis] = useState(null);
   const [isMock, setIsMock] = useState(true);
@@ -50,7 +52,7 @@ export default function Home() {
   useEffect(() => {
     let themeTimer;
     // Load theme
-    const savedTheme = localStorage.getItem('theme') || 'dark';
+    const savedTheme = localStorage.getItem('theme') || 'light';
     themeTimer = setTimeout(() => {
       setTheme(savedTheme);
     }, 0);
@@ -73,9 +75,59 @@ export default function Home() {
         const res = await fetch('/api/history');
         const data = await res.json();
         if (data.success) {
-          setHistory(data.history);
-          if (data.history.length > 0) {
-            setCurrentAnalysis(data.history[0]);
+          let historyData = data.history;
+          if (historyData.length === 0) {
+            // Seed a default mock record matching the reference mockup
+            const defaultMock = {
+              id: 'mock-default-id',
+              filename: 'Google Step Internship.pdf',
+              timestamp: 'May 14, 2025 at 10:30 AM',
+              analysis: {
+                candidateName: 'Google Step Internship.pdf',
+                atsScore: 37,
+                qualityScore: 70,
+                jobDescription: 'Software Engineering Intern',
+                skills: {
+                  matched: ['React.js', 'JavaScript', 'HTML', 'CSS', 'Node.js', 'Git', 'GitHub', 'REST API'],
+                  missing: ['Next.js', 'TypeScript', 'Tailwind CSS', 'GraphQL', 'AWS', 'Docker', 'CI/CD', 'Jest']
+                },
+                sections: {
+                  experience: 30,
+                  education: 90,
+                  skills: 80,
+                  formatting: 100,
+                  impact: 55
+                },
+                feedback: {
+                  summary: 'The resume shows a decent alignment with the Software Engineering Intern role. The candidate has relevant skills and education, but the experience section lacks depth and measurable impact. Improving keyword usage and adding more quantifiable achievements will significantly boost the ATS score.',
+                  strengths: [
+                    "Good foundation of industry experience with a clear career progression.",
+                    "Clear section separation and structural layout."
+                  ],
+                  improvements: [
+                    "Quantify achievements: include metrics, scale, or percentage improvements in role descriptions.",
+                    "Tailor bullet points to explicitly match technologies requested in target job descriptions."
+                  ],
+                  wordingImprovements: [
+                    "Collaborated with cross-functional teams to design, develop, and deploy features.",
+                    "Utilized modern tools and frameworks to optimize workflow efficiency and code quality."
+                  ],
+                  careerAdvice: 'To progress to more senior positions, aim to lead projects or design architectures. Document those scale and design contributions clearly in your project listings.'
+                },
+                ruleViolations: ['No skills section'],
+                passedRules: ['Email Address', 'Phone Number', 'Resume Length (1-2 pages)', 'Section Headings'],
+                experienceMatch: null
+              }
+            };
+            historyData = [defaultMock];
+          }
+          setHistory(historyData);
+          if (historyData.length > 0) {
+            setCurrentAnalysis(historyData[0]);
+            // If the user is starting with the mock record, navigate directly to the analysis view
+            if (historyData[0].id === 'mock-default-id') {
+              setIndividualSection('analysis');
+            }
           }
         }
       } catch (err) {
@@ -126,6 +178,7 @@ export default function Home() {
   const handleSelectHistory = (record) => {
     setCurrentAnalysis(record);
     setActiveView('individual'); // Switch back to individual view to show candidate detail dashboard
+    setIndividualSection('analysis'); // Force Report section open
   };
 
   return (
@@ -134,6 +187,10 @@ export default function Home() {
       <Sidebar
         activeView={activeView}
         setActiveView={setActiveView}
+        individualSection={individualSection}
+        setIndividualSection={setIndividualSection}
+        batchSection={batchSection}
+        setBatchSection={setBatchSection}
         theme={theme}
         toggleTheme={toggleTheme}
         user={user}
@@ -146,6 +203,11 @@ export default function Home() {
       <main className="main-frame flex-col">
         <Header 
           activeView={activeView} 
+          setActiveView={setActiveView}
+          individualSection={individualSection}
+          setIndividualSection={setIndividualSection}
+          batchSection={batchSection}
+          setBatchSection={setBatchSection}
           isMock={isMock} 
         />
 
@@ -158,6 +220,8 @@ export default function Home() {
               credits={credits}
               setCredits={setCredits}
               history={history}
+              activeSection={individualSection}
+              setActiveSection={setIndividualSection}
             />
           )}
 
@@ -167,6 +231,8 @@ export default function Home() {
               credits={credits}
               setCredits={setCredits}
               history={history}
+              activeSection={batchSection}
+              setActiveSection={setBatchSection}
             />
           )}
 
@@ -207,6 +273,8 @@ export default function Home() {
           )}
         </div>
       </main>
+
+
 
       <style jsx>{`
         .settings-panel {

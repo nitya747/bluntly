@@ -130,15 +130,23 @@ export default function HistoryView({ history = [], onSelectHistory }) {
                       <span 
                         className="tag" 
                         style={{ 
-                          backgroundColor: score >= 80 ? 'rgba(16, 185, 129, 0.1)' : score >= 65 ? 'rgba(245, 158, 11, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                          color: score >= 80 ? 'var(--success)' : score >= 65 ? 'var(--warning)' : 'var(--danger)'
+                          backgroundColor: score >= 80 ? 'var(--success-subtle)' : score >= 65 ? 'var(--warning-subtle)' : 'var(--danger-subtle)',
+                          color: score >= 80 ? 'var(--success)' : score >= 65 ? 'var(--warning)' : 'var(--danger)',
+                          fontWeight: '700'
                         }}
                       >
                         {item.analysis?.atsScore !== null && item.analysis?.atsScore !== undefined ? `${item.analysis.atsScore}%` : 'N/A'}
                       </span>
                     </td>
                     <td style={{ textAlign: 'center' }}>
-                      <span className="font-mono" style={{ fontWeight: '600' }}>
+                      <span 
+                        className="tag" 
+                        style={{ 
+                          backgroundColor: item.analysis?.qualityScore >= 80 ? 'var(--success-subtle)' : item.analysis?.qualityScore >= 65 ? 'var(--warning-subtle)' : 'var(--danger-subtle)',
+                          color: item.analysis?.qualityScore >= 80 ? 'var(--success)' : item.analysis?.qualityScore >= 65 ? 'var(--warning)' : 'var(--danger)',
+                          fontWeight: '700'
+                        }}
+                      >
                         {item.analysis?.qualityScore !== undefined ? `${item.analysis.qualityScore}%` : 'N/A'}
                       </span>
                     </td>

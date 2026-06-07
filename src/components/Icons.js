@@ -53,8 +53,18 @@ export function SettingsIcon({ size = 18, ...props }) {
 }
 
 export function LogoIcon({ size = 20, ...props }) {
+  const { style, ...restProps } = props;
   return (
-    <svg width={size} height={size} {...baseSvgProps} {...props}>
+    <svg 
+      width={size} 
+      height={size} 
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      className="icon-svg"
+      style={{ display: 'inline-block', verticalAlign: 'middle', ...style }}
+      {...restProps}
+    >
       <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
     </svg>
   );
@@ -256,3 +266,48 @@ export function UploadIcon({ size = 18, ...props }) {
     </svg>
   );
 }
+
+export function ConfigureIcon({ size = 18, ...props }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+      <polyline points="14 2 14 8 20 8" />
+      <path d="M8 13h4" />
+      <path d="M8 17h6" />
+      <circle cx="14" cy="13" r="1" fill="currentColor" />
+      <circle cx="16" cy="17" r="1" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function AnalysisReportIcon({ size = 18, ...props }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+      <polyline points="14 2 14 8 20 8" />
+      <path d="M8 17v-4" />
+      <path d="M12 17v-6" />
+      <path d="M16 17v-3" />
+    </svg>
+  );
+}
+
+export function BatchAnalysisIcon({ size = 18, ...props }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M15 2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z" />
+      <path d="M19 6h1a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2v-1" />
+    </svg>
+  );
+}
+
+export function BatchRankingIcon({ size = 18, ...props }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <rect x="3" y="14" width="4" height="6" rx="1" />
+      <rect x="10" y="8" width="4" height="12" rx="1" />
+      <rect x="17" y="4" width="4" height="16" rx="1" />
+    </svg>
+  );
+}
+

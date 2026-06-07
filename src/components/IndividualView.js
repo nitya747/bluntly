@@ -342,7 +342,12 @@ export default function IndividualView({
           impact: "Critical",
           impactColor: "var(--danger)",
           impactBg: "var(--danger-subtle)",
-          icon: "📧"
+          icon: (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect width="20" height="16" x="2" y="4" rx="2" />
+              <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+            </svg>
+          )
         });
       } else if (vLower.includes('phone')) {
         fixes.push({
@@ -351,7 +356,11 @@ export default function IndividualView({
           impact: "Critical",
           impactColor: "var(--danger)",
           impactBg: "var(--danger-subtle)",
-          icon: "📞"
+          icon: (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+            </svg>
+          )
         });
       } else if (vLower.includes('experience')) {
         fixes.push({
@@ -360,7 +369,12 @@ export default function IndividualView({
           impact: "Critical",
           impactColor: "var(--danger)",
           impactBg: "var(--danger-subtle)",
-          icon: "💼"
+          icon: (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect width="20" height="14" x="2" y="7" rx="2" ry="2" />
+              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+            </svg>
+          )
         });
       } else if (vLower.includes('skills')) {
         fixes.push({
@@ -369,7 +383,11 @@ export default function IndividualView({
           impact: "Critical",
           impactColor: "var(--danger)",
           impactBg: "var(--danger-subtle)",
-          icon: "🛠️"
+          icon: (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+            </svg>
+          )
         });
       } else if (vLower.includes('short')) {
         fixes.push({
@@ -378,7 +396,14 @@ export default function IndividualView({
           impact: "Medium",
           impactColor: "var(--warning)",
           impactBg: "var(--warning-subtle)",
-          icon: "📝"
+          icon: (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
+            </svg>
+          )
         });
       }
     });
@@ -388,19 +413,35 @@ export default function IndividualView({
       let impact = "Medium";
       let impactColor = "var(--warning)";
       let impactBg = "var(--warning-subtle)";
-      let icon = "⚡";
+      let icon = (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+        </svg>
+      );
       
       const impLower = imp.toLowerCase();
       if (impLower.includes('quantify') || impLower.includes('metric') || impLower.includes('achievement') || impLower.includes('percent') || impLower.includes('number')) {
         impact = "High";
         impactColor = "var(--primary)";
         impactBg = "var(--primary-subtle)";
-        icon = "📊";
+        icon = (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10" />
+            <line x1="12" y1="20" x2="12" y2="4" />
+            <line x1="6" y1="20" x2="6" y2="14" />
+          </svg>
+        );
       } else if (impLower.includes('tailor') || impLower.includes('keyword') || impLower.includes('match')) {
         impact = "High";
         impactColor = "var(--primary)";
         impactBg = "var(--primary-subtle)";
-        icon = "🎯";
+        icon = (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <circle cx="12" cy="12" r="6" />
+            <circle cx="12" cy="12" r="2" />
+          </svg>
+        );
       }
       
       const cleanTitle = imp.includes(':') ? imp.split(':')[0] : "Resume Improvement";
@@ -427,7 +468,13 @@ export default function IndividualView({
         impact: "High",
         impactColor: "var(--primary)",
         impactBg: "var(--primary-subtle)",
-        icon: "📊"
+        icon: (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10" />
+            <line x1="12" y1="20" x2="12" y2="4" />
+            <line x1="6" y1="20" x2="6" y2="14" />
+          </svg>
+        )
       },
       {
         title: "Target Missing Skills",
@@ -435,7 +482,13 @@ export default function IndividualView({
         impact: "High",
         impactColor: "var(--primary)",
         impactBg: "var(--primary-subtle)",
-        icon: "🎯"
+        icon: (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <circle cx="12" cy="12" r="6" />
+            <circle cx="12" cy="12" r="2" />
+          </svg>
+        )
       },
       {
         title: "Structure Formatting",
@@ -443,7 +496,16 @@ export default function IndividualView({
         impact: "Medium",
         impactColor: "var(--warning)",
         impactBg: "var(--warning-subtle)",
-        icon: "📐"
+        icon: (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a6 6 0 0 1 8.49 8.49Z" />
+            <path d="m9.05 6.22 4.24 4.24" />
+            <path d="m11.88 9.05 1.41 1.41" />
+            <path d="m6.22 9.05 4.24 4.24" />
+            <path d="m14.71 11.88 1.41 1.41" />
+            <path d="m17.54 14.71 1.41 1.41" />
+          </svg>
+        )
       }
     ];
 
@@ -681,7 +743,7 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
           {/* Credit warnings */}
           {file && !file.isSavedRecord && credits < 1 && (
             <div className="credit-warning-banner card flex align-center gap-3" style={{ alignSelf: 'center', maxWidth: '500px', width: '100%', borderColor: 'var(--danger)', backgroundColor: 'var(--danger-subtle)', color: 'var(--danger)' }}>
-              <span className="error-icon flex align-center">⚠️</span>
+              <span className="error-icon flex align-center"><AlertIcon size={16} /></span>
               <span className="error-message font-sans" style={{ fontSize: '13px' }}>
                 Insufficient credits. This scan requires <strong>1 credit</strong>, but you have <strong>0 credits</strong> remaining. Please buy credits in the sidebar.
               </span>
@@ -929,395 +991,225 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
               return 'fix-medium';
             };
             return (
-              <div className="overview-layout-grid fade-in">
-                {/* Left Column: Metrics & Analysis */}
-                <div className="flex-col gap-6 w-full">
-                  {/* Score Hero Section */}
-                  <div className="score-hero-card">
-                    <div className="score-gauge-wrapper">
-                      <svg className="score-gauge-svg" width="120" height="120" viewBox="0 0 120 120">
-                        <circle className="score-gauge-bg" cx="60" cy="60" r="50" />
-                        <circle 
-                          className={`score-gauge-fill ${scoreTierClass}`}
-                          cx="60" 
-                          cy="60" 
-                          r="50" 
-                          strokeDasharray="314"
-                          strokeDashoffset={314 - (displayAtsScore / 100) * 314}
-                        />
-                      </svg>
-                      <div className="score-gauge-text">
-                        <span className={`score-gauge-number ${scoreTierClass}`}>{displayAtsScore}</span>
-                        <span className="score-gauge-label">Match</span>
-                      </div>
-                    </div>
-                    
-                    <div className="score-hero-info">
-                      <div className="score-hero-meta">
-                        <h3 className="score-hero-title">Resume Match Score</h3>
-                        <span className="percentile-badge">Top {displayRankPercent}%</span>
-                      </div>
-                      <p className="assessment-text">
-                        {feedbackSummary.split(/[.!?]/)[0] + '.'}
-                      </p>
-                      <button 
-                        onClick={() => {
-                          document.getElementById('priority-fixes')?.scrollIntoView({ behavior: 'smooth' });
-                        }}
-                        className="button-primary"
-                        style={{ width: 'fit-content', padding: '8px 16px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}
-                      >
-                        <span>Improve Resume</span>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="6 9 12 15 18 9" />
-                        </svg>
-                      </button>
+              <div className="flex-col gap-6 w-full fade-in">
+                {/* Score Hero Section */}
+                <div className="score-hero-card">
+                  <div className="score-gauge-wrapper">
+                    <svg className="score-gauge-svg" width="120" height="120" viewBox="0 0 120 120">
+                      <circle className="score-gauge-bg" cx="60" cy="60" r="50" />
+                      <circle 
+                        className={`score-gauge-fill ${scoreTierClass}`}
+                        cx="60" 
+                        cy="60" 
+                        r="50" 
+                        strokeDasharray="314"
+                        strokeDashoffset={314 - (displayAtsScore / 100) * 314}
+                      />
+                    </svg>
+                    <div className="score-gauge-text">
+                      <span className={`score-gauge-number ${scoreTierClass}`}>{displayAtsScore}</span>
+                      <span className="score-gauge-label">Match</span>
                     </div>
                   </div>
-
-                  {/* Diagnosis Grid (Strengths, Needs Attention, ATS Risks) */}
-                  <div className="diagnosis-grid">
-                    {/* Strengths */}
-                    <div className="diagnosis-col strengths">
-                      <h4 className="diagnosis-col-title">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: '4px' }}>
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                        <span>Strengths</span>
-                      </h4>
-                      <ul className="diagnosis-list">
-                        {uniqueStrengths.length > 0 ? (
-                          uniqueStrengths.map((str, idx) => (
-                            <li key={idx} className="diagnosis-item">
-                              <span className="diagnosis-item-icon" style={{ color: 'var(--success)' }}>✓</span>
-                              <span>{str}</span>
-                            </li>
-                          ))
-                        ) : (
-                          <li className="diagnosis-item" style={{ color: 'var(--text-secondary)', fontStyle: 'italic' }}>
-                            No qualitative strengths identified.
-                          </li>
-                        )}
-                      </ul>
+                  
+                  <div className="score-hero-info">
+                    <div className="score-hero-meta">
+                      <h3 className="score-hero-title">Resume Match Score</h3>
+                      <span className="percentile-badge">Top {displayRankPercent}%</span>
                     </div>
-
-                    {/* Needs Attention */}
-                    <div className="diagnosis-col attention">
-                      <h4 className="diagnosis-col-title">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: '4px' }}>
-                          <circle cx="12" cy="12" r="10" />
-                          <line x1="12" y1="16" x2="12" y2="12" />
-                          <line x1="12" y1="8" x2="12.01" y2="8" />
-                        </svg>
-                        <span>Needs Attention</span>
-                      </h4>
-                      <ul className="diagnosis-list">
-                        {uniqueNeedsAttention.length > 0 ? (
-                          uniqueNeedsAttention.map((item, idx) => (
-                            <li key={idx} className="diagnosis-item">
-                              <span className="diagnosis-item-icon" style={{ color: 'var(--warning)' }}>⚡</span>
-                              <span>{item}</span>
-                            </li>
-                          ))
-                        ) : (
-                          <li className="diagnosis-item" style={{ color: 'var(--success)', fontStyle: 'italic' }}>
-                            ✓ All secondary items look solid!
-                          </li>
-                        )}
-                      </ul>
-                    </div>
-
-                    {/* ATS Risks */}
-                    <div className="diagnosis-col risks">
-                      <h4 className="diagnosis-col-title">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: '4px' }}>
-                          <line x1="18" y1="6" x2="6" y2="18" />
-                          <line x1="6" y1="6" x2="18" y2="18" />
-                        </svg>
-                        <span>ATS Risks</span>
-                      </h4>
-                      <ul className="diagnosis-list">
-                        {uniqueAtsRisks.length > 0 ? (
-                          uniqueAtsRisks.map((risk, idx) => (
-                            <li key={idx} className="diagnosis-item">
-                              <span className="diagnosis-item-icon" style={{ color: 'var(--danger)' }}>⚠️</span>
-                              <span>{risk}</span>
-                            </li>
-                          ))
-                        ) : (
-                          <li className="diagnosis-item" style={{ color: 'var(--success)', fontStyle: 'italic', fontWeight: '600' }}>
-                            ✓ No severe ATS risks detected!
-                          </li>
-                        )}
-                      </ul>
-                    </div>
-                  </div>
-
-                  {/* Keyword Coverage Block */}
-                  <div id="keyword-coverage" className="keyword-coverage-card">
-                    <div className="flex-col gap-1 text-left">
-                      <h3 className="font-primary" style={{ fontSize: '14.5px', fontWeight: '700', margin: 0, color: 'var(--text-primary)' }}>Keyword Coverage</h3>
-                      <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Analysis of match criteria keywords present in job description vs. resume</span>
-                    </div>
-                    
-                    <div className="keyword-coverage-split">
-                      {/* Matched Skills */}
-                      <div className="keyword-list-container">
-                        <div className="keyword-list-header matched">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: '4px' }}>
-                            <polyline points="20 6 9 17 4 12" />
-                          </svg>
-                          <span>Matched Skills ({displayMatchedCount})</span>
-                        </div>
-                        <div className="keyword-pills">
-                          {matchedSkills.slice(0, 10).map((skill, idx) => (
-                            <span key={idx} className="keyword-pill matched">
-                              <span>{skill}</span>
-                              <span style={{ fontSize: '10px' }}>✓</span>
-                            </span>
-                          ))}
-                          {matchedSkills.length > 10 && (
-                            <span className="tag tag-neutral" style={{ fontSize: '11px', fontWeight: '600', padding: '3px 8px', borderRadius: '6px' }}>
-                              +{matchedSkills.length - 10} more
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Missing Skills */}
-                      <div className="keyword-list-container">
-                        <div className="keyword-list-header missing">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: '4px' }}>
-                            <line x1="18" y1="6" x2="6" y2="18" />
-                            <line x1="6" y1="6" x2="18" y2="18" />
-                          </svg>
-                          <span>Missing Skills ({displayMissingCount})</span>
-                        </div>
-                        <div className="keyword-pills">
-                          {missingSkills.slice(0, 10).map((skill, idx) => (
-                            <span key={idx} className="keyword-pill missing">
-                              <span>{skill}</span>
-                              <span style={{ fontSize: '10px', fontWeight: '700' }}>+</span>
-                            </span>
-                          ))}
-                          {missingSkills.length > 10 && (
-                            <span className="tag tag-neutral" style={{ fontSize: '11px', fontWeight: '600', padding: '3px 8px', borderRadius: '6px' }}>
-                              +{missingSkills.length - 10} more
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Collapsible Detailed Breakdown Section */}
-                  <div id="detailed-breakdown" className="collapsible-container">
+                    <p className="assessment-text">
+                      {feedbackSummary.split(/[.!?]/)[0] + '.'}
+                    </p>
                     <button 
-                      onClick={() => setDetailedExpanded(!detailedExpanded)}
-                      className="collapsible-trigger"
+                      onClick={() => {
+                        document.getElementById('priority-fixes')?.scrollIntoView({ behavior: 'smooth' });
+                      }}
+                      className="button-primary"
+                      style={{ width: 'fit-content', padding: '8px 16px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}
                     >
-                      <span className="collapsible-trigger-title">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" style={{ marginRight: '4px' }}>
-                          <rect x="3" y="3" width="18" height="18" rx="2" />
-                          <line x1="9" y1="3" x2="9" y2="21" />
-                        </svg>
-                        <span>Detailed Breakdown Analysis</span>
-                      </span>
-                      <div className="flex align-center gap-2">
-                        <span className="collapsible-trigger-subtitle">
-                          {detailedExpanded ? "Hide detailed metrics" : "View experience, formatting, and section scores"}
-                        </span>
-                        <div className={`collapsible-chevron ${detailedExpanded ? 'open' : ''}`} style={{ display: 'inline-flex', alignItems: 'center' }}>
-                          <ChevronDownIcon size={16} />
-                        </div>
-                      </div>
+                      <span>Improve Resume</span>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="6 9 12 15 18 9" />
+                      </svg>
                     </button>
-                    
-                    {detailedExpanded && (
-                      <div className="collapsible-content">
-                        <div className="grid grid-cols-2 gap-6">
-                          {/* Left: Progress Bars */}
-                          <div className="flex-col gap-4 text-left">
-                            <h4 style={{ margin: 0, fontSize: '13.5px', fontWeight: '700', color: 'var(--text-primary)' }}>Section Scores</h4>
-                            <div className="flex-col gap-3">
-                              {['experience', 'education', 'skills', 'formatting', 'impact'].map((key) => {
-                                const score = result.sections?.[key] !== undefined && result.sections?.[key] !== null
-                                  ? result.sections[key]
-                                  : (key === 'experience' ? 30 : key === 'education' ? 90 : key === 'skills' ? 80 : key === 'formatting' ? 100 : 55);
-
-                                let label = key.charAt(0).toUpperCase() + key.slice(1);
-                                
-                                return (
-                                  <div key={key} className="flex-col gap-1.5">
-                                    <div className="flex justify-between align-center" style={{ fontSize: '12px' }}>
-                                      <span style={{ fontWeight: '600', color: 'var(--text-secondary)' }}>{label}</span>
-                                      <strong style={{ color: score >= 70 ? 'var(--success)' : 'var(--warning)' }}>{score} / 100</strong>
-                                    </div>
-                                    <div className="progress-bar-track" style={{ height: '6px' }}>
-                                      <div 
-                                        className="progress-bar-fill" 
-                                        style={{ 
-                                          width: `${score}%`, 
-                                          height: '100%',
-                                          backgroundColor: score >= 70 ? 'var(--success)' : 'var(--warning)',
-                                          borderRadius: '999px'
-                                        }}
-                                      ></div>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-
-                          {/* Right: Metadata Details */}
-                          <div className="flex-col gap-4 text-left" style={{ borderLeft: '1px solid var(--border)', paddingLeft: '24px' }}>
-                            <h4 style={{ margin: 0, fontSize: '13.5px', fontWeight: '700', color: 'var(--text-primary)' }}>Resume Parsing Metadata</h4>
-                            <div className="grid grid-cols-2 gap-3" style={{ fontSize: '12px' }}>
-                              <div className="flex-col gap-1" style={{ backgroundColor: 'var(--bg)', padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                                <span style={{ color: 'var(--text-secondary)', fontWeight: '600', fontSize: '10px', textTransform: 'uppercase' }}>Experience</span>
-                                <strong style={{ color: 'var(--text-primary)' }}>{result.structuredResume?.experienceYears || 0} years</strong>
-                              </div>
-                              <div className="flex-col gap-1" style={{ backgroundColor: 'var(--bg)', padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                                <span style={{ color: 'var(--text-secondary)', fontWeight: '600', fontSize: '10px', textTransform: 'uppercase' }}>Education Records</span>
-                                <strong style={{ color: 'var(--text-primary)' }}>{result.structuredResume?.education?.length || 0} found</strong>
-                              </div>
-                              <div className="flex-col gap-1" style={{ backgroundColor: 'var(--bg)', padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                                <span style={{ color: 'var(--text-secondary)', fontWeight: '600', fontSize: '10px', textTransform: 'uppercase' }}>Email Address</span>
-                                <span className="truncate" style={{ fontWeight: '700', color: 'var(--text-primary)' }} title={result.structuredResume?.email || 'N/A'}>
-                                  {result.structuredResume?.email || 'N/A'}
-                                </span>
-                              </div>
-                              <div className="flex-col gap-1" style={{ backgroundColor: 'var(--bg)', padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                                <span style={{ color: 'var(--text-secondary)', fontWeight: '600', fontSize: '10px', textTransform: 'uppercase' }}>Phone Number</span>
-                                <span className="truncate" style={{ fontWeight: '700', color: 'var(--text-primary)' }} title={result.structuredResume?.phone || 'N/A'}>
-                                  {result.structuredResume?.phone || 'N/A'}
-                                </span>
-                              </div>
-                            </div>
-
-                            <div className="flex-col gap-1.5" style={{ marginTop: '8px' }}>
-                              <span style={{ color: 'var(--text-secondary)', fontSize: '11px', fontWeight: '500' }}>
-                                Sections Identified:
-                              </span>
-                              <div className="flex flex-wrap gap-1">
-                                {(result.structuredResume?.sectionsFound || []).map((sec, idx) => (
-                                  <span key={idx} className="tag tag-neutral" style={{ padding: '2px 8px', fontSize: '10px', textTransform: 'capitalize' }}>
-                                    {sec}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 </div>
 
-                {/* Right Column: Recommendations & Action Plan */}
-                <div className="flex-col gap-6 w-full">
-                  {/* Priority Fixes Section */}
-                  <div id="priority-fixes" className="card text-left" style={{ padding: '24px' }}>
-                    <div className="flex-col gap-1">
-                      <h3 className="font-primary card-title" style={{ fontSize: '15.5px', fontWeight: '700', margin: 0, color: 'var(--text-primary)' }}>Priority Fixes</h3>
-                      <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Top 3 improvements ranked by estimated impact to optimize your match rate</span>
-                    </div>
-                    <div className="card-divider" style={{ margin: '8px 0' }}></div>
-                    <div className="priority-fixes-container">
-                      {priorityFixes.map((fix, idx) => (
-                        <div 
-                          key={idx} 
-                          className={`priority-fix-card ${getFixTierClass(fix.impact)}`}
-                          onClick={() => {
-                            const t = fix.title.toLowerCase();
-                            if (t.includes('skills') || t.includes('keyword')) {
-                              document.getElementById('keyword-coverage')?.scrollIntoView({ behavior: 'smooth' });
-                            } else if (t.includes('contact') || t.includes('format') || t.includes('experience') || t.includes('education')) {
-                              setDetailedExpanded(true);
-                              setTimeout(() => {
-                                document.getElementById('detailed-breakdown')?.scrollIntoView({ behavior: 'smooth' });
-                              }, 100);
-                            } else {
-                              document.getElementById('ai-feedback-flow')?.scrollIntoView({ behavior: 'smooth' });
-                            }
-                          }}
-                          style={{ cursor: 'pointer' }}
-                        >
-                          <div className="priority-fix-icon-box">{fix.icon}</div>
-                          <div className="priority-fix-content">
-                            <span className="priority-fix-title">
-                              {fix.title}
-                              {(fix.impact === 'Critical' || fix.impact === 'High') && (
-                                <span className={`pulsing-dot ${fix.impact.toLowerCase()}`} title={`${fix.impact} Action Required`} />
-                              )}
-                            </span>
-                            <span className="priority-fix-desc">{fix.desc}</span>
-                          </div>
-                          <span 
-                            className="priority-fix-impact" 
-                            style={{ color: fix.impactColor, backgroundColor: fix.impactBg }}
-                          >
-                            {fix.impact}
+                {/* Priority Fixes & Keyword Gaps Card */}
+                <div id="priority-fixes" className="card text-left" style={{ padding: '24px' }}>
+                  <div className="flex-col gap-1">
+                    <h3 className="font-primary card-title" style={{ fontSize: '15.5px', fontWeight: '700', margin: 0, color: 'var(--text-primary)' }}>Priority Fixes</h3>
+                    <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Top improvements ranked by estimated impact to optimize your match rate</span>
+                  </div>
+                  
+                  <div className="priority-fixes-container" style={{ margin: '8px 0 16px 0' }}>
+                    {priorityFixes.map((fix, idx) => (
+                      <div 
+                        key={idx} 
+                        className={`priority-fix-card ${getFixTierClass(fix.impact)}`}
+                        onClick={() => {
+                          const t = fix.title.toLowerCase();
+                          if (t.includes('skills') || t.includes('keyword')) {
+                            document.getElementById('keyword-gaps-section')?.scrollIntoView({ behavior: 'smooth' });
+                          } else if (t.includes('contact') || t.includes('format') || t.includes('experience') || t.includes('education')) {
+                            setDetailedExpanded(true);
+                            setTimeout(() => {
+                              document.getElementById('detailed-breakdown')?.scrollIntoView({ behavior: 'smooth' });
+                            }, 100);
+                          }
+                        }}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        <div className="priority-fix-icon-box">{fix.icon}</div>
+                        <div className="priority-fix-content">
+                          <span className="priority-fix-title">
+                            {fix.title}
+                            {(fix.impact === 'Critical' || fix.impact === 'High') && (
+                              <span className={`pulsing-dot ${fix.impact.toLowerCase()}`} title={`${fix.impact} Action Required`} />
+                            )}
                           </span>
+                          <span className="priority-fix-desc">{fix.desc}</span>
                         </div>
-                      ))}
-                    </div>
+                        <span 
+                          className="priority-fix-impact" 
+                          style={{ color: fix.impactColor, backgroundColor: fix.impactBg }}
+                        >
+                          {fix.impact}
+                        </span>
+                      </div>
+                    ))}
                   </div>
 
-                  {/* AI Feedback Flow Card */}
-                  <div id="ai-feedback-flow" className="ai-feedback-flow-card">
-                    <div className="ai-feedback-flow-title">
-                      <SparklesIcon size={16} style={{ color: 'var(--primary)', marginRight: '4px' }} />
-                      <span>AI Recommendation & Career Guidance</span>
+                  <div className="card-divider" style={{ margin: '16px 0' }}></div>
+
+                  {/* Missing Keywords Section */}
+                  <div id="keyword-gaps-section" className="flex-col gap-3">
+                    <div className="flex-col gap-1">
+                      <h3 className="font-primary card-title" style={{ fontSize: '14.5px', fontWeight: '700', margin: 0, color: 'var(--text-primary)' }}>Missing Keywords</h3>
+                      <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Add these missing target keywords to your resume to optimize your match rate</span>
                     </div>
                     
-                    {/* Summary Statement */}
-                    <p style={{ margin: 0, fontSize: '13px', lineHeight: '1.6', color: 'var(--text-primary)' }}>
-                      {feedbackSummary}
-                    </p>
-
-                    {/* Phrasing & Wording Rewrites */}
-                    {feedbackWordingImprovements.length > 0 && (
-                      <div className="flex-col gap-3">
-                        <span style={{ fontSize: '12.5px', fontWeight: '700', color: 'var(--text-primary)' }}>Suggested Experience Phrasing Rewrites</span>
-                        <div className="wording-tips-list">
-                          {feedbackWordingImprovements.map((tip, idx) => (
-                            <div key={idx} className="wording-tip-item">
-                              <div className="wording-tip-header">
-                                <span className="wording-tip-label">REWRITE TIP #{idx + 1}</span>
-                                <button 
-                                  onClick={() => handleCopyTip(tip, idx)}
-                                  className={`wording-copy-btn ${copiedTipIndex === idx ? 'copied' : ''}`}
-                                >
-                                  {copiedTipIndex === idx ? (
-                                    <>
-                                      <CheckIcon size={12} />
-                                      <span>Copied!</span>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                        <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
-                                        <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
-                                      </svg>
-                                      <span>Copy Phrasing</span>
-                                    </>
-                                  )}
-                                </button>
-                              </div>
-                              <span className="wording-tip-text">“{tip}”</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Career Advice Box */}
-                    <div className="ai-feedback-advice-box">
-                      <strong>Career Progression Tip:</strong> {feedbackCareerAdvice}
+                    <div className="keyword-pills" style={{ marginTop: '8px' }}>
+                      {missingSkills.slice(0, 15).map((skill, idx) => (
+                        <span key={idx} className="keyword-pill missing">
+                          <span style={{ fontWeight: '700', marginRight: '4px' }}>+</span>
+                          <span>{skill}</span>
+                        </span>
+                      ))}
+                      {missingSkills.length === 0 && (
+                        <span className="text-secondary" style={{ fontSize: '13px' }}>No missing keywords. Great job!</span>
+                      )}
+                      {missingSkills.length > 15 && (
+                        <span className="tag tag-neutral" style={{ fontSize: '11px', fontWeight: '600', padding: '3px 8px', borderRadius: '6px' }}>
+                          +{missingSkills.length - 15} more
+                        </span>
+                      )}
                     </div>
                   </div>
+                </div>
+
+                {/* Collapsible Detailed Breakdown Section */}
+                <div id="detailed-breakdown" className="collapsible-container">
+                  <button 
+                    onClick={() => setDetailedExpanded(!detailedExpanded)}
+                    className="collapsible-trigger"
+                  >
+                    <span className="collapsible-trigger-title">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" style={{ marginRight: '4px' }}>
+                        <rect x="3" y="3" width="18" height="18" rx="2" />
+                        <line x1="9" y1="3" x2="9" y2="21" />
+                      </svg>
+                      <span>Detailed Breakdown Analysis</span>
+                    </span>
+                    <div className="flex align-center gap-2">
+                      <span className="collapsible-trigger-subtitle">
+                        {detailedExpanded ? "Hide detailed metrics" : "View experience, formatting, and section scores"}
+                      </span>
+                      <div className={`collapsible-chevron ${detailedExpanded ? 'open' : ''}`} style={{ display: 'inline-flex', alignItems: 'center' }}>
+                        <ChevronDownIcon size={16} />
+                      </div>
+                    </div>
+                  </button>
+                  
+                  {detailedExpanded && (
+                    <div className="collapsible-content">
+                      <div className="grid grid-cols-2 gap-6">
+                        {/* Left: Progress Bars */}
+                        <div className="flex-col gap-4 text-left">
+                          <h4 style={{ margin: 0, fontSize: '13.5px', fontWeight: '700', color: 'var(--text-primary)' }}>Section Scores</h4>
+                          <div className="flex-col gap-3">
+                            {['experience', 'education', 'skills', 'formatting', 'impact'].map((key) => {
+                              const score = result.sections?.[key] !== undefined && result.sections?.[key] !== null
+                                ? result.sections[key]
+                                : (key === 'experience' ? 30 : key === 'education' ? 90 : key === 'skills' ? 80 : key === 'formatting' ? 100 : 55);
+
+                              let label = key.charAt(0).toUpperCase() + key.slice(1);
+                              
+                              return (
+                                <div key={key} className="flex-col gap-1.5">
+                                  <div className="flex justify-between align-center" style={{ fontSize: '12px' }}>
+                                    <span style={{ fontWeight: '600', color: 'var(--text-secondary)' }}>{label}</span>
+                                    <strong style={{ color: score >= 70 ? 'var(--success)' : 'var(--warning)' }}>{score} / 100</strong>
+                                  </div>
+                                  <div className="progress-bar-track" style={{ height: '6px' }}>
+                                    <div 
+                                      className="progress-bar-fill" 
+                                      style={{ 
+                                        width: `${score}%`, 
+                                        height: '100%',
+                                        backgroundColor: score >= 70 ? 'var(--success)' : 'var(--warning)',
+                                        borderRadius: '999px'
+                                      }}
+                                    ></div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Right: Metadata Details */}
+                        <div className="flex-col gap-4 text-left" style={{ borderLeft: '1px solid var(--border)', paddingLeft: '24px' }}>
+                          <h4 style={{ margin: 0, fontSize: '13.5px', fontWeight: '700', color: 'var(--text-primary)' }}>Resume Parsing Metadata</h4>
+                          <div className="grid grid-cols-2 gap-3" style={{ fontSize: '12px' }}>
+                            <div className="flex-col gap-1" style={{ backgroundColor: 'var(--bg)', padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                              <span style={{ color: 'var(--text-secondary)', fontWeight: '600', fontSize: '10px', textTransform: 'uppercase' }}>Experience</span>
+                              <strong style={{ color: 'var(--text-primary)' }}>{result.structuredResume?.experienceYears || 0} years</strong>
+                            </div>
+                            <div className="flex-col gap-1" style={{ backgroundColor: 'var(--bg)', padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                              <span style={{ color: 'var(--text-secondary)', fontWeight: '600', fontSize: '10px', textTransform: 'uppercase' }}>Education Records</span>
+                              <strong style={{ color: 'var(--text-primary)' }}>{result.structuredResume?.education?.length || 0} found</strong>
+                            </div>
+                            <div className="flex-col gap-1" style={{ backgroundColor: 'var(--bg)', padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                              <span style={{ color: 'var(--text-secondary)', fontWeight: '600', fontSize: '10px', textTransform: 'uppercase' }}>Email Address</span>
+                              <span className="truncate" style={{ fontWeight: '700', color: 'var(--text-primary)' }} title={result.structuredResume?.email || 'N/A'}>
+                                {result.structuredResume?.email || 'N/A'}
+                              </span>
+                            </div>
+                            <div className="flex-col gap-1" style={{ backgroundColor: 'var(--bg)', padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                              <span style={{ color: 'var(--text-secondary)', fontWeight: '600', fontSize: '10px', textTransform: 'uppercase' }}>Phone Number</span>
+                              <span className="truncate" style={{ fontWeight: '700', color: 'var(--text-primary)' }} title={result.structuredResume?.phone || 'N/A'}>
+                                {result.structuredResume?.phone || 'N/A'}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex-col gap-1.5" style={{ marginTop: '8px' }}>
+                            <span style={{ color: 'var(--text-secondary)', fontSize: '11px', fontWeight: '500' }}>
+                              Sections Identified:
+                            </span>
+                            <div className="flex flex-wrap gap-1">
+                              {(result.structuredResume?.sectionsFound || []).map((sec, idx) => (
+                                <span key={idx} className="tag tag-neutral" style={{ padding: '2px 8px', fontSize: '10px', textTransform: 'capitalize' }}>
+                                  {sec}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -1611,6 +1503,84 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                         &ldquo;{feedbackCareerAdvice}&rdquo;
                       </p>
                     </div>
+                  </div>
+                </div>
+
+                {/* Diagnosis Grid (Strengths, Needs Attention, ATS Risks) */}
+                <div className="diagnosis-grid" style={{ marginTop: '8px' }}>
+                  {/* Strengths */}
+                  <div className="diagnosis-col strengths">
+                    <h4 className="diagnosis-col-title">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: '4px' }}>
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                      <span>Strengths</span>
+                    </h4>
+                    <ul className="diagnosis-list">
+                      {uniqueStrengths.length > 0 ? (
+                        uniqueStrengths.map((str, idx) => (
+                          <li key={idx} className="diagnosis-item">
+                            <span className="diagnosis-item-icon" style={{ color: 'var(--success)' }}>✓</span>
+                            <span>{str}</span>
+                          </li>
+                        ))
+                      ) : (
+                        <li className="diagnosis-item" style={{ color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                          No qualitative strengths identified.
+                        </li>
+                      )}
+                    </ul>
+                  </div>
+
+                  {/* Needs Attention */}
+                  <div className="diagnosis-col attention">
+                    <h4 className="diagnosis-col-title">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: '4px' }}>
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="16" x2="12" y2="12" />
+                        <line x1="12" y1="8" x2="12.01" y2="8" />
+                      </svg>
+                      <span>Needs Attention</span>
+                    </h4>
+                    <ul className="diagnosis-list">
+                      {uniqueNeedsAttention.length > 0 ? (
+                        uniqueNeedsAttention.map((item, idx) => (
+                          <li key={idx} className="diagnosis-item">
+                            <span className="diagnosis-item-icon" style={{ color: 'var(--warning)' }}>⚡</span>
+                            <span>{item}</span>
+                          </li>
+                        ))
+                      ) : (
+                        <li className="diagnosis-item" style={{ color: 'var(--success)', fontStyle: 'italic' }}>
+                          ✓ All secondary items look solid!
+                        </li>
+                      )}
+                    </ul>
+                  </div>
+
+                  {/* ATS Risks */}
+                  <div className="diagnosis-col risks">
+                    <h4 className="diagnosis-col-title">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: '4px' }}>
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
+                      <span>ATS Risks</span>
+                    </h4>
+                    <ul className="diagnosis-list">
+                      {uniqueAtsRisks.length > 0 ? (
+                        uniqueAtsRisks.map((risk, idx) => (
+                          <li key={idx} className="diagnosis-item">
+                            <span className="diagnosis-item-icon" style={{ color: 'var(--danger)' }}>⚠️</span>
+                            <span>{risk}</span>
+                          </li>
+                        ))
+                      ) : (
+                        <li className="diagnosis-item" style={{ color: 'var(--success)', fontStyle: 'italic', fontWeight: '600' }}>
+                          ✓ No severe ATS risks detected!
+                        </li>
+                      )}
+                    </ul>
                   </div>
                 </div>
               </div>

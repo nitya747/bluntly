@@ -1461,7 +1461,11 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                 <div className="grid grid-cols-2 gap-6">
                   <div className="flex flex-col gap-3">
                     <h4 style={{ fontWeight: '700', color: 'var(--success)', fontSize: '13.5px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px', borderRadius: '50%', backgroundColor: 'var(--success-subtle)', color: 'var(--success)', fontSize: '11px', fontWeight: 'bold' }}>✓</span>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px', borderRadius: '50%', backgroundColor: 'var(--success-subtle)', color: 'var(--success)' }}>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      </span>
                       Bullet Point Rephrasing Suggestions
                     </h4>
                     <ul className="feedback-list flex-col gap-2.5" style={{ fontSize: '12.5px', listStyle: 'none', padding: 0 }}>
@@ -1473,7 +1477,12 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                           borderRadius: '8px',
                           color: 'var(--text-primary)'
                         }}>
-                          <span style={{ color: 'var(--success)', fontWeight: 'bold', marginTop: '2px' }}>✎</span>
+                          <span style={{ color: 'var(--success)', display: 'inline-flex', alignItems: 'center', marginTop: '2px', flexShrink: 0 }}>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M12 20h9" />
+                              <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                            </svg>
+                          </span>
                           <span style={{ lineHeight: '1.4' }}>{word}</span>
                         </li>
                       )) || <li>No phrasing suggestions generated.</li>}
@@ -1482,7 +1491,11 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
 
                   <div className="flex flex-col gap-3">
                     <h4 style={{ fontWeight: '700', color: 'var(--primary)', fontSize: '13.5px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px', borderRadius: '50%', backgroundColor: 'var(--success-subtle)', color: 'var(--primary)', fontSize: '11px', fontWeight: 'bold' }}>★</span>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px', borderRadius: '50%', backgroundColor: 'var(--primary-subtle)', color: 'var(--primary)' }}>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                        </svg>
+                      </span>
                       Long-Term Career Progression Advice
                     </h4>
                     <div style={{
@@ -1520,7 +1533,11 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                       {uniqueStrengths.length > 0 ? (
                         uniqueStrengths.map((str, idx) => (
                           <li key={idx} className="diagnosis-item">
-                            <span className="diagnosis-item-icon" style={{ color: 'var(--success)' }}>✓</span>
+                            <span className="diagnosis-item-icon" style={{ color: 'var(--success)', display: 'inline-flex', alignItems: 'center', marginTop: '2px' }}>
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="20 6 9 17 4 12" />
+                              </svg>
+                            </span>
                             <span>{str}</span>
                           </li>
                         ))
@@ -1546,7 +1563,13 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                       {uniqueNeedsAttention.length > 0 ? (
                         uniqueNeedsAttention.map((item, idx) => (
                           <li key={idx} className="diagnosis-item">
-                            <span className="diagnosis-item-icon" style={{ color: 'var(--warning)' }}>⚡</span>
+                            <span className="diagnosis-item-icon" style={{ color: 'var(--warning)', display: 'inline-flex', alignItems: 'center', marginTop: '2px' }}>
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="12" cy="12" r="10" />
+                                <line x1="12" y1="16" x2="12" y2="12" />
+                                <line x1="12" y1="8" x2="12.01" y2="8" />
+                              </svg>
+                            </span>
                             <span>{item}</span>
                           </li>
                         ))
@@ -1571,7 +1594,13 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                       {uniqueAtsRisks.length > 0 ? (
                         uniqueAtsRisks.map((risk, idx) => (
                           <li key={idx} className="diagnosis-item">
-                            <span className="diagnosis-item-icon" style={{ color: 'var(--danger)' }}>⚠️</span>
+                            <span className="diagnosis-item-icon" style={{ color: 'var(--danger)', display: 'inline-flex', alignItems: 'center', marginTop: '2px' }}>
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+                                <line x1="12" y1="9" x2="12" y2="13" />
+                                <line x1="12" y1="17" x2="12.01" y2="17" />
+                              </svg>
+                            </span>
                             <span>{risk}</span>
                           </li>
                         ))
@@ -1695,7 +1724,7 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                             alignItems: 'center',
                             gap: '4px'
                           }}>
-                            <span style={{ fontSize: '12px' }}>⚠️</span>
+                            <span className="flex align-center" style={{ color: 'var(--danger)' }}><AlertIcon size={12} /></span>
                             <span>{rule}</span>
                           </div>
                         ))

@@ -597,7 +597,7 @@ function generateLLMFeedbackMock(structuredResume, jobDescription, atsScore, qua
 
   const detailedMarkdown = `
 ### Resume Evaluation Report for **${name}**
-*Mode: 🎭 Dynamic Mock Simulation*
+*Mode: Dynamic Mock Simulation*
 
 #### 1. ATS Matching Analysis
 ${hasJd ? `The candidate matches calculated JD parameters with an ATS Score of **${atsScore}%**. Check missing skills list to align keywords.` : 'No job description was provided to calculate an ATS matching score. Please supply a job description in the side panel for compatibility analysis.'}

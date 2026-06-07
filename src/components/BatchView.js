@@ -448,7 +448,7 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
           {/* Credit warnings */}
           {files.length > 0 && credits < files.length && (
             <div className="credit-warning-banner card flex align-center gap-3" style={{ alignSelf: 'center', maxWidth: '500px', width: '100%', borderColor: 'var(--danger)', backgroundColor: 'rgba(239,68,68,0.06)', color: 'var(--danger)' }}>
-              <span className="error-icon flex align-center">⚠️</span>
+              <span className="error-icon flex align-center"><AlertIcon size={16} /></span>
               <span className="error-message font-sans" style={{ fontSize: '13px' }}>
                 Insufficient credits. This batch requires <strong>{files.length} credits</strong>, but you only have <strong>{credits} credits</strong> remaining. Please buy credits in the sidebar.
               </span>
@@ -582,7 +582,13 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
               <div className="kpi-card">
                 <div className="flex align-center justify-between">
                   <span className="kpi-title">Total Resumes</span>
-                  <span className="tooltip-icon">ℹ️</span>
+                  <span className="tooltip-icon">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.6 }}>
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="16" x2="12" y2="12" />
+                      <line x1="12" y1="8" x2="12.01" y2="8" />
+                    </svg>
+                  </span>
                 </div>
                 <span className="kpi-score">{totalResumes}</span>
                 <span className="kpi-status">Candidates parsed</span>
@@ -595,7 +601,13 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
               <div className="kpi-card">
                 <div className="flex align-center justify-between">
                   <span className="kpi-title">Average ATS Match</span>
-                  <span className="tooltip-icon">ℹ️</span>
+                  <span className="tooltip-icon">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.6 }}>
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="16" x2="12" y2="12" />
+                      <line x1="12" y1="8" x2="12.01" y2="8" />
+                    </svg>
+                  </span>
                 </div>
                 <span className="kpi-score" style={{ color: avgATS >= 80 ? 'var(--success)' : avgATS >= 65 ? 'var(--warning)' : 'var(--danger)' }}>
                   {avgATS}%
@@ -612,7 +624,13 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
               <div className="kpi-card">
                 <div className="flex align-center justify-between">
                   <span className="kpi-title">Highest ATS Match</span>
-                  <span className="tooltip-icon">ℹ️</span>
+                  <span className="tooltip-icon">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.6 }}>
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="16" x2="12" y2="12" />
+                      <line x1="12" y1="8" x2="12.01" y2="8" />
+                    </svg>
+                  </span>
                 </div>
                 <span className="kpi-score" style={{ color: highestATS >= 80 ? 'var(--success)' : highestATS >= 65 ? 'var(--warning)' : 'var(--danger)' }}>
                   {highestATS}%
@@ -629,7 +647,13 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
               <div className="kpi-card">
                 <div className="flex align-center justify-between">
                   <span className="kpi-title">Lowest ATS Match</span>
-                  <span className="tooltip-icon">ℹ️</span>
+                  <span className="tooltip-icon">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.6 }}>
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="16" x2="12" y2="12" />
+                      <line x1="12" y1="8" x2="12.01" y2="8" />
+                    </svg>
+                  </span>
                 </div>
                 <span className="kpi-score" style={{ color: lowestATS >= 80 ? 'var(--success)' : lowestATS >= 65 ? 'var(--warning)' : 'var(--danger)' }}>
                   {lowestATS}%
@@ -819,7 +843,10 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
                         <span style={{ fontWeight: '700', color: 'var(--text-primary)' }}>Strengths</span>
                         <ul style={{ listStyle: 'none', paddingLeft: '0', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
                           {getFilteredAndSortedResults()[expandedIndex].analysis?.feedback?.strengths?.slice(0, 3).map((s, i) => (
-                            <li key={i}>✓ {s}</li>
+                            <li key={i} className="flex align-start gap-2" style={{ marginBottom: '4px' }}>
+                              <span style={{ color: 'var(--success)', marginTop: '2px', flexShrink: 0 }} className="flex align-center"><CheckIcon size={12} /></span>
+                              <span>{s}</span>
+                            </li>
                           )) || <li>None</li>}
                         </ul>
                       </div>
@@ -827,7 +854,10 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
                         <span style={{ fontWeight: '700', color: 'var(--text-primary)' }}>Areas to Improve</span>
                         <ul style={{ listStyle: 'none', paddingLeft: '0', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
                           {getFilteredAndSortedResults()[expandedIndex].analysis?.feedback?.improvements?.slice(0, 3).map((s, i) => (
-                            <li key={i}>⚠ {s}</li>
+                            <li key={i} className="flex align-start gap-2" style={{ marginBottom: '4px' }}>
+                              <span style={{ color: 'var(--warning)', marginTop: '2px', flexShrink: 0 }} className="flex align-center"><AlertIcon size={12} /></span>
+                              <span>{s}</span>
+                            </li>
                           )) || <li>None</li>}
                         </ul>
                       </div>

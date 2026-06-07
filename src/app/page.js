@@ -204,7 +204,7 @@ export default function Home() {
                 <div className="flex-col gap-4">
                   <h3 className="settings-subtitle font-sans">API Key Setup</h3>
                   <p className="settings-desc font-sans">
-                    By default, blunlty runs in <strong>Fallback Mock Mode</strong> using a local parser and simulation system.
+                    By default, bluntly runs in <strong>Fallback Mock Mode</strong> using a local parser and simulation system.
                   </p>
                   <p className="settings-desc font-sans">
                     To connect to the live Google Gemini AI, create a <code>.env.local</code> file at the root of your project directory and add your Google AI API key:

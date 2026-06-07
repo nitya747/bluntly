@@ -83,13 +83,13 @@ function LoginContent() {
 
   return (
     <div className="login-container flex align-center justify-center">
-      <div className="login-card card flex-col gap-8">
+      <div className="login-card card">
         {/* Brand/Header */}
         <div className="login-header flex-col align-center gap-3 text-center">
-          <div className="login-logo flex align-center justify-center" style={{ color: '#FFFFFF' }}>
-            <LogoIcon size={24} />
+          <div className="login-logo flex align-center justify-center">
+            <LogoIcon size={24} style={{ color: '#FFFFFF' }} />
           </div>
-          <h1 className="heading-primary font-primary" style={{ fontSize: '28px', fontWeight: '700', color: 'var(--text-primary)', letterSpacing: '-0.5px' }}>bluntly</h1>
+          <h1 className="login-title">bluntly</h1>
           <p className="login-subtitle font-sans">
             {isSignUp ? 'Create an account to start parsing resumes' : 'Sign in to access your dashboard'}
           </p>
@@ -111,7 +111,7 @@ function LoginContent() {
         )}
 
         {/* Input Form */}
-        <form onSubmit={handleSubmit} className="login-form flex-col gap-5">
+        <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group flex-col gap-2">
             <label className="form-label font-sans">Email Address</label>
             <input
@@ -141,7 +141,7 @@ function LoginContent() {
           <button
             type="submit"
             disabled={loading}
-            className="button-primary submit-btn font-primary"
+            className="submit-btn"
           >
             {loading ? 'Processing...' : isSignUp ? 'Create Free Account' : 'Sign In to Dashboard'}
           </button>
@@ -178,64 +178,178 @@ function LoginContent() {
           padding: 3rem 2.5rem;
           background-color: var(--surface);
           border: 1px solid var(--border);
-          border-radius: var(--radius-card);
+          border-radius: 24px;
           box-shadow: var(--shadow);
+          display: flex;
+          flex-direction: column;
+          gap: 2rem;
+          position: relative;
+          z-index: 10;
           transition: background-color var(--transition-speed) ease, border-color var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
+        }
+
+        :global([data-theme="dark"]) .login-card {
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+          background-color: rgba(30, 30, 34, 0.85);
+          backdrop-filter: blur(16px);
+          border-color: rgba(45, 45, 50, 0.6);
         }
 
         .login-logo {
           background-color: var(--primary);
-          width: 48px;
-          height: 48px;
-          border-radius: 12px;
-          font-size: 1.5rem;
-          transition: background-color var(--transition-speed) ease;
+          width: 52px;
+          height: 52px;
+          border-radius: 14px;
+          color: #FFFFFF;
+          box-shadow: 0 4px 12px rgba(15, 118, 110, 0.2);
+          transition: all var(--transition-speed) ease;
+        }
+
+        .login-logo:hover {
+          transform: scale(1.05);
+          box-shadow: 0 6px 16px rgba(15, 118, 110, 0.3);
+        }
+
+        :global([data-theme="dark"]) .login-logo {
+          box-shadow: 0 4px 12px rgba(20, 184, 166, 0.25);
+        }
+
+        :global([data-theme="dark"]) .login-logo:hover {
+          box-shadow: 0 6px 16px rgba(20, 184, 166, 0.35);
+        }
+
+        .login-title {
+          font-family: var(--font-primary);
+          font-size: 1.75rem;
+          font-weight: 800;
+          color: var(--text-primary);
+          letter-spacing: -0.03em;
+          margin: 0;
         }
 
         .login-subtitle {
-          font-size: 0.85rem;
+          font-size: 0.875rem;
           color: var(--text-secondary);
+          line-height: 1.4;
+          margin: 0;
         }
 
         .login-form {
           width: 100%;
+          display: flex;
+          flex-direction: column;
+          gap: 1.5rem;
         }
 
         .form-label {
           font-size: 0.8rem;
-          font-weight: 700;
+          font-weight: 600;
           color: var(--text-secondary);
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+
+        .input-text {
+          width: 100%;
+          padding: 0.875rem 1rem;
+          border-radius: var(--radius-input);
+          border: 1px solid var(--border);
+          background-color: var(--bg);
+          color: var(--text-primary);
+          font-family: var(--font-secondary);
+          font-size: 0.9rem;
+          outline: none;
+          transition: all var(--transition-speed) ease;
+        }
+
+        .input-text:hover {
+          border-color: var(--text-secondary);
+        }
+
+        .input-text:focus {
+          border-color: var(--primary);
+          background-color: var(--surface);
+          box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.15);
+        }
+
+        :global([data-theme="light"]) .input-text:focus {
+          box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.1);
+        }
+
+        .input-text::placeholder {
+          color: var(--text-secondary);
+          opacity: 0.4;
+        }
+
+        /* Prevent browser autofill from ruining the theme */
+        .input-text:-webkit-autofill,
+        .input-text:-webkit-autofill:hover,
+        .input-text:-webkit-autofill:focus,
+        .input-text:-webkit-autofill:active {
+          -webkit-box-shadow: 0 0 0 30px var(--surface) inset !important;
+          -webkit-text-fill-color: var(--text-primary) !important;
+          transition: background-color 5000s ease-in-out 0s;
         }
 
         .submit-btn {
           width: 100%;
-          padding: 0.9rem;
+          padding: 0.875rem;
           font-size: 0.95rem;
-          margin-top: 1rem;
+          font-weight: 600;
+          border-radius: var(--radius-btn);
+          background-color: var(--primary);
+          color: #FFFFFF !important;
+          border: none;
+          cursor: pointer;
+          transition: all var(--transition-speed) ease;
+          box-shadow: 0 4px 12px rgba(15, 118, 110, 0.2);
+        }
+
+        .submit-btn:hover:not(:disabled) {
+          background-color: var(--primary-hover);
+          transform: translateY(-1px);
+          box-shadow: 0 6px 16px rgba(15, 118, 110, 0.3);
+        }
+
+        :global([data-theme="dark"]) .submit-btn {
+          box-shadow: 0 4px 12px rgba(20, 184, 166, 0.25);
+        }
+
+        :global([data-theme="dark"]) .submit-btn:hover:not(:disabled) {
+          box-shadow: 0 6px 16px rgba(20, 184, 166, 0.35);
+        }
+
+        .submit-btn:active:not(:disabled) {
+          transform: translateY(0);
+        }
+
+        .submit-btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
         }
 
         .alert {
-          border-radius: 8px;
-          padding: 0.75rem;
-          font-size: 0.8rem;
-          font-weight: 600;
+          border-radius: 12px;
+          padding: 0.875rem 1rem;
+          font-size: 0.85rem;
+          font-weight: 500;
           border: 1px solid transparent;
         }
 
         .alert-danger {
           background-color: var(--danger-subtle);
           color: var(--danger);
-          border-color: rgba(239, 68, 68, 0.15);
+          border-color: rgba(239, 68, 68, 0.1);
         }
 
         .alert-success {
           background-color: var(--success-subtle);
           color: var(--success);
-          border-color: rgba(16, 185, 129, 0.15);
+          border-color: rgba(16, 185, 129, 0.1);
         }
 
         .toggle-section {
-          font-size: 0.85rem;
+          font-size: 0.875rem;
           color: var(--text-secondary);
         }
 
@@ -243,15 +357,29 @@ function LoginContent() {
           background: transparent;
           border: none;
           color: var(--primary);
-          font-weight: 700;
+          font-weight: 600;
           cursor: pointer;
-          font-size: 0.85rem;
-          text-decoration: underline;
+          font-size: 0.875rem;
+          text-decoration: none;
+          margin-left: 0.375rem;
           transition: color var(--transition-speed) ease;
         }
 
         .toggle-btn:hover {
           color: var(--primary-hover);
+          text-decoration: underline;
+        }
+
+        @media (max-width: 480px) {
+          .login-card {
+            padding: 2.5rem 1.5rem;
+            border-radius: 20px;
+            max-width: 90%;
+            gap: 1.5rem;
+          }
+          .login-title {
+            font-size: 1.5rem;
+          }
         }
       `}</style>
     </div>

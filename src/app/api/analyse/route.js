@@ -7,11 +7,11 @@ import { getOrCreateProfile } from '../../../lib/supabase/profile';
 export async function POST(request) {
   try {
     let user = null;
-    const bypassCookie = request.cookies.get('blunlty_bypass')?.value;
+    const bypassCookie = request.cookies.get('bluntly_bypass')?.value;
     const supabase = await createClient();
 
     if (bypassCookie === 'true') {
-      user = { id: 'mock-dev-id', email: 'developer@blunlty.local' };
+      user = { id: 'mock-dev-id', email: 'developer@bluntly.local' };
     } else {
       const { data } = await supabase.auth.getUser();
       user = data?.user;

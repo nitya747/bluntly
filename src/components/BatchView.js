@@ -580,7 +580,7 @@ export default function BatchView({ onAddHistory, credits, setCredits, history =
 
           {/* Section 2: Summary Metrics (140px KPI cards) */}
           {results.length > 0 && (
-            <div className="grid grid-cols-4 gap-6">
+            <div className="grid grid-cols-4 gap-8">
               {/* Total Resumes */}
               <div className="kpi-card">
                 <div className="flex align-center justify-between">

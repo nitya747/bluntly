@@ -762,7 +762,7 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
           {activeReportTab === 'overview' && (
             <div className="flex-col gap-4 w-full">
               {/* Section 1: KPI Cards */}
-              <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-4 gap-8">
                 {/* ATS Match Score */}
                 <div className="kpi-card">
                   <div className="flex align-center justify-between">

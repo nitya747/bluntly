@@ -23,9 +23,9 @@ export async function proxy(request) {
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   let user = null;
 
-  const bypassCookie = request.cookies.get('blunlty_bypass')?.value;
+  const bypassCookie = request.cookies.get('bluntly_bypass')?.value;
   if (bypassCookie === 'true') {
-    user = { email: 'developer@blunlty.local', id: 'mock-dev-id' };
+    user = { email: 'developer@bluntly.local', id: 'mock-dev-id' };
   } else if (isUrlValid(url) && key && !key.includes('_here')) {
     try {
       const supabase = createServerClient(

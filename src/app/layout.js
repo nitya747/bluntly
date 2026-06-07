@@ -12,7 +12,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "blunlty — Premium AI Resume Matcher",
+  title: "bluntly — Premium AI Resume Matcher",
   description: "A premium AI-powered resume matching and analysis dashboard",
 };
 

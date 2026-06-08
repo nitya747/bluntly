@@ -8,10 +8,11 @@ const isUrlValid = (url) => {
 export async function proxy(request) {
   let response = NextResponse.next({ request });
 
-  // Do not process proxy for public files and static assets
+  // Do not process proxy for public files, static assets, and API routes
   const path = request.nextUrl.pathname;
   if (
     path.startsWith('/_next') ||
+    path.startsWith('/api') ||
     path.includes('/favicon.ico') ||
     path.includes('/next.svg') ||
     path.includes('/vercel.svg')

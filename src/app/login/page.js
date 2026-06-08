@@ -111,6 +111,7 @@ function LoginContent() {
     document.documentElement.setAttribute('data-theme', newTheme);
   };
 
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -151,7 +152,6 @@ function LoginContent() {
         router.refresh();
       }
     } catch (err) {
-      console.error(err);
       setErrorMsg(err.message || 'An error occurred during authentication.');
     } finally {
       setLoading(false);
@@ -179,9 +179,6 @@ function LoginContent() {
       <div className="login-card">
         {/* Brand/Header */}
         <div className="login-header flex-col align-center gap-2 text-center">
-          <div className="login-logo flex align-center justify-center">
-            <LogoIcon size={20} style={{ color: '#FFFFFF' }} />
-          </div>
           <h1 className="login-title">bluntly</h1>
           <p className="login-subtitle font-sans">
             {isSignUp ? 'Create an account to start parsing resumes' : 'Sign in to access your dashboard'}
@@ -268,6 +265,7 @@ function LoginContent() {
               </div>
             )}
           </button>
+
         </form>
 
         {/* Sign In/Up Toggle */}
@@ -635,6 +633,39 @@ function LoginContent() {
 
         .submit-btn:hover:not(:disabled) .btn-arrow {
           transform: translateX(3px);
+        }
+
+        .bypass-btn {
+          width: 100%;
+          padding: 0.85rem;
+          font-size: 0.9rem;
+          font-weight: 600;
+          border-radius: 10px;
+          background-color: var(--surface);
+          border: 1px solid var(--border);
+          color: var(--text-primary);
+          cursor: pointer;
+          transition: all var(--transition-speed) ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+          margin-top: 0.75rem;
+        }
+
+        .bypass-btn:hover:not(:disabled) {
+          background-color: var(--bg);
+          border-color: var(--text-secondary);
+          transform: translateY(-1px);
+        }
+
+        .bypass-btn:active:not(:disabled) {
+          transform: translateY(0);
+        }
+
+        .bypass-btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
         }
 
         .btn-arrow {

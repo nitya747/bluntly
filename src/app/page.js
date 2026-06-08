@@ -115,6 +115,7 @@ export default function Home() {
   };
 
   const handleSignOut = async () => {
+    document.cookie = "bluntly_bypass=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     await supabase.auth.signOut();
     setUser(null);
     router.push('/login');

@@ -45,6 +45,7 @@ function highlightJSON(json) {
 export default function IndividualView({ 
   onAddHistory, 
   selectedAnalysis, 
+  onClearAnalysis,
   credits, 
   setCredits, 
   history = [],
@@ -90,7 +91,6 @@ export default function IndividualView({
         setJobDescription(selectedAnalysis.analysis.jobDescription || '');
         setFile({ name: selectedAnalysis.filename, size: 0, isSavedRecord: true });
         setError(null);
-        setActiveSection('analysis');
       }, 0);
       return () => clearTimeout(timer);
     }
@@ -153,6 +153,9 @@ export default function IndividualView({
     setFile(null);
     setError(null);
     setResult(null);
+    if (onClearAnalysis) {
+      onClearAnalysis();
+    }
   };
 
   const runAnalysis = async () => {

@@ -173,6 +173,7 @@ export default function Home() {
             <IndividualView 
               onAddHistory={handleAddHistory} 
               selectedAnalysis={currentAnalysis}
+              onClearAnalysis={() => setCurrentAnalysis(null)}
               credits={credits}
               setCredits={setCredits}
               history={history}

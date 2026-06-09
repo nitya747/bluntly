@@ -62,7 +62,9 @@ export async function GET(request) {
           structuredResume: structuredResume,
           ruleViolations: fb.ruleViolations || [],
           passedRules: fb.passedRules || [],
-          experienceMatch: fb.experienceMatch || null
+          experienceMatch: fb.experienceMatch || null,
+          multimodalDetails: fb.multimodalDetails || null,
+          screeningDetails: fb.screeningDetails || null
         }
       };
     });

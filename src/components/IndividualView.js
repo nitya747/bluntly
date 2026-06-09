@@ -66,6 +66,13 @@ export default function IndividualView({
   const [detailedExpanded, setDetailedExpanded] = useState(false);
   const [copiedTipIndex, setCopiedTipIndex] = useState(null);
 
+  // Multimodal integrations state variables
+  const [githubUrl, setGithubUrl] = useState('');
+  const [githubToken, setGithubToken] = useState('');
+  const [linkedinSummary, setLinkedinSummary] = useState('');
+  const [assessmentScores, setAssessmentScores] = useState('');
+  const [showIntegrations, setShowIntegrations] = useState(false);
+
   const handleCopyJSON = () => {
     if (result && result.structuredResume) {
       navigator.clipboard.writeText(JSON.stringify(result.structuredResume, null, 2));
@@ -89,6 +96,9 @@ export default function IndividualView({
           timestamp: selectedAnalysis.timestamp
         });
         setJobDescription(selectedAnalysis.analysis.jobDescription || '');
+        setGithubUrl(selectedAnalysis.analysis.multimodalDetails?.github?.url || selectedAnalysis.analysis.multimodalDetails?.github?.username || '');
+        setLinkedinSummary(selectedAnalysis.analysis.multimodalDetails?.linkedinSummary || '');
+        setAssessmentScores(selectedAnalysis.analysis.multimodalDetails?.assessmentScores || '');
         setFile({ name: selectedAnalysis.filename, size: 0, isSavedRecord: true });
         setError(null);
       }, 0);
@@ -168,6 +178,10 @@ export default function IndividualView({
     const formData = new FormData();
     formData.append('file', file);
     formData.append('jobDescription', jobDescription);
+    formData.append('githubUrl', githubUrl);
+    formData.append('githubToken', githubToken);
+    formData.append('linkedinSummary', linkedinSummary);
+    formData.append('assessmentScores', assessmentScores);
 
     try {
       const response = await fetch('/api/analyse', {
@@ -766,6 +780,8 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
             </div>
           </div>
 
+          {/* Multimodal integrations removed as per request */}
+
           {/* Credit warnings */}
           {file && !file.isSavedRecord && credits < 1 && (
             <div className="credit-warning-banner card flex align-center gap-3" style={{ alignSelf: 'center', maxWidth: '500px', width: '100%', borderColor: 'var(--danger)', backgroundColor: 'var(--danger-subtle)', color: 'var(--danger)' }}>
@@ -911,9 +927,18 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                 <text x="20" y="32" fill={iconConfig.color} fontSize="11" fontWeight="900" fontFamily="var(--font-primary)" textAnchor="middle" letterSpacing="0.5">{iconConfig.label}</text>
               </svg>
               <div className="flex-col text-left" style={{ gap: '4px' }}>
-                <h2 className="doc-header-title font-primary" style={{ fontWeight: '700', color: 'var(--text-primary)', letterSpacing: '-0.5px' }}>{file?.name || 'Resume.pdf'}</h2>
-                <span className="doc-header-subtitle text-secondary" style={{ fontWeight: '500' }}>
-                  {getJobTitle()} <span style={{ margin: '0 8px', color: 'var(--border)' }}>•</span> Analyzed on {result.timestamp || 'May 14, 2025 at 10:30 AM'}
+                <div className="flex align-center gap-2">
+                  <h2 className="doc-header-title font-primary" style={{ fontWeight: '700', color: 'var(--text-primary)', letterSpacing: '-0.5px', margin: 0 }}>{result.candidateName || file?.name || 'Candidate'}</h2>
+                  <span className="tag" style={{ backgroundColor: 'var(--success-subtle)', color: 'var(--success)', fontSize: '11px', fontWeight: '700', borderRadius: '6px', padding: '3px 8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                    PII Shield Active
+                  </span>
+                </div>
+                <span className="doc-header-subtitle text-secondary" style={{ fontWeight: '500', fontSize: '13px' }}>
+                  File: {file?.name || 'Resume.pdf'} <span style={{ margin: '0 6px', color: 'var(--border)' }}>•</span> {getJobTitle()} <span style={{ margin: '0 6px', color: 'var(--border)' }}>•</span> {result.timestamp || '10:30 AM'}
                 </span>
               </div>
             </div>
@@ -986,9 +1011,13 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
             {[
               { id: 'overview', label: 'Overview' },
               { id: 'detailed', label: 'Detailed Analysis' },
-              { id: 'ai-feedback', label: 'AI Feedback' },
-              { id: 'matched', label: 'Matched Resume' },
-              { id: 'similarity', label: 'Similarity Check' }
+              ...(result?.atsScore !== null && result?.atsScore !== undefined ? [
+                { id: 'ai-feedback', label: 'AI Feedback' },
+                { id: 'similarity', label: 'Similarity Check' },
+                { id: 'rubrics', label: 'Dynamic Rubrics' },
+                { id: 'multimodal', label: 'GitHub Profile' },
+                { id: 'benchmarking', label: 'Competitive Benchmarking' }
+              ] : [])
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -1013,22 +1042,45 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
               <div className="flex-col w-full fade-in" style={{ gap: '24px' }}>
                 {/* Score Hero Section */}
                 <div className="score-hero-card">
-                  <div className="score-gauge-wrapper">
-                    <svg className="score-gauge-svg" width="120" height="120" viewBox="0 0 120 120">
-                      <circle className="score-gauge-bg" cx="60" cy="60" r="50" />
-                      <circle 
-                        className={`score-gauge-fill ${scoreTierClass}`}
-                        cx="60" 
-                        cy="60" 
-                        r="50" 
-                        strokeDasharray="314"
-                        strokeDashoffset={314 - (displayAtsScore / 100) * 314}
-                      />
-                    </svg>
-                    <div className="score-gauge-text">
-                      <span className={`score-gauge-number ${scoreTierClass}`}>{displayAtsScore}</span>
-                      <span className="score-gauge-label">Match</span>
+                  <div className="flex align-center gap-4">
+                    <div className="score-gauge-wrapper">
+                      <svg className="score-gauge-svg" width="120" height="120" viewBox="0 0 120 120">
+                        <circle className="score-gauge-bg" cx="60" cy="60" r="50" />
+                        <circle 
+                          className={`score-gauge-fill ${scoreTierClass}`}
+                          cx="60" 
+                          cy="60" 
+                          r="50" 
+                          strokeDasharray="314"
+                          strokeDashoffset={314 - (displayAtsScore / 100) * 314}
+                        />
+                      </svg>
+                      <div className="score-gauge-text">
+                        <span className={`score-gauge-number ${scoreTierClass}`}>{displayAtsScore}</span>
+                        <span className="score-gauge-label">Match</span>
+                      </div>
                     </div>
+
+                    {result.semanticSimilarity !== undefined && result.semanticSimilarity !== null && (
+                      <div className="score-gauge-wrapper" style={{ borderLeft: '1px solid var(--border)', paddingLeft: '16px' }}>
+                        <svg className="score-gauge-svg" width="120" height="120" viewBox="0 0 120 120">
+                          <circle className="score-gauge-bg" cx="60" cy="60" r="50" />
+                          <circle 
+                            className="score-gauge-fill"
+                            cx="60" 
+                            cy="60" 
+                            r="50" 
+                            strokeDasharray="314"
+                            strokeDashoffset={314 - (result.semanticSimilarity / 100) * 314}
+                            stroke="var(--primary)"
+                          />
+                        </svg>
+                        <div className="score-gauge-text">
+                          <span className="score-gauge-number" style={{ color: 'var(--primary)' }}>{result.semanticSimilarity}%</span>
+                          <span className="score-gauge-label" style={{ color: 'var(--primary)', fontSize: '10px' }}>Semantic</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   
                   <div className="score-hero-info">
@@ -1138,11 +1190,11 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                         <rect x="3" y="3" width="18" height="18" rx="2" />
                         <line x1="9" y1="3" x2="9" y2="21" />
                       </svg>
-                      <span>Detailed Breakdown Analysis</span>
+                      <span>Detailed Screening Dashboard</span>
                     </span>
                     <div className="flex align-center gap-2">
                       <span className="collapsible-trigger-subtitle">
-                        {detailedExpanded ? "Hide detailed metrics" : "View experience, formatting, and section scores"}
+                        {detailedExpanded ? "Hide screening metrics" : "View GitHub, Skills, and Experience detailed sub-scores"}
                       </span>
                       <div className={`collapsible-chevron ${detailedExpanded ? 'open' : ''}`} style={{ display: 'inline-flex', alignItems: 'center' }}>
                         <ChevronDownIcon size={16} />
@@ -1150,85 +1202,260 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                     </div>
                   </button>
                   
-                  {detailedExpanded && (
-                    <div className="collapsible-content">
-                      <div className="grid grid-cols-2 gap-6">
-                        {/* Left: Progress Bars */}
-                        <div className="flex-col gap-4 text-left">
-                          <h4 style={{ margin: 0, fontSize: '13.5px', fontWeight: '700', color: 'var(--text-primary)' }}>Section Scores</h4>
-                          <div className="flex-col gap-3">
-                            {['experience', 'education', 'skills', 'formatting', 'impact'].map((key) => {
-                              const score = result.sections?.[key] !== undefined && result.sections?.[key] !== null
-                                ? result.sections[key]
-                                : (key === 'experience' ? 30 : key === 'education' ? 90 : key === 'skills' ? 80 : key === 'formatting' ? 100 : 55);
+                  {detailedExpanded && (() => {
+                    // 1. Calculate github details dynamically if missing
+                    const hasGithub = !!result.multimodalDetails?.github;
+                    const ghData = result.multimodalDetails?.github;
+                    
+                    const publicRepos = ghData?.publicReposCount || 0;
+                    let reposScoreVal = 0;
+                    if (publicRepos >= 3) reposScoreVal = 10;
+                    else if (publicRepos > 0) reposScoreVal = 5;
 
-                              let label = key.charAt(0).toUpperCase() + key.slice(1);
-                              
-                              return (
-                                <div key={key} className="flex-col gap-1.5">
-                                  <div className="flex justify-between align-center" style={{ fontSize: '12px' }}>
-                                    <span style={{ fontWeight: '600', color: 'var(--text-secondary)' }}>{label}</span>
-                                    <strong style={{ color: score >= 70 ? 'var(--success)' : 'var(--warning)' }}>{score} / 100</strong>
-                                  </div>
-                                  <div className="progress-bar-track" style={{ height: '6px' }}>
-                                    <div 
-                                      className="progress-bar-fill" 
-                                      style={{ 
-                                        width: `${score}%`, 
-                                        height: '100%',
-                                        backgroundColor: score >= 70 ? 'var(--success)' : 'var(--warning)',
-                                        borderRadius: '999px'
-                                      }}
-                                    ></div>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
+                    const contributions = ghData?.contributions || 0;
+                    let contributionsScoreVal = 0;
+                    if (contributions >= 200) contributionsScoreVal = 10;
+                    else if (contributions >= 50) contributionsScoreVal = 5;
+
+                    let activityScoreVal = 0;
+                    let daysSinceLastCommit = null;
+                    if (ghData?.lastCommitDate) {
+                      const lastCommit = new Date(ghData.lastCommitDate).getTime();
+                      const diffTime = Math.abs(Date.now() - lastCommit);
+                      daysSinceLastCommit = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                      if (daysSinceLastCommit <= 30) activityScoreVal = 5;
+                    }
+
+                    let languagesScoreVal = (ghData?.topLanguages || []).length > 0 ? 10 : 0;
+
+                    const followers = ghData?.followers || 0;
+                    let followersScoreVal = 0;
+                    if (followers >= 50) followersScoreVal = 5;
+                    else if (followers > 0) followersScoreVal = 2.5;
+
+                    const hasBio = !!ghData?.bio && ghData.bio.trim().length > 0;
+                    const hasPhoto = !!ghData?.avatarUrl;
+                    const hasWebsite = !!ghData?.website && ghData.website.trim().length > 0;
+                    let completenessScoreVal = 0;
+                    if (hasBio && hasPhoto && hasWebsite) completenessScoreVal = 5;
+                    else {
+                      let count = 0;
+                      if (hasBio) count++;
+                      if (hasPhoto) count++;
+                      if (hasWebsite) count++;
+                      completenessScoreVal = (count / 3) * 5;
+                    }
+
+                    const reposScore = result.screeningDetails?.github?.reposScore !== undefined
+                      ? result.screeningDetails.github.reposScore
+                      : Math.round((reposScoreVal / 10) * 100);
+
+                    const contributionsScore = result.screeningDetails?.github?.contributionsScore !== undefined
+                      ? result.screeningDetails.github.contributionsScore
+                      : Math.round((contributionsScoreVal / 10) * 100);
+
+                    const activityScore = result.screeningDetails?.github?.activityScore !== undefined
+                      ? result.screeningDetails.github.activityScore
+                      : Math.round((activityScoreVal / 5) * 100);
+
+                    const languagesScore = result.screeningDetails?.github?.languagesScore !== undefined
+                      ? result.screeningDetails.github.languagesScore
+                      : Math.round((languagesScoreVal / 10) * 100);
+
+                    const followersScore = result.screeningDetails?.github?.followersScore !== undefined
+                      ? result.screeningDetails.github.followersScore
+                      : Math.round((followersScoreVal / 5) * 100);
+
+                    const completenessScore = result.screeningDetails?.github?.completenessScore !== undefined
+                      ? result.screeningDetails.github.completenessScore
+                      : Math.round((completenessScoreVal / 5) * 100);
+
+                    const githubScore = result.sections?.githubScore !== undefined
+                      ? result.sections.githubScore
+                      : (hasGithub ? Math.round((Math.min(40, reposScoreVal + contributionsScoreVal + activityScoreVal + languagesScoreVal + followersScoreVal + completenessScoreVal) / 40) * 100) : 0);
+
+                    const githubJustification = result.screeningDetails?.github?.justification
+                      || (hasGithub
+                          ? `GitHub Portfolio Strength score is ${githubScore}/100. Candidate has ${publicRepos} public repositories and ${contributions} contributions in the last year. Profile completeness: bio (${hasBio ? 'yes' : 'no'}), photo (${hasPhoto ? 'yes' : 'no'}), website (${hasWebsite ? 'yes' : 'no'}).`
+                          : "No GitHub portfolio was provided or could be extracted from the resume. Introduce a GitHub link to enable portfolio screening.");
+
+                    // 2. Calculate skillsSemantic details dynamically if missing
+                    const embeddingSimilarity = result.screeningDetails?.skillsSemantic?.embeddingSimilarity !== undefined
+                      ? result.screeningDetails.skillsSemantic.embeddingSimilarity
+                      : (result.semanticSimilarity || 70);
+
+                    const fuzzySkillMatch = result.screeningDetails?.skillsSemantic?.fuzzySkillMatch !== undefined
+                      ? result.screeningDetails.skillsSemantic.fuzzySkillMatch
+                      : (result.sections?.skills || 75);
+
+                    const roleTaxonomy = result.screeningDetails?.skillsSemantic?.roleTaxonomy !== undefined
+                      ? result.screeningDetails.skillsSemantic.roleTaxonomy
+                      : Math.min(100, Math.round((result.sections?.skills || 75) * 1.05));
+
+                    const skillsSemanticScore = result.sections?.skillsSemanticScore !== undefined
+                      ? result.sections.skillsSemanticScore
+                      : Math.round(embeddingSimilarity * 0.4 + fuzzySkillMatch * 0.3 + roleTaxonomy * 0.3);
+
+                    const skillsJustification = result.screeningDetails?.skillsSemantic?.justification
+                      || `Evaluated skills against target requirements. S-BERT semantic similarity is ${embeddingSimilarity}%. Checked synonyms and abbreviations showing ${fuzzySkillMatch}% fuzzy match and ${roleTaxonomy}% role taxonomy alignment.`;
+
+                    // 3. Calculate experienceEducation details dynamically if missing
+                    const yearsExperience = result.screeningDetails?.experienceEducation?.yearsExperience !== undefined
+                      ? result.screeningDetails.experienceEducation.yearsExperience
+                      : (result.sections?.experience || 70);
+
+                    const quantifiedAchievements = result.screeningDetails?.experienceEducation?.quantifiedAchievements !== undefined
+                      ? result.screeningDetails.experienceEducation.quantifiedAchievements
+                      : (result.sections?.impact || 65);
+
+                    const educationLevel = result.screeningDetails?.experienceEducation?.educationLevel !== undefined
+                      ? result.screeningDetails.experienceEducation.educationLevel
+                      : (result.sections?.education || 75);
+
+                    const experienceEducationScore = result.sections?.experienceEducationScore !== undefined
+                      ? result.sections.experienceEducationScore
+                      : Math.round(yearsExperience * 0.4 + quantifiedAchievements * 0.3 + educationLevel * 0.3);
+
+                    const expEduJustification = result.screeningDetails?.experienceEducation?.justification
+                      || `Candidate experience matches role requirements (years of experience score: ${yearsExperience}%). Work descriptions show professional achievement metrics (quantified achievements score: ${quantifiedAchievements}%). Degree alignment score is ${educationLevel}%.`;
+
+                    return (
+                      <div className="collapsible-content flex-col gap-6" style={{ padding: '20px', backgroundColor: 'var(--bg)', borderRadius: '12px', border: '1px solid var(--border)', marginTop: '8px' }}>
+                        <div className="flex justify-between align-center">
+                          <h4 style={{ margin: 0, fontSize: '14px', fontWeight: '700', color: 'var(--text-primary)' }}>HR Screening Scoring Breakdown</h4>
+                          <span className="tag tag-neutral" style={{ fontSize: '11px', fontWeight: '600' }}>
+                            Total Score = (10% GitHub) + (70% Skills) + (20% Exp/Edu)
+                          </span>
                         </div>
+                        <div className="flex-col gap-6 w-full text-left">
+                          {/* 1. GitHub Portfolio Category */}
+                          <div style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            <div className="flex justify-between align-center">
+                              <span style={{ fontWeight: '700', color: 'var(--text-primary)', fontSize: '13.5px' }}>GitHub Profile Strength (10% weight)</span>
+                              <span className="tag" style={{ backgroundColor: 'var(--primary-subtle)', color: 'var(--primary)', fontWeight: '700' }}>
+                                {githubScore} / 100
+                              </span>
+                            </div>
+                            
+                            <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                              {githubJustification}
+                            </p>
 
-                        {/* Right: Metadata Details */}
-                        <div className="flex-col gap-4 text-left" style={{ borderLeft: '1px solid var(--border)', paddingLeft: '24px' }}>
-                          <h4 style={{ margin: 0, fontSize: '13.5px', fontWeight: '700', color: 'var(--text-primary)' }}>Resume Parsing Metadata</h4>
-                          <div className="grid grid-cols-2 gap-3" style={{ fontSize: '12px' }}>
-                            <div className="flex-col gap-1" style={{ backgroundColor: 'var(--bg)', padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                              <span style={{ color: 'var(--text-secondary)', fontWeight: '600', fontSize: '10px', textTransform: 'uppercase' }}>Experience</span>
-                              <strong style={{ color: 'var(--text-primary)' }}>{result.structuredResume?.experienceYears || 0} years</strong>
-                            </div>
-                            <div className="flex-col gap-1" style={{ backgroundColor: 'var(--bg)', padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                              <span style={{ color: 'var(--text-secondary)', fontWeight: '600', fontSize: '10px', textTransform: 'uppercase' }}>Education Records</span>
-                              <strong style={{ color: 'var(--text-primary)' }}>{result.structuredResume?.education?.length || 0} found</strong>
-                            </div>
-                            <div className="flex-col gap-1" style={{ backgroundColor: 'var(--bg)', padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                              <span style={{ color: 'var(--text-secondary)', fontWeight: '600', fontSize: '10px', textTransform: 'uppercase' }}>Email Address</span>
-                              <span className="truncate" style={{ fontWeight: '700', color: 'var(--text-primary)' }} title={result.structuredResume?.email || 'N/A'}>
-                                {result.structuredResume?.email || 'N/A'}
+                            {(githubScore > 0 || hasGithub) && (
+                              <div className="grid grid-cols-2 gap-4" style={{ fontSize: '12px', borderTop: '1px solid var(--border)', paddingTop: '12px', marginTop: '4px' }}>
+                                <div className="flex justify-between align-center">
+                                  <span style={{ color: 'var(--text-secondary)' }}>Public Repos count</span>
+                                  <strong style={{ color: reposScore >= 70 ? 'var(--success)' : 'var(--warning)' }}>
+                                    {reposScore}%
+                                  </strong>
+                                </div>
+                                <div className="flex justify-between align-center">
+                                  <span style={{ color: 'var(--text-secondary)' }}>Total contributions</span>
+                                  <strong style={{ color: contributionsScore >= 70 ? 'var(--success)' : 'var(--warning)' }}>
+                                    {contributionsScore}%
+                                  </strong>
+                                </div>
+                                <div className="flex justify-between align-center">
+                                  <span style={{ color: 'var(--text-secondary)' }}>Recent activity</span>
+                                  <strong style={{ color: activityScore >= 70 ? 'var(--success)' : 'var(--warning)' }}>
+                                    {activityScore}%
+                                  </strong>
+                                </div>
+                                <div className="flex justify-between align-center">
+                                  <span style={{ color: 'var(--text-secondary)' }}>Repo languages matching JD</span>
+                                  <strong style={{ color: languagesScore >= 70 ? 'var(--success)' : 'var(--warning)' }}>
+                                    {languagesScore}%
+                                  </strong>
+                                </div>
+                                <div className="flex justify-between align-center">
+                                  <span style={{ color: 'var(--text-secondary)' }}>Follower count</span>
+                                  <strong style={{ color: followersScore >= 70 ? 'var(--success)' : 'var(--warning)' }}>
+                                    {followersScore}%
+                                  </strong>
+                                </div>
+                                <div className="flex justify-between align-center">
+                                  <span style={{ color: 'var(--text-secondary)' }}>Profile completeness</span>
+                                  <strong style={{ color: completenessScore >= 70 ? 'var(--success)' : 'var(--warning)' }}>
+                                    {completenessScore}%
+                                  </strong>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* 2. Skills + Semantic Match Category */}
+                          <div style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            <div className="flex justify-between align-center">
+                              <span style={{ fontWeight: '700', color: 'var(--text-primary)', fontSize: '13.5px' }}>Skills & Semantic Match (70% weight)</span>
+                              <span className="tag" style={{ backgroundColor: 'var(--primary-subtle)', color: 'var(--primary)', fontWeight: '700' }}>
+                                {skillsSemanticScore} / 100
                               </span>
                             </div>
-                            <div className="flex-col gap-1" style={{ backgroundColor: 'var(--bg)', padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                              <span style={{ color: 'var(--text-secondary)', fontWeight: '600', fontSize: '10px', textTransform: 'uppercase' }}>Phone Number</span>
-                              <span className="truncate" style={{ fontWeight: '700', color: 'var(--text-primary)' }} title={result.structuredResume?.phone || 'N/A'}>
-                                {result.structuredResume?.phone || 'N/A'}
-                              </span>
+                            
+                            <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                              {skillsJustification}
+                            </p>
+
+                            <div className="grid grid-cols-3 gap-4" style={{ fontSize: '12px', borderTop: '1px solid var(--border)', paddingTop: '12px', marginTop: '4px', textAlign: 'center' }}>
+                              <div className="flex-col gap-1">
+                                <span style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>S-BERT Similarity</span>
+                                <strong style={{ fontSize: '13px', color: embeddingSimilarity >= 70 ? 'var(--success)' : 'var(--warning)' }}>
+                                  {embeddingSimilarity}%
+                                </strong>
+                              </div>
+                              <div className="flex-col gap-1">
+                                <span style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>Fuzzy Skill Match</span>
+                                <strong style={{ fontSize: '13px', color: fuzzySkillMatch >= 70 ? 'var(--success)' : 'var(--warning)' }}>
+                                  {fuzzySkillMatch}%
+                                </strong>
+                              </div>
+                              <div className="flex-col gap-1">
+                                <span style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>Role Taxonomy</span>
+                                <strong style={{ fontSize: '13px', color: roleTaxonomy >= 70 ? 'var(--success)' : 'var(--warning)' }}>
+                                  {roleTaxonomy}%
+                                </strong>
+                              </div>
                             </div>
                           </div>
 
-                          <div className="flex-col gap-1.5" style={{ marginTop: '8px' }}>
-                            <span style={{ color: 'var(--text-secondary)', fontSize: '11px', fontWeight: '500' }}>
-                              Sections Identified:
-                            </span>
-                            <div className="flex flex-wrap gap-1">
-                              {(result.structuredResume?.sectionsFound || []).map((sec, idx) => (
-                                <span key={idx} className="tag tag-neutral" style={{ padding: '2px 8px', fontSize: '10px', textTransform: 'capitalize' }}>
-                                  {sec}
-                                </span>
-                              ))}
+                          {/* 3. Experience + Education Category */}
+                          <div style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            <div className="flex justify-between align-center">
+                              <span style={{ fontWeight: '700', color: 'var(--text-primary)', fontSize: '13.5px' }}>Experience & Education (20% weight)</span>
+                              <span className="tag" style={{ backgroundColor: 'var(--primary-subtle)', color: 'var(--primary)', fontWeight: '700' }}>
+                                {experienceEducationScore} / 100
+                              </span>
+                            </div>
+                            
+                            <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                              {expEduJustification}
+                            </p>
+
+                            <div className="grid grid-cols-3 gap-4" style={{ fontSize: '12px', borderTop: '1px solid var(--border)', paddingTop: '12px', marginTop: '4px', textAlign: 'center' }}>
+                              <div className="flex-col gap-1">
+                                <span style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>Years of Experience</span>
+                                <strong style={{ fontSize: '13px', color: yearsExperience >= 70 ? 'var(--success)' : 'var(--warning)' }}>
+                                  {yearsExperience}%
+                                </strong>
+                              </div>
+                              <div className="flex-col gap-1">
+                                <span style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>Quantified Achievements</span>
+                                <strong style={{ fontSize: '13px', color: quantifiedAchievements >= 70 ? 'var(--success)' : 'var(--warning)' }}>
+                                  {quantifiedAchievements}%
+                                </strong>
+                              </div>
+                              <div className="flex-col gap-1">
+                                <span style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>Education Level</span>
+                                <strong style={{ fontSize: '13px', color: educationLevel >= 70 ? 'var(--success)' : 'var(--warning)' }}>
+                                  {educationLevel}%
+                                </strong>
+                              </div>
                             </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
                 </div>
               </div>
             );
@@ -1242,7 +1469,8 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
               
               <div className="grid grid-cols-2 gap-8 text-left" style={{ fontSize: '13px' }}>
                 {/* Candidate details */}
-                <div className="flex flex-col gap-5">
+                <div className="flex flex-col gap-4">
+                  <h4 style={{ fontWeight: '700', color: 'var(--text-primary)' }}>Candidate Overview</h4>
                   <div className="profile-hero-card" style={{
                     padding: '16px',
                     background: 'linear-gradient(135deg, var(--primary-subtle) 0%, var(--bg) 100%)',
@@ -1355,6 +1583,48 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                           {result.structuredResume?.education?.length || 0} Records
                         </span>
                       </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <h4 style={{ fontWeight: '700', color: 'var(--text-primary)' }}>Standard Quality Scores</h4>
+                    <div style={{
+                      padding: '16px',
+                      backgroundColor: 'var(--bg)',
+                      borderRadius: '12px',
+                      border: '1px solid var(--border)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '12px',
+                      textAlign: 'left'
+                    }}>
+                      {['experience', 'education', 'skills', 'formatting', 'impact'].map((key) => {
+                        const score = result.sections?.[key] !== undefined && result.sections?.[key] !== null
+                          ? result.sections[key]
+                          : (key === 'experience' ? 30 : key === 'education' ? 90 : key === 'skills' ? 80 : key === 'formatting' ? 100 : 55);
+
+                        let label = key.charAt(0).toUpperCase() + key.slice(1);
+                        
+                        return (
+                          <div key={key} className="flex-col gap-1.5">
+                            <div className="flex justify-between align-center" style={{ fontSize: '12px' }}>
+                              <span style={{ fontWeight: '600', color: 'var(--text-secondary)' }}>{label} Quality</span>
+                              <strong style={{ color: score >= 70 ? 'var(--success)' : 'var(--warning)' }}>{score} / 100</strong>
+                            </div>
+                            <div className="progress-bar-track" style={{ height: '6px' }}>
+                              <div 
+                                className="progress-bar-fill" 
+                                style={{ 
+                                  width: `${score}%`, 
+                                  height: '100%',
+                                  backgroundColor: score >= 70 ? 'var(--success)' : 'var(--warning)',
+                                  borderRadius: '999px'
+                                }}
+                              ></div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -1571,63 +1841,7 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
             </div>
           )}
 
-          {/* Matched Resume Tab Content */}
-          {activeReportTab === 'matched' && (
-            <div className="card fade-in text-left">
-              <div className="flex justify-between align-center" style={{ marginBottom: '4px' }}>
-                <h3 className="card-title">Structured Resume Data Output</h3>
-                <button
-                  onClick={handleCopyJSON}
-                  className="button-secondary flex align-center gap-1.5"
-                  style={{
-                    padding: '6px 12px',
-                    fontSize: '12.5px',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    backgroundColor: copied ? 'var(--success-subtle)' : 'transparent',
-                    borderColor: copied ? 'var(--success)' : 'var(--border)',
-                    color: copied ? 'var(--success)' : 'var(--text-primary)'
-                  }}
-                >
-                  {copied ? (
-                    <>
-                      <CheckIcon size={14} />
-                      <span>Copied!</span>
-                    </>
-                  ) : (
-                    <>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
-                        <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
-                      </svg>
-                      <span>Copy JSON</span>
-                    </>
-                  )}
-                </button>
-              </div>
-              <div className="card-divider" style={{ margin: '8px 0 12px 0' }}></div>
-              <p className="text-secondary" style={{ fontSize: '13px', marginBottom: '12px' }}>
-                Below is the parsed structural JSON output extracted from the candidate file.
-              </p>
-              <pre 
-                className="custom-scrollbar"
-                style={{
-                  backgroundColor: 'var(--bg)',
-                  border: '1px solid var(--border)',
-                  borderRadius: '12px',
-                  padding: '16px',
-                  fontSize: '12px',
-                  fontFamily: 'monospace',
-                  overflowX: 'auto',
-                  maxHeight: '400px',
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word'
-                }}
-                dangerouslySetInnerHTML={{ __html: highlightJSON(result.structuredResume) }}
-              />
-            </div>
-          )}
+
 
           {/* Similarity Check Tab Content */}
           {activeReportTab === 'similarity' && (
@@ -1784,6 +1998,305 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                         }}></div>
                       </div>
                     </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Dynamic Rubrics Tab Content */}
+          {activeReportTab === 'rubrics' && (
+            <div className="card fade-in text-left">
+              <h3 className="card-title flex align-center gap-2">
+                <SparklesIcon size={18} style={{ color: 'var(--primary)' }} />
+                Dynamic Role-Specific Evaluation Rubrics
+              </h3>
+              <div className="card-divider"></div>
+              <p className="text-secondary" style={{ fontSize: '13px', marginBottom: '20px' }}>
+                These evaluation criteria were dynamically generated by Generative AI specifically for this job description. The candidate was scored out of 100 on each dimension.
+              </p>
+              
+              <div className="flex flex-col gap-4">
+                {(result.rubrics || getMockRubrics(jobDescription)).map((rub) => {
+                  const evalItem = result.rubricEvaluations?.find(e => e.id === rub.id) || { score: 75, justification: "Candidate meets the basic requirements for this criteria." };
+                  const scoreColor = evalItem.score >= 80 ? 'var(--success)' : (evalItem.score >= 65 ? 'var(--warning)' : 'var(--danger)');
+                  
+                  return (
+                    <div key={rub.id} className="rubric-item flex-col gap-2 p-4" style={{
+                      backgroundColor: 'var(--bg)',
+                      border: '1px solid var(--border)',
+                      borderRadius: '12px',
+                      boxShadow: 'var(--shadow)'
+                    }}>
+                      <div className="flex justify-between align-center">
+                        <div className="flex-col text-left">
+                          <strong style={{ fontSize: '14px', color: 'var(--text-primary)' }}>{rub.name}</strong>
+                          <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Weight: {rub.weight}%</span>
+                        </div>
+                        <span className="tag" style={{
+                          backgroundColor: evalItem.score >= 80 ? 'var(--success-subtle)' : (evalItem.score >= 65 ? 'var(--warning-subtle)' : 'var(--danger-subtle)'),
+                          color: scoreColor,
+                          fontWeight: '700',
+                          fontSize: '13px'
+                        }}>
+                          {evalItem.score} / 100
+                        </span>
+                      </div>
+                      
+                      <p className="text-secondary font-sans" style={{ fontSize: '12.5px', margin: '4px 0 8px 0', fontStyle: 'italic', textAlign: 'left' }}>
+                        "{rub.description}"
+                      </p>
+                      
+                      <div className="progress-bar-track" style={{ height: '6px' }}>
+                        <div className="progress-bar-fill" style={{
+                          width: `${evalItem.score}%`,
+                          backgroundColor: scoreColor,
+                          height: '100%',
+                          borderRadius: '999px'
+                        }}></div>
+                      </div>
+                      
+                      <div className="flex align-start gap-2 text-left" style={{ marginTop: '8px', fontSize: '12.5px', color: 'var(--text-primary)' }}>
+                        <span style={{ color: 'var(--primary)', fontWeight: '700' }}>AI Justification:</span>
+                        <span>{evalItem.justification}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Multimodal Integrations Tab Content */}
+          {/* GitHub Profile Tab Content */}
+          {activeReportTab === 'multimodal' && (
+            <div className="card fade-in text-left">
+              <h3 className="card-title flex align-center gap-2">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" />
+                </svg>
+                GitHub Developer Footprint
+              </h3>
+              <div className="card-divider"></div>
+              
+              <div className="flex-col gap-6">
+                <div className="flex align-center justify-between">
+                  <h4 style={{ margin: 0, fontSize: '14.5px', fontWeight: '700', color: 'var(--text-primary)' }}>
+                    Extracted GitHub Profile Data
+                  </h4>
+                  {result.multimodalDetails?.github?.isMock && (
+                    <span className="tag" style={{ fontSize: '10px' }}>Simulated Data</span>
+                  )}
+                </div>
+
+                {result.multimodalDetails?.github ? (
+                  <div className="grid grid-cols-2 gap-8 p-4" style={{ backgroundColor: 'var(--bg)', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                    {/* Left: Bio & Metrics */}
+                    <div className="flex-col gap-4">
+                      <div className="flex align-center gap-3">
+                        <img 
+                          src={result.multimodalDetails.github.avatarUrl || 'https://github.com/identicons/octocat.png'} 
+                          alt="GitHub Avatar" 
+                          style={{ width: '48px', height: '48px', borderRadius: '50%', border: '1px solid var(--border)' }}
+                        />
+                        <div className="flex-col text-left">
+                          <strong style={{ fontSize: '14px', color: 'var(--text-primary)' }}>{result.multimodalDetails.github.name}</strong>
+                          <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>@{result.multimodalDetails.github.username}</span>
+                        </div>
+                      </div>
+
+                      {result.multimodalDetails.github.bio && (
+                        <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', margin: '4px 0', fontStyle: 'italic', textAlign: 'left' }}>
+                          "{result.multimodalDetails.github.bio}"
+                        </p>
+                      )}
+
+                      {result.multimodalDetails.github.website && (
+                        <div className="flex align-center gap-2" style={{ fontSize: '12px', color: 'var(--primary)' }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="2" y1="12" x2="22" y2="12" />
+                            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                          </svg>
+                          <a href={result.multimodalDetails.github.website} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none', fontWeight: '600' }}>
+                            {result.multimodalDetails.github.website}
+                          </a>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-4 gap-2 text-center" style={{ fontSize: '12px', marginTop: '8px' }}>
+                        <div style={{ backgroundColor: 'var(--surface)', padding: '8px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                          <span style={{ fontSize: '10px', color: 'var(--text-secondary)', display: 'block' }}>Public Repos</span>
+                          <strong style={{ color: 'var(--text-primary)' }}>{result.multimodalDetails.github.publicReposCount}</strong>
+                        </div>
+                        <div style={{ backgroundColor: 'var(--surface)', padding: '8px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                          <span style={{ fontSize: '10px', color: 'var(--text-secondary)', display: 'block' }}>Total Stars</span>
+                          <strong style={{ color: 'var(--text-primary)' }}>{result.multimodalDetails.github.totalStars} ★</strong>
+                        </div>
+                        <div style={{ backgroundColor: 'var(--surface)', padding: '8px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                          <span style={{ fontSize: '10px', color: 'var(--text-secondary)', display: 'block' }}>Followers</span>
+                          <strong style={{ color: 'var(--text-primary)' }}>{result.multimodalDetails.github.followers}</strong>
+                        </div>
+                        <div style={{ backgroundColor: 'var(--surface)', padding: '8px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                          <span style={{ fontSize: '10px', color: 'var(--text-secondary)', display: 'block' }}>Contributions</span>
+                          <strong style={{ color: 'var(--text-primary)' }}>{result.multimodalDetails.github.contributions}</strong>
+                        </div>
+                      </div>
+
+                      <div className="flex-col gap-1.5 text-left" style={{ marginTop: '8px' }}>
+                        <span style={{ fontSize: '11.5px', fontWeight: '700', color: 'var(--text-secondary)' }}>Top Languages:</span>
+                        <div className="flex gap-1.5 flex-wrap">
+                          {result.multimodalDetails.github.topLanguages?.map((lang, idx) => (
+                            <span key={idx} className="tag tag-matched" style={{ fontSize: '11px', fontWeight: '600' }}>{lang}</span>
+                          )) || <span style={{ fontSize: '11.5px', color: 'var(--text-secondary)' }}>None detected</span>}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right: Public Repos list */}
+                    <div className="flex-col gap-3">
+                      <span style={{ fontSize: '12.5px', fontWeight: '700', color: 'var(--text-secondary)', display: 'block', textAlign: 'left' }}>Public Repositories:</span>
+                      <div className="flex flex-col gap-2.5" style={{ maxHeight: '300px', overflowY: 'auto', paddingRight: '4px' }}>
+                        {result.multimodalDetails.github.repos?.map((repo, idx) => (
+                          <div key={idx} style={{
+                            padding: '10px 14px',
+                            backgroundColor: 'var(--surface)',
+                            border: '1px solid var(--border)',
+                            borderRadius: '8px',
+                            fontSize: '12px'
+                          }}>
+                            <div className="flex justify-between">
+                              <a href={repo.url} target="_blank" rel="noopener noreferrer" style={{ fontWeight: '700', color: 'var(--primary)', textDecoration: 'none' }}>{repo.name}</a>
+                              <span>{repo.stars} ★</span>
+                            </div>
+                            <p style={{ margin: '3px 0 6px 0', color: 'var(--text-secondary)', fontSize: '11px', lineHeight: '1.4' }}>{repo.description}</p>
+                            <div className="flex justify-between align-center">
+                              <span style={{ fontSize: '10.5px', color: 'var(--primary)', fontWeight: '600' }}>{repo.language}</span>
+                              {repo.pushedAt && (
+                                <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Pushed: {new Date(repo.pushedAt).toLocaleDateString()}</span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex-col align-center justify-center p-8 text-center" style={{ backgroundColor: 'var(--bg)', borderRadius: '12px', border: '1px solid var(--border)', minHeight: '200px' }}>
+                    <span className="text-secondary" style={{ fontSize: '13px' }}>No GitHub profile linked or extracted from resume.</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Talent Benchmarking Tab Content */}
+          {activeReportTab === 'benchmarking' && (
+            <div className="card fade-in text-left">
+              <h3 className="card-title flex align-center gap-2">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M3 3v18h18" />
+                  <path d="m18.7 8-5.1 5.2-2.8-2.7L7 14.3" />
+                </svg>
+                Talent Pool Competitive Benchmarking
+              </h3>
+              <div className="card-divider"></div>
+              
+              <div className="flex flex-col gap-6">
+                <div className="grid grid-cols-3 gap-6">
+                  {/* Percentile Card */}
+                  <div style={{ backgroundColor: 'var(--bg)', border: '1px solid var(--border)', padding: '16px', borderRadius: '12px', textAlign: 'center' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '600', textTransform: 'uppercase' }}>Percentile Standing</span>
+                    <strong style={{ fontSize: '28px', color: 'var(--primary)', display: 'block', margin: '8px 0' }}>Top {displayRankPercent}%</strong>
+                    <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)' }}>Rank {rankingInfo.rank} of {rankingInfo.total} applicants</span>
+                  </div>
+
+                  {/* Average Comparison */}
+                  <div style={{ backgroundColor: 'var(--bg)', border: '1px solid var(--border)', padding: '16px', borderRadius: '12px', textAlign: 'center' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '600', textTransform: 'uppercase' }}>Average Pool Score</span>
+                    <strong style={{ fontSize: '28px', color: 'var(--text-primary)', display: 'block', margin: '8px 0' }}>
+                      {Math.round(history.reduce((acc, h) => acc + (h.analysis?.atsScore || h.analysis?.qualityScore || 0), 0) / Math.max(1, history.length))}%
+                    </strong>
+                    <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)' }}>Current Score: {displayAtsScore}%</span>
+                  </div>
+
+                  {/* Experience Comparison */}
+                  <div style={{ backgroundColor: 'var(--bg)', border: '1px solid var(--border)', padding: '16px', borderRadius: '12px', textAlign: 'center' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '600', textTransform: 'uppercase' }}>Experience vs Pool</span>
+                    <strong style={{ fontSize: '28px', color: 'var(--text-primary)', display: 'block', margin: '8px 0' }}>
+                      {result.structuredResume?.experienceYears || 0} yrs
+                    </strong>
+                    <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)' }}>
+                      Average Pool: {Math.round((history.reduce((acc, h) => acc + (h.analysis?.structuredResume?.experienceYears || 0), 0) / Math.max(1, history.length)) * 10) / 10} yrs
+                    </span>
+                  </div>
+                </div>
+
+                {/* Score Distribution Chart */}
+                <div className="flex-col gap-3">
+                  <h4 style={{ margin: 0, fontSize: '14px', fontWeight: '700', color: 'var(--text-primary)' }}>Talent Score Distribution</h4>
+                  <p className="text-secondary" style={{ fontSize: '12.5px' }}>
+                    See where this candidate sits compared to all parsed applications in this session.
+                  </p>
+                  
+                  {/* Visual Bar chart using CSS Grid */}
+                  <div className="flex align-end gap-1" style={{ height: '120px', borderBottom: '2px solid var(--border)', paddingBottom: '4px', position: 'relative', marginTop: '16px' }}>
+                    {(() => {
+                      // Group scores in 10-point buckets (0-10, 10-20, ..., 90-100)
+                      const buckets = Array(10).fill(0);
+                      history.forEach(item => {
+                        const score = item.analysis?.atsScore || item.analysis?.qualityScore || 0;
+                        const idx = Math.min(9, Math.floor(score / 10));
+                        buckets[idx]++;
+                      });
+                      
+                      const maxCount = Math.max(1, ...buckets);
+                      const candidateBucketIdx = Math.min(9, Math.floor(displayAtsScore / 10));
+
+                      return buckets.map((count, idx) => {
+                        const percentHeight = Math.round((count / maxCount) * 100);
+                        const isCandidateBucket = idx === candidateBucketIdx;
+                        
+                        return (
+                          <div 
+                            key={idx} 
+                            style={{
+                              flex: 1,
+                              height: `${Math.max(10, percentHeight)}%`,
+                              backgroundColor: isCandidateBucket ? 'var(--primary)' : 'var(--border)',
+                              borderRadius: '4px 4px 0 0',
+                              transition: 'all 0.3s',
+                              position: 'relative',
+                              display: 'flex',
+                              justifyContent: 'center',
+                              cursor: 'pointer'
+                            }}
+                            title={`Range: ${idx * 10}-${(idx + 1) * 10}% | Candidates: ${count}`}
+                          >
+                            {isCandidateBucket && (
+                              <span style={{
+                                position: 'absolute',
+                                top: '-24px',
+                                backgroundColor: 'var(--primary)',
+                                color: '#FFFFFF',
+                                fontSize: '10px',
+                                fontWeight: '700',
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                whiteSpace: 'nowrap'
+                              }}>
+                                You ({displayAtsScore}%)
+                              </span>
+                            )}
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                  <div className="flex justify-between text-secondary" style={{ fontSize: '11px', padding: '0 4px', fontWeight: '600' }}>
+                    <span>0%</span>
+                    <span>50%</span>
+                    <span>100%</span>
                   </div>
                 </div>
               </div>

@@ -3,6 +3,7 @@ import { parseResume } from '../../../lib/parsers';
 import { analyzeResume } from '../../../lib/gemini';
 import { createClient } from '../../../lib/supabase/server';
 import { getOrCreateProfile } from '../../../lib/supabase/profile';
+import { fetchGitHubPortfolio } from '../../../lib/github';
 
 export async function POST(request) {
   try {
@@ -33,6 +34,12 @@ export async function POST(request) {
     const formData = await request.formData();
     const file = formData.get('file');
     const jobDescription = formData.get('jobDescription') || '';
+    
+    // Extracted Multimodal Data
+    const githubUrl = formData.get('githubUrl') || '';
+    const githubToken = formData.get('githubToken') || '';
+    const linkedinSummary = formData.get('linkedinSummary') || '';
+    const assessmentScores = formData.get('assessmentScores') || '';
 
     if (!file) {
       return NextResponse.json({ 
@@ -62,6 +69,22 @@ export async function POST(request) {
       );
     }
 
+    // Fetch GitHub portfolio details if a URL is provided
+    let githubData = null;
+    if (githubUrl && githubUrl.trim().length > 0) {
+      try {
+        githubData = await fetchGitHubPortfolio(githubUrl, githubToken);
+      } catch (err) {
+        console.warn('GitHub fetch failed, proceeding without active repo details:', err.message);
+      }
+    }
+
+    const multimodalData = {
+      github: githubData,
+      linkedinSummary,
+      assessmentScores
+    };
+
     // Convert file to buffer
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
@@ -70,7 +93,7 @@ export async function POST(request) {
     const parsedText = await parseResume(buffer, file.name || 'Resume.pdf');
 
     // Run the analysis (Gemini or Mock fallback)
-    const analysis = await analyzeResume(parsedText, jobDescription, file.name || 'Resume');
+    const analysis = await analyzeResume(parsedText, jobDescription, file.name || 'Resume', multimodalData);
 
     let scanId = 'dummy-scan-id';
     let createdAt = new Date().toISOString();
@@ -89,7 +112,12 @@ export async function POST(request) {
           ...analysis.feedback,
           ruleViolations: analysis.ruleViolations,
           passedRules: analysis.passedRules,
-          experienceMatch: analysis.experienceMatch
+          experienceMatch: analysis.experienceMatch,
+          semanticSimilarity: analysis.semanticSimilarity,
+          rubrics: analysis.rubrics,
+          rubricEvaluations: analysis.rubricEvaluations,
+          multimodalDetails: analysis.multimodalDetails,
+          screeningDetails: analysis.screeningDetails
         },
         job_description: jobDescription,
         user_id: user.id,
@@ -144,7 +172,6 @@ export async function POST(request) {
 
       if (creditError) {
         console.error('Failed to deduct credit:', creditError);
-        // Log it but don't crash, so the user still gets their analysis report
       }
     } else {
       remainingCredits = 999;

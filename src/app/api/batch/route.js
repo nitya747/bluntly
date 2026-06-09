@@ -24,6 +24,7 @@ export async function POST(request) {
     const formData = await request.formData();
     const files = formData.getAll('files');
     const jobDescription = formData.get('jobDescription') || '';
+    const githubToken = formData.get('githubToken') || '';
 
     if (!files || files.length === 0) {
       return NextResponse.json({ error: 'No files provided' }, { status: 400 });
@@ -88,7 +89,10 @@ export async function POST(request) {
 
             // Step 2: Analysis
             sendEvent('progress', { index: i, name: filename, status: 'analysing', credits: remainingCredits });
-            const analysis = await analyzeResume(parsedText, jobDescription, filename);
+            
+            // Build simple context containing the token for candidate GitHub resolution
+            const multimodalData = { githubToken };
+            const analysis = await analyzeResume(parsedText, jobDescription, filename, multimodalData);
 
             let record;
 
@@ -114,7 +118,11 @@ export async function POST(request) {
                   ...analysis.feedback,
                   ruleViolations: analysis.ruleViolations,
                   passedRules: analysis.passedRules,
-                  experienceMatch: analysis.experienceMatch
+                  experienceMatch: analysis.experienceMatch,
+                  semanticSimilarity: analysis.semanticSimilarity,
+                  rubrics: analysis.rubrics,
+                  rubricEvaluations: analysis.rubricEvaluations,
+                  multimodalDetails: analysis.multimodalDetails
                 },
                 job_description: jobDescription,
                 user_id: user.id,

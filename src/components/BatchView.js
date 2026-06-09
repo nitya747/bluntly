@@ -44,6 +44,10 @@ export default function BatchView({
 
   const [expandedIndex, setExpandedIndex] = useState(null);
   const [dragOver, setDragOver] = useState(false);
+  
+  // Comparison & Benchmarking State
+  const [selectedCompareIds, setSelectedCompareIds] = useState([]);
+  const [showCompareDrawer, setShowCompareDrawer] = useState(false);
 
   const loadSampleJD = () => {
     setJobDescription(
@@ -104,6 +108,8 @@ export default function BatchView({
     setError(null);
     setResults([]);
     setExpandedIndex(null);
+    setSelectedCompareIds([]);
+    setShowCompareDrawer(false);
     setActiveSection('analysis');
 
     // Initialize progress logs
@@ -277,7 +283,22 @@ export default function BatchView({
     setExpandedIndex(expandedIndex === idx ? null : idx);
   };
 
+  const handleSelectCompare = (id) => {
+    if (selectedCompareIds.includes(id)) {
+      setSelectedCompareIds(selectedCompareIds.filter(x => x !== id));
+    } else {
+      if (selectedCompareIds.length >= 3) {
+        setError("You can compare up to 3 candidates at a time.");
+        return;
+      }
+      setError(null);
+      setSelectedCompareIds([...selectedCompareIds, id]);
+    }
+  };
+
   const loadRecentBatchJob = (job) => {
+    setSelectedCompareIds([]);
+    setShowCompareDrawer(false);
     setResults(job.rawResults);
     setActiveSection('analysis');
     setExpandedIndex(null);
@@ -607,64 +628,133 @@ export default function BatchView({
 
           {/* Section 2: Summary Metrics (140px KPI cards) */}
           {results.length > 0 && (
-            <div className="grid grid-cols-4 gap-8">
-              {/* Total Resumes */}
-              <div className="kpi-card">
-                <div className="flex align-center justify-between">
-                  <span className="kpi-title">Total Resumes</span>
+            <div className="flex-col gap-6 w-full">
+              <div className="grid grid-cols-4 gap-8">
+                {/* Total Resumes */}
+                <div className="kpi-card">
+                  <div className="flex align-center justify-between">
+                    <span className="kpi-title">Total Resumes</span>
+                  </div>
+                  <span className="kpi-score">{totalResumes}</span>
+                  <span className="kpi-status">Candidates parsed</span>
+                  <div className="progress-bar-track">
+                    <div className="progress-bar-fill primary" style={{ width: '100%' }}></div>
+                  </div>
                 </div>
-                <span className="kpi-score">{totalResumes}</span>
-                <span className="kpi-status">Candidates parsed</span>
-                <div className="progress-bar-track">
-                  <div className="progress-bar-fill primary" style={{ width: '100%' }}></div>
+
+                {/* Average ATS Score */}
+                <div className="kpi-card">
+                  <div className="flex align-center justify-between">
+                    <span className="kpi-title">Average ATS Match</span>
+                  </div>
+                  <span className="kpi-score" style={{ color: avgATS >= 80 ? 'var(--success)' : avgATS >= 65 ? 'var(--warning)' : 'var(--danger)' }}>
+                    {avgATS}%
+                  </span>
+                  <span className="kpi-status" style={{ color: avgATS >= 80 ? 'var(--success)' : avgATS >= 65 ? 'var(--warning)' : 'var(--danger)', fontWeight: '700' }}>
+                    {getStatusLabel(avgATS)}
+                  </span>
+                  <div className="progress-bar-track" style={{ backgroundColor: 'rgba(148, 163, 184, 0.1)', height: '5px', borderRadius: '999px', overflow: 'hidden' }}>
+                    <div className="progress-bar-fill" style={{ width: `${avgATS}%`, backgroundColor: avgATS >= 80 ? 'var(--success)' : avgATS >= 65 ? 'var(--warning)' : 'var(--danger)' }}></div>
+                  </div>
+                </div>
+
+                {/* Highest Score */}
+                <div className="kpi-card">
+                  <div className="flex align-center justify-between">
+                    <span className="kpi-title">Highest ATS Match</span>
+                  </div>
+                  <span className="kpi-score" style={{ color: highestATS >= 80 ? 'var(--success)' : highestATS >= 65 ? 'var(--warning)' : 'var(--danger)' }}>
+                    {highestATS}%
+                  </span>
+                  <span className="kpi-status" style={{ color: highestATS >= 80 ? 'var(--success)' : highestATS >= 65 ? 'var(--warning)' : 'var(--danger)', fontWeight: '700' }}>
+                    Top Candidate
+                  </span>
+                  <div className="progress-bar-track" style={{ backgroundColor: 'rgba(148, 163, 184, 0.1)', height: '5px', borderRadius: '999px', overflow: 'hidden' }}>
+                    <div className="progress-bar-fill" style={{ width: `${highestATS}%`, backgroundColor: highestATS >= 80 ? 'var(--success)' : highestATS >= 65 ? 'var(--warning)' : 'var(--danger)' }}></div>
+                  </div>
+                </div>
+
+                {/* Lowest Score */}
+                <div className="kpi-card">
+                  <div className="flex align-center justify-between">
+                    <span className="kpi-title">Lowest ATS Match</span>
+                  </div>
+                  <span className="kpi-score" style={{ color: lowestATS >= 80 ? 'var(--success)' : lowestATS >= 65 ? 'var(--warning)' : 'var(--danger)' }}>
+                    {lowestATS}%
+                  </span>
+                  <span className="kpi-status" style={{ color: lowestATS >= 80 ? 'var(--success)' : lowestATS >= 65 ? 'var(--warning)' : 'var(--danger)', fontWeight: '700' }}>
+                    Floor Score
+                  </span>
+                  <div className="progress-bar-track" style={{ backgroundColor: 'rgba(148, 163, 184, 0.1)', height: '5px', borderRadius: '999px', overflow: 'hidden' }}>
+                    <div className="progress-bar-fill" style={{ width: `${lowestATS}%`, backgroundColor: lowestATS >= 80 ? 'var(--success)' : lowestATS >= 65 ? 'var(--warning)' : 'var(--danger)' }}></div>
+                  </div>
                 </div>
               </div>
 
-              {/* Average ATS Score */}
-              <div className="kpi-card">
-                <div className="flex align-center justify-between">
-                  <span className="kpi-title">Average ATS Match</span>
+              {/* Talent Score Distribution Chart */}
+              <div className="card text-left">
+                <h4 style={{ margin: 0, fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)' }}>Batch Score Distribution</h4>
+                <p className="text-secondary" style={{ fontSize: '12.5px', marginTop: '4px', marginBottom: '16px' }}>
+                  Distribution of ATS match scores across all candidates in this batch.
+                </p>
+                
+                {/* Visual Bar chart using CSS Grid */}
+                <div className="flex align-end gap-1" style={{ height: '120px', borderBottom: '2px solid var(--border)', paddingBottom: '4px', position: 'relative', marginTop: '16px' }}>
+                  {(() => {
+                    const buckets = Array(10).fill(0);
+                    results.forEach(item => {
+                      const score = item.analysis?.atsScore || item.analysis?.qualityScore || 0;
+                      const idx = Math.min(9, Math.floor(score / 10));
+                      buckets[idx]++;
+                    });
+                    
+                    const maxCount = Math.max(1, ...buckets);
+                    
+                    return buckets.map((count, idx) => {
+                      const percentHeight = Math.round((count / maxCount) * 100);
+                      return (
+                        <div 
+                          key={idx} 
+                          style={{
+                            flex: 1,
+                            height: `${Math.max(10, percentHeight)}%`,
+                            backgroundColor: count > 0 ? 'var(--primary)' : 'var(--border)',
+                            borderRadius: '4px 4px 0 0',
+                            transition: 'all 0.3s',
+                            position: 'relative',
+                            display: 'flex',
+                            justifyContent: 'center',
+                            cursor: 'pointer'
+                          }}
+                          title={`Range: ${idx * 10}-${(idx + 1) * 10}% | Candidates: ${count}`}
+                        >
+                          {count > 0 && (
+                            <span style={{
+                              position: 'absolute',
+                              top: '-20px',
+                              color: 'var(--text-primary)',
+                              fontSize: '10px',
+                              fontWeight: '700'
+                            }}>
+                              {count}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    });
+                  })()}
                 </div>
-                <span className="kpi-score" style={{ color: avgATS >= 80 ? 'var(--success)' : avgATS >= 65 ? 'var(--warning)' : 'var(--danger)' }}>
-                  {avgATS}%
-                </span>
-                <span className="kpi-status" style={{ color: avgATS >= 80 ? 'var(--success)' : avgATS >= 65 ? 'var(--warning)' : 'var(--danger)', fontWeight: '700' }}>
-                  {getStatusLabel(avgATS)}
-                </span>
-                <div className="progress-bar-track" style={{ backgroundColor: 'rgba(148, 163, 184, 0.1)', height: '5px', borderRadius: '999px', overflow: 'hidden' }}>
-                  <div className="progress-bar-fill" style={{ width: `${avgATS}%`, backgroundColor: avgATS >= 80 ? 'var(--success)' : avgATS >= 65 ? 'var(--warning)' : 'var(--danger)' }}></div>
-                </div>
-              </div>
-
-              {/* Highest Score */}
-              <div className="kpi-card">
-                <div className="flex align-center justify-between">
-                  <span className="kpi-title">Highest ATS Match</span>
-                </div>
-                <span className="kpi-score" style={{ color: highestATS >= 80 ? 'var(--success)' : highestATS >= 65 ? 'var(--warning)' : 'var(--danger)' }}>
-                  {highestATS}%
-                </span>
-                <span className="kpi-status" style={{ color: highestATS >= 80 ? 'var(--success)' : highestATS >= 65 ? 'var(--warning)' : 'var(--danger)', fontWeight: '700' }}>
-                  Top Candidate
-                </span>
-                <div className="progress-bar-track" style={{ backgroundColor: 'rgba(148, 163, 184, 0.1)', height: '5px', borderRadius: '999px', overflow: 'hidden' }}>
-                  <div className="progress-bar-fill" style={{ width: `${highestATS}%`, backgroundColor: highestATS >= 80 ? 'var(--success)' : highestATS >= 65 ? 'var(--warning)' : 'var(--danger)' }}></div>
-                </div>
-              </div>
-
-              {/* Lowest Score */}
-              <div className="kpi-card">
-                <div className="flex align-center justify-between">
-                  <span className="kpi-title">Lowest ATS Match</span>
-                </div>
-                <span className="kpi-score" style={{ color: lowestATS >= 80 ? 'var(--success)' : lowestATS >= 65 ? 'var(--warning)' : 'var(--danger)' }}>
-                  {lowestATS}%
-                </span>
-                <span className="kpi-status" style={{ color: lowestATS >= 80 ? 'var(--success)' : lowestATS >= 65 ? 'var(--warning)' : 'var(--danger)', fontWeight: '700' }}>
-                  Floor Score
-                </span>
-                <div className="progress-bar-track" style={{ backgroundColor: 'rgba(148, 163, 184, 0.1)', height: '5px', borderRadius: '999px', overflow: 'hidden' }}>
-                  <div className="progress-bar-fill" style={{ width: `${lowestATS}%`, backgroundColor: lowestATS >= 80 ? 'var(--success)' : lowestATS >= 65 ? 'var(--warning)' : 'var(--danger)' }}></div>
+                <div className="flex justify-between text-secondary font-mono" style={{ fontSize: '11px', padding: '0 4px', marginTop: '6px' }}>
+                  <span>0-10%</span>
+                  <span>10-20%</span>
+                  <span>20-30%</span>
+                  <span>30-40%</span>
+                  <span>40-50%</span>
+                  <span>50-60%</span>
+                  <span>60-70%</span>
+                  <span>70-80%</span>
+                  <span>80-90%</span>
+                  <span>90-100%</span>
                 </div>
               </div>
             </div>
@@ -715,8 +805,26 @@ export default function BatchView({
                   </span>
                 </h3>
                 
-                {/* Export Buttons */}
-                <div className="flex gap-2">
+                {/* Export & Compare Buttons */}
+                <div className="flex gap-2 align-center">
+                  <button 
+                    disabled={selectedCompareIds.length < 2}
+                    onClick={() => setShowCompareDrawer(true)} 
+                    className="button-primary flex align-center gap-2" 
+                    style={{ 
+                      padding: '8px 14px', 
+                      fontSize: '13px', 
+                      borderRadius: '8px', 
+                      fontWeight: '600', 
+                      backgroundColor: selectedCompareIds.length < 2 ? 'var(--border)' : 'var(--primary)',
+                      color: selectedCompareIds.length < 2 ? 'var(--text-secondary)' : '#FFFFFF',
+                      opacity: selectedCompareIds.length < 2 ? 0.6 : 1, 
+                      cursor: selectedCompareIds.length < 2 ? 'not-allowed' : 'pointer',
+                      border: 'none'
+                    }}
+                  >
+                    <span>Compare ({selectedCompareIds.length})</span>
+                  </button>
                   <button onClick={exportCSV} className="button-secondary flex align-center gap-2" style={{ padding: '8px 14px', fontSize: '13px', borderRadius: '8px', fontWeight: '600' }}>
                     <DownloadIcon size={12} />
                     <span>CSV</span>
@@ -733,6 +841,7 @@ export default function BatchView({
                 <table className="enterprise-table">
                   <thead>
                     <tr>
+                      <th style={{ width: '50px', textAlign: 'center' }}>Compare</th>
                       <th>Rank</th>
                       <th className="sortable" onClick={() => handleSort('name')}>
                         <div className="flex align-center gap-1">
@@ -763,9 +872,23 @@ export default function BatchView({
                       const extension = res.filename.split('.').pop().toUpperCase();
                       const isExpanded = expandedIndex === index;
                       const score = res.analysis?.atsScore ?? res.analysis?.qualityScore ?? 0;
+                      const isSelected = selectedCompareIds.includes(res.id);
 
                       return (
                         <tr key={res.id} style={{ backgroundColor: isExpanded ? 'var(--bg)' : 'transparent' }}>
+                          <td style={{ textAlign: 'center' }}>
+                            <input 
+                              type="checkbox" 
+                              checked={isSelected}
+                              onChange={() => handleSelectCompare(res.id)}
+                              style={{ 
+                                cursor: 'pointer',
+                                width: '16px',
+                                height: '16px',
+                                accentColor: 'var(--primary)'
+                              }}
+                            />
+                          </td>
                           <td style={{ fontWeight: '700', color: rank <= 3 ? 'var(--primary)' : 'var(--text-secondary)' }}>
                             #{rank}
                           </td>
@@ -884,6 +1007,189 @@ export default function BatchView({
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {showCompareDrawer && (
+        <div className="compare-overlay fade-in" style={{
+          position: 'fixed',
+          top: 0,
+          right: 0,
+          bottom: 0,
+          left: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.6)',
+          backdropFilter: 'blur(4px)',
+          zIndex: 1000,
+          display: 'flex',
+          justifyContent: 'flex-end',
+          alignItems: 'stretch'
+        }}>
+          <div className="compare-drawer slide-left" style={{
+            width: '85vw',
+            maxWidth: '1000px',
+            backgroundColor: 'var(--surface)',
+            borderLeft: '1px solid var(--border)',
+            boxShadow: 'var(--shadow)',
+            padding: '24px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '20px',
+            overflowY: 'auto'
+          }}>
+            <div className="flex justify-between align-center">
+              <div className="flex align-center gap-2">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ color: 'var(--primary)' }}>
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+                <h3 className="font-primary" style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: 'var(--text-primary)' }}>
+                  Candidate Comparison Matrix
+                </h3>
+              </div>
+              <button 
+                onClick={() => setShowCompareDrawer(false)} 
+                className="button-secondary flex align-center justify-center" 
+                style={{ width: '32px', height: '32px', padding: 0, borderRadius: '50%', border: '1px solid var(--border)', fontWeight: 'bold' }}
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="card-divider" style={{ margin: 0 }}></div>
+            
+            <div className="grid gap-6" style={{
+              gridTemplateColumns: `repeat(${selectedCompareIds.length}, minmax(0, 1fr))`,
+              alignItems: 'start'
+            }}>
+              {selectedCompareIds.map(id => {
+                const cand = results.find(r => r.id === id);
+                if (!cand) return null;
+                const score = cand.analysis?.atsScore ?? cand.analysis?.qualityScore ?? 0;
+                return (
+                  <div key={id} className="card text-left" style={{
+                    borderColor: 'var(--border)',
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '16px',
+                    padding: '16px'
+                  }}>
+                    {/* Header */}
+                    <div className="flex align-center gap-3">
+                      <div style={{
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: '50%',
+                        backgroundColor: 'var(--primary-subtle)',
+                        color: 'var(--primary)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: '700'
+                      }}>
+                        {cand.analysis?.candidateName?.charAt(0) || 'U'}
+                      </div>
+                      <div className="flex-col" style={{ overflow: 'hidden' }}>
+                        <strong className="truncate" style={{ fontSize: '14px', color: 'var(--text-primary)', display: 'block' }}>
+                          {cand.analysis?.candidateName || 'N/A'}
+                        </strong>
+                        <span className="truncate" style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block' }}>
+                          {cand.filename}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="card-divider" style={{ margin: 0 }}></div>
+                    
+                    {/* Scores KPI */}
+                    <div className="grid grid-cols-2 gap-2 text-center">
+                      <div style={{ backgroundColor: 'var(--bg)', border: '1px solid var(--border)', padding: '8px', borderRadius: '8px' }}>
+                        <span style={{ fontSize: '10px', color: 'var(--text-secondary)', fontWeight: '600', textTransform: 'uppercase' }}>ATS Match</span>
+                        <strong style={{ fontSize: '18px', color: 'var(--primary)', display: 'block', marginTop: '4px' }}>
+                          {score}%
+                        </strong>
+                      </div>
+                      <div style={{ backgroundColor: 'var(--bg)', border: '1px solid var(--border)', padding: '8px', borderRadius: '8px' }}>
+                        <span style={{ fontSize: '10px', color: 'var(--text-secondary)', fontWeight: '600', textTransform: 'uppercase' }}>Quality</span>
+                        <strong style={{ fontSize: '18px', color: 'var(--text-primary)', display: 'block', marginTop: '4px' }}>
+                          {cand.analysis?.qualityScore || 0}%
+                        </strong>
+                      </div>
+                    </div>
+
+                    {/* Section breakdown */}
+                    <div className="flex-col gap-2" style={{ fontSize: '12px' }}>
+                      <strong style={{ color: 'var(--text-primary)' }}>Section Breakdown</strong>
+                      <div className="flex-col gap-1.5">
+                        {['experience', 'education', 'skills', 'formatting', 'impact'].map(key => {
+                          const val = cand.analysis?.sections?.[key] || 0;
+                          return (
+                            <div key={key} className="flex-col gap-0.5">
+                              <div className="flex justify-between" style={{ fontSize: '10px', fontWeight: '500' }}>
+                                <span style={{ textTransform: 'capitalize' }}>{key}</span>
+                                <span>{val}/100</span>
+                              </div>
+                              <div className="progress-bar-track" style={{ height: '4px' }}>
+                                <div className="progress-bar-fill primary" style={{ width: `${val}%`, height: '100%', backgroundColor: 'var(--primary)', borderRadius: '2px' }}></div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Exp */}
+                    <div style={{ fontSize: '12px' }}>
+                      <span style={{ color: 'var(--text-secondary)', fontWeight: '600' }}>Experience: </span>
+                      <strong style={{ color: 'var(--text-primary)' }}>{cand.analysis?.structuredResume?.experienceYears || 0} Years</strong>
+                    </div>
+
+                    {/* Matched Skills */}
+                    <div className="flex-col gap-1 text-left" style={{ fontSize: '12px' }}>
+                      <strong style={{ color: 'var(--success)' }}>Matched Skills ({cand.analysis?.skills?.matched?.length || 0})</strong>
+                      <div className="flex flex-wrap gap-1" style={{ maxHeight: '72px', overflowY: 'auto' }}>
+                        {cand.analysis?.skills?.matched?.map((skill, idx) => (
+                          <span key={idx} className="tag tag-matched" style={{ fontSize: '10px', padding: '1px 6px', backgroundColor: 'var(--success-subtle)', color: 'var(--success)', borderRadius: '4px' }}>{skill}</span>
+                        )) || <span style={{ color: 'var(--text-secondary)' }}>None</span>}
+                      </div>
+                    </div>
+
+                    {/* Missing Skills */}
+                    <div className="flex-col gap-1 text-left" style={{ fontSize: '12px' }}>
+                      <strong style={{ color: 'var(--danger)' }}>Missing Skills ({cand.analysis?.skills?.missing?.length || 0})</strong>
+                      <div className="flex flex-wrap gap-1" style={{ maxHeight: '72px', overflowY: 'auto' }}>
+                        {cand.analysis?.skills?.missing?.map((skill, idx) => (
+                          <span key={idx} className="tag" style={{ fontSize: '10px', padding: '1px 6px', backgroundColor: 'var(--danger-subtle)', color: 'var(--danger)', borderRadius: '4px' }}>{skill}</span>
+                        )) || <span style={{ color: 'var(--text-secondary)' }}>None</span>}
+                      </div>
+                    </div>
+
+                    {/* Strengths */}
+                    <div className="flex-col gap-1 text-left" style={{ fontSize: '12px', flexGrow: 1 }}>
+                      <strong style={{ color: 'var(--text-primary)' }}>Strengths</strong>
+                      <ul style={{ paddingLeft: '12px', margin: 0, color: 'var(--text-secondary)', fontSize: '11px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                        {cand.analysis?.feedback?.strengths?.slice(0, 2).map((s, i) => (
+                          <li key={i}>{s}</li>
+                        )) || <li>None</li>}
+                      </ul>
+                    </div>
+
+                    {/* Improvements */}
+                    <div className="flex-col gap-1 text-left" style={{ fontSize: '12px' }}>
+                      <strong style={{ color: 'var(--text-primary)' }}>Improvements</strong>
+                      <ul style={{ paddingLeft: '12px', margin: 0, color: 'var(--text-secondary)', fontSize: '11px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                        {cand.analysis?.feedback?.improvements?.slice(0, 2).map((s, i) => (
+                          <li key={i}>{s}</li>
+                        )) || <li>None</li>}
+                      </ul>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       )}
 
@@ -1023,6 +1329,20 @@ export default function BatchView({
           font-family: var(--font-secondary);
           font-size: 12px;
           color: var(--text-secondary);
+        }
+        
+        .compare-overlay {
+          transition: opacity 0.2s ease-in-out;
+        }
+        
+        .compare-drawer {
+          transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        
+        .tag-matched {
+          background-color: var(--success-subtle);
+          color: var(--success);
+          font-weight: 600;
         }
       `}</style>
     </div>

@@ -724,22 +724,7 @@ input, textarea, button, select {
   color: #FFFFFF;
 }
 
-/* Tooltip and helpers */
-.tooltip-icon {
-  color: var(--text-secondary);
-  opacity: 0.5;
-  cursor: help;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  margin-left: 6px;
-  vertical-align: middle;
-  transition: opacity var(--transition-speed) ease;
-}
 
-.tooltip-icon:hover {
-  opacity: 0.9;
-}
 
 /* Recommendation Box */
 .recommendation-box {
@@ -1109,7 +1094,6 @@ input[type="range"]::-moz-range-thumb:hover {
   .tabs-navigation,
   .doc-header-block .actions-btn,
   .doc-header-block .dropdown-btn,
-  .kpi-card .tooltip-icon,
   .switcher-capsule,
   .header-icon-btn,
   .profile-trigger,
@@ -1379,17 +1363,7 @@ input[type="range"]::-moz-range-thumb:hover {
   box-shadow: 0 4px 14px rgba(20, 184, 166, 0.06);
 }
 
-.priority-fix-card.fix-critical {
-  border-left: 4px solid var(--danger);
-}
 
-.priority-fix-card.fix-high {
-  border-left: 4px solid var(--warning);
-}
-
-.priority-fix-card.fix-medium {
-  border-left: 4px solid var(--primary);
-}
 
 .priority-fix-icon-box {
   width: 32px;
@@ -1481,7 +1455,6 @@ input[type="range"]::-moz-range-thumb:hover {
 .diagnosis-col {
   background-color: var(--surface);
   border: 1px solid var(--border);
-  border-left: 3.5px solid var(--border);
   border-radius: var(--radius-card);
   padding: 18px 20px;
   display: flex;
@@ -1508,15 +1481,12 @@ input[type="range"]::-moz-range-thumb:hover {
   margin: 0;
 }
 
-.diagnosis-col.strengths { border-left-color: var(--success); }
 .diagnosis-col.strengths .diagnosis-col-title { color: var(--success); }
 .diagnosis-col.strengths:hover { border-color: var(--success); }
 
-.diagnosis-col.attention { border-left-color: var(--warning); }
 .diagnosis-col.attention .diagnosis-col-title { color: var(--warning); }
 .diagnosis-col.attention:hover { border-color: var(--warning); }
 
-.diagnosis-col.risks { border-left-color: var(--danger); }
 .diagnosis-col.risks .diagnosis-col-title { color: var(--danger); }
 .diagnosis-col.risks:hover { border-color: var(--danger); }
 

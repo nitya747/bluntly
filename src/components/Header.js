@@ -35,7 +35,7 @@ export default function Header({
     {
       id: 2,
       title: 'Credits Available',
-      desc: `${credits || 0} credits remaining. Top up anytime.`,
+      desc: '',
       time: '10 mins ago',
       unread: true,
       type: 'credits'
@@ -43,25 +43,22 @@ export default function Header({
     {
       id: 3,
       title: 'Model Connection',
-      desc: isMock ? 'Running on simulation mock API.' : 'Connected to Google Gemini active API.',
+      desc: '',
       time: '1 hour ago',
       unread: false,
       type: 'model'
     }
   ]);
 
-  // Sync notifications with credits and isMock when props change
-  useEffect(() => {
-    setNotifications(prev => prev.map(notif => {
-      if (notif.type === 'credits') {
-        return { ...notif, desc: `${credits || 0} credits remaining. Top up anytime.` };
-      }
-      if (notif.type === 'model') {
-        return { ...notif, desc: isMock ? 'Running on simulation mock API.' : 'Connected to Google Gemini active API.' };
-      }
-      return notif;
-    }));
-  }, [credits, isMock]);
+  const displayNotifications = notifications.map(notif => {
+    if (notif.type === 'credits') {
+      return { ...notif, desc: `${credits || 0} credits remaining. Top up anytime.` };
+    }
+    if (notif.type === 'model') {
+      return { ...notif, desc: isMock ? 'Running on simulation mock API.' : 'Connected to Google Gemini active API.' };
+    }
+    return notif;
+  });
 
   // Click outside to close dropdowns
   useEffect(() => {
@@ -223,7 +220,7 @@ export default function Header({
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
                 <path d="M13.73 21a2 2 0 0 1-3.46 0" />
               </svg>
-              {unreadNotifications && notifications.length > 0 && (
+              {unreadNotifications && displayNotifications.length > 0 && (
                 <span className="notification-dot"></span>
               )}
             </button>
@@ -233,7 +230,7 @@ export default function Header({
               <div className="dropdown-panel notifications-panel fade-in">
                 <div className="dropdown-header flex align-center justify-between">
                   <span className="dropdown-title">Notifications</span>
-                  {notifications.length > 0 && (
+                  {displayNotifications.length > 0 && (
                     <button 
                       onClick={handleClearNotifications} 
                       className="clear-all-btn font-sans"
@@ -244,8 +241,8 @@ export default function Header({
                 </div>
                 <div className="dropdown-divider"></div>
                 <div className="notifications-list flex-col">
-                  {notifications.length > 0 ? (
-                    notifications.map((notif) => (
+                  {displayNotifications.length > 0 ? (
+                    displayNotifications.map((notif) => (
                       <div key={notif.id} className={`notification-item flex gap-3 ${notif.unread ? 'unread' : ''}`}>
                         <div className="notification-icon-container flex align-center justify-center">
                           {notif.type === 'credits' ? (

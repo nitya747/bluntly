@@ -369,16 +369,14 @@ export default function RightPanel({ history = [], onSelectHistory, currentAnaly
 
         .tips-section {
           background: linear-gradient(135deg, rgba(20, 184, 166, 0.04), rgba(13, 148, 136, 0.02));
-          border: 1px solid rgba(20, 184, 166, 0.15);
-          border-left: 4px solid var(--primary);
+          border: 1px solid rgba(20, 184, 166, 0.25);
           padding: 1rem 1.25rem;
           border-radius: 12px;
         }
 
         [data-theme="dark"] .tips-section {
           background: linear-gradient(135deg, rgba(20, 184, 166, 0.1), rgba(13, 148, 136, 0.04));
-          border: 1px solid rgba(20, 184, 166, 0.25);
-          border-left: 4px solid var(--primary);
+          border: 1px solid rgba(20, 184, 166, 0.35);
         }
 
         .tips-title {

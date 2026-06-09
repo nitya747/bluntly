@@ -1079,7 +1079,7 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                         }}
                         style={{ cursor: 'pointer' }}
                       >
-                        <div className="priority-fix-icon-box">{fix.icon}</div>
+                        <div className="priority-fix-icon-box" style={{ color: fix.impactColor, backgroundColor: fix.impactBg }}>{fix.icon}</div>
                         <div className="priority-fix-content">
                           <span className="priority-fix-title">
                             {fix.title}
@@ -1367,7 +1367,6 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                           backgroundColor: 'var(--bg)',
                           borderRadius: '8px',
                           border: '1px solid var(--border)',
-                          borderLeft: '3px solid var(--primary)',
                           display: 'flex',
                           flexDirection: 'column',
                           gap: '4px',
@@ -1413,7 +1412,6 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                           backgroundColor: 'var(--bg)',
                           borderRadius: '12px',
                           border: '1px solid var(--border)',
-                          borderLeft: '4px solid var(--primary)',
                           transition: 'all 0.2s ease',
                           display: 'flex',
                           flexDirection: 'column',
@@ -1469,8 +1467,7 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                 <div style={{
                   padding: '16px',
                    background: 'linear-gradient(135deg, var(--primary-subtle) 0%, var(--bg) 100%)',
-                  border: '1px solid var(--border)',
-                  borderLeft: '4px solid var(--primary)',
+                  border: '1px solid var(--primary-subtle)',
                   borderRadius: '12px'
                 }}>
                   <h4 style={{ fontWeight: '700', color: 'var(--primary)', marginBottom: '8px', fontSize: '14px' }}>Strategic Alignment Summary</h4>

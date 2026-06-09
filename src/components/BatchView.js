@@ -612,13 +612,6 @@ export default function BatchView({
               <div className="kpi-card">
                 <div className="flex align-center justify-between">
                   <span className="kpi-title">Total Resumes</span>
-                  <span className="tooltip-icon">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.6 }}>
-                      <circle cx="12" cy="12" r="10" />
-                      <line x1="12" y1="16" x2="12" y2="12" />
-                      <line x1="12" y1="8" x2="12.01" y2="8" />
-                    </svg>
-                  </span>
                 </div>
                 <span className="kpi-score">{totalResumes}</span>
                 <span className="kpi-status">Candidates parsed</span>
@@ -631,13 +624,6 @@ export default function BatchView({
               <div className="kpi-card">
                 <div className="flex align-center justify-between">
                   <span className="kpi-title">Average ATS Match</span>
-                  <span className="tooltip-icon">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.6 }}>
-                      <circle cx="12" cy="12" r="10" />
-                      <line x1="12" y1="16" x2="12" y2="12" />
-                      <line x1="12" y1="8" x2="12.01" y2="8" />
-                    </svg>
-                  </span>
                 </div>
                 <span className="kpi-score" style={{ color: avgATS >= 80 ? 'var(--success)' : avgATS >= 65 ? 'var(--warning)' : 'var(--danger)' }}>
                   {avgATS}%
@@ -654,13 +640,6 @@ export default function BatchView({
               <div className="kpi-card">
                 <div className="flex align-center justify-between">
                   <span className="kpi-title">Highest ATS Match</span>
-                  <span className="tooltip-icon">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.6 }}>
-                      <circle cx="12" cy="12" r="10" />
-                      <line x1="12" y1="16" x2="12" y2="12" />
-                      <line x1="12" y1="8" x2="12.01" y2="8" />
-                    </svg>
-                  </span>
                 </div>
                 <span className="kpi-score" style={{ color: highestATS >= 80 ? 'var(--success)' : highestATS >= 65 ? 'var(--warning)' : 'var(--danger)' }}>
                   {highestATS}%
@@ -677,13 +656,6 @@ export default function BatchView({
               <div className="kpi-card">
                 <div className="flex align-center justify-between">
                   <span className="kpi-title">Lowest ATS Match</span>
-                  <span className="tooltip-icon">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.6 }}>
-                      <circle cx="12" cy="12" r="10" />
-                      <line x1="12" y1="16" x2="12" y2="12" />
-                      <line x1="12" y1="8" x2="12.01" y2="8" />
-                    </svg>
-                  </span>
                 </div>
                 <span className="kpi-score" style={{ color: lowestATS >= 80 ? 'var(--success)' : lowestATS >= 65 ? 'var(--warning)' : 'var(--danger)' }}>
                   {lowestATS}%

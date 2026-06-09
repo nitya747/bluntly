@@ -1015,8 +1015,7 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                 { id: 'ai-feedback', label: 'AI Feedback' },
                 { id: 'similarity', label: 'Similarity Check' },
                 { id: 'rubrics', label: 'Dynamic Rubrics' },
-                { id: 'multimodal', label: 'GitHub Profile' },
-                { id: 'benchmarking', label: 'Competitive Benchmarking' }
+                { id: 'multimodal', label: 'GitHub Profile' }
               ] : [])
             ].map((tab) => (
               <button
@@ -1587,48 +1586,6 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                   </div>
 
                   <div className="flex flex-col gap-2">
-                    <h4 style={{ fontWeight: '700', color: 'var(--text-primary)' }}>Standard Quality Scores</h4>
-                    <div style={{
-                      padding: '16px',
-                      backgroundColor: 'var(--bg)',
-                      borderRadius: '12px',
-                      border: '1px solid var(--border)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '12px',
-                      textAlign: 'left'
-                    }}>
-                      {['experience', 'education', 'skills', 'formatting', 'impact'].map((key) => {
-                        const score = result.sections?.[key] !== undefined && result.sections?.[key] !== null
-                          ? result.sections[key]
-                          : (key === 'experience' ? 30 : key === 'education' ? 90 : key === 'skills' ? 80 : key === 'formatting' ? 100 : 55);
-
-                        let label = key.charAt(0).toUpperCase() + key.slice(1);
-                        
-                        return (
-                          <div key={key} className="flex-col gap-1.5">
-                            <div className="flex justify-between align-center" style={{ fontSize: '12px' }}>
-                              <span style={{ fontWeight: '600', color: 'var(--text-secondary)' }}>{label} Quality</span>
-                              <strong style={{ color: score >= 70 ? 'var(--success)' : 'var(--warning)' }}>{score} / 100</strong>
-                            </div>
-                            <div className="progress-bar-track" style={{ height: '6px' }}>
-                              <div 
-                                className="progress-bar-fill" 
-                                style={{ 
-                                  width: `${score}%`, 
-                                  height: '100%',
-                                  backgroundColor: score >= 70 ? 'var(--success)' : 'var(--warning)',
-                                  borderRadius: '999px'
-                                }}
-                              ></div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-2">
                     <h4 style={{ fontWeight: '700', color: 'var(--text-primary)' }}>Education History</h4>
                     {result.structuredResume?.education && result.structuredResume.education.length > 0 ? (
                       result.structuredResume.education.map((edu, idx) => (
@@ -1718,6 +1675,48 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                         <span style={{ fontSize: '12px', fontWeight: '500' }}>No work experience detected in resume</span>
                       </div>
                     )}
+                  </div>
+
+                  <div className="flex flex-col gap-2" style={{ marginTop: '12px' }}>
+                    <h4 style={{ fontWeight: '700', color: 'var(--text-primary)' }}>Standard Quality Scores</h4>
+                    <div style={{
+                      padding: '16px',
+                      backgroundColor: 'var(--bg)',
+                      borderRadius: '12px',
+                      border: '1px solid var(--border)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '12px',
+                      textAlign: 'left'
+                    }}>
+                      {['education', 'skills', 'formatting', 'impact'].map((key) => {
+                        const score = result.sections?.[key] !== undefined && result.sections?.[key] !== null
+                          ? result.sections[key]
+                          : (key === 'experience' ? 30 : key === 'education' ? 90 : key === 'skills' ? 80 : key === 'formatting' ? 100 : 55);
+
+                        let label = key.charAt(0).toUpperCase() + key.slice(1);
+                        
+                        return (
+                          <div key={key} className="flex-col gap-1.5">
+                            <div className="flex justify-between align-center" style={{ fontSize: '12px' }}>
+                              <span style={{ fontWeight: '600', color: 'var(--text-secondary)' }}>{label} Quality</span>
+                              <strong style={{ color: score >= 70 ? 'var(--success)' : 'var(--warning)' }}>{score} / 100</strong>
+                            </div>
+                            <div className="progress-bar-track" style={{ height: '6px' }}>
+                              <div 
+                                className="progress-bar-fill" 
+                                style={{ 
+                                  width: `${score}%`, 
+                                  height: '100%',
+                                  backgroundColor: score >= 70 ? 'var(--success)' : 'var(--warning)',
+                                  borderRadius: '999px'
+                                }}
+                              ></div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2012,52 +2011,65 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                 Dynamic Role-Specific Evaluation Rubrics
               </h3>
               <div className="card-divider"></div>
-              <p className="text-secondary" style={{ fontSize: '13px', marginBottom: '20px' }}>
-                These evaluation criteria were dynamically generated by Generative AI specifically for this job description. The candidate was scored out of 100 on each dimension.
-              </p>
+
               
-              <div className="flex flex-col gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 {(result.rubrics || getMockRubrics(jobDescription)).map((rub) => {
                   const evalItem = result.rubricEvaluations?.find(e => e.id === rub.id) || { score: 75, justification: "Candidate meets the basic requirements for this criteria." };
                   const scoreColor = evalItem.score >= 80 ? 'var(--success)' : (evalItem.score >= 65 ? 'var(--warning)' : 'var(--danger)');
                   
                   return (
-                    <div key={rub.id} className="rubric-item flex-col gap-2 p-4" style={{
+                    <div key={rub.id} className="rubric-item flex-col p-4" style={{
                       backgroundColor: 'var(--bg)',
                       border: '1px solid var(--border)',
                       borderRadius: '12px',
-                      boxShadow: 'var(--shadow)'
+                      boxShadow: 'var(--shadow)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      gap: '12px'
                     }}>
-                      <div className="flex justify-between align-center">
-                        <div className="flex-col text-left">
-                          <strong style={{ fontSize: '14px', color: 'var(--text-primary)' }}>{rub.name}</strong>
-                          <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Weight: {rub.weight}%</span>
+                      <div className="flex-col gap-2">
+                        <div className="flex justify-between align-start">
+                          <div className="flex-col text-left" style={{ maxWidth: '70%' }}>
+                            <strong style={{ fontSize: '14.5px', color: 'var(--text-primary)', fontWeight: '700' }}>{rub.name}</strong>
+                            <span style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', marginTop: '2px' }}>Weight: {rub.weight}%</span>
+                          </div>
+                          <span className="tag" style={{
+                            backgroundColor: evalItem.score >= 80 ? 'var(--success-subtle)' : (evalItem.score >= 65 ? 'var(--warning-subtle)' : 'var(--danger-subtle)'),
+                            color: scoreColor,
+                            fontWeight: '700',
+                            fontSize: '13px',
+                            whiteSpace: 'nowrap'
+                          }}>
+                            {evalItem.score} / 100
+                          </span>
                         </div>
-                        <span className="tag" style={{
-                          backgroundColor: evalItem.score >= 80 ? 'var(--success-subtle)' : (evalItem.score >= 65 ? 'var(--warning-subtle)' : 'var(--danger-subtle)'),
-                          color: scoreColor,
-                          fontWeight: '700',
-                          fontSize: '13px'
-                        }}>
-                          {evalItem.score} / 100
-                        </span>
+                        
+                        <div className="progress-bar-track" style={{ height: '6px', marginTop: '8px' }}>
+                          <div className="progress-bar-fill" style={{
+                            width: `${evalItem.score}%`,
+                            backgroundColor: scoreColor,
+                            height: '100%',
+                            borderRadius: '999px'
+                          }}></div>
+                        </div>
                       </div>
                       
-                      <p className="text-secondary font-sans" style={{ fontSize: '12.5px', margin: '4px 0 8px 0', fontStyle: 'italic', textAlign: 'left' }}>
-                        "{rub.description}"
-                      </p>
-                      
-                      <div className="progress-bar-track" style={{ height: '6px' }}>
-                        <div className="progress-bar-fill" style={{
-                          width: `${evalItem.score}%`,
-                          backgroundColor: scoreColor,
-                          height: '100%',
-                          borderRadius: '999px'
-                        }}></div>
-                      </div>
-                      
-                      <div className="flex align-start gap-2 text-left" style={{ marginTop: '8px', fontSize: '12.5px', color: 'var(--text-primary)' }}>
-                        <span style={{ color: 'var(--primary)', fontWeight: '700' }}>AI Justification:</span>
+                      <div style={{
+                        fontSize: '12.5px',
+                        color: 'var(--text-primary)',
+                        backgroundColor: 'var(--surface)',
+                        padding: '10px 12px',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border)',
+                        textAlign: 'left',
+                        flexGrow: 1,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center'
+                      }}>
+                        <strong style={{ color: 'var(--primary)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '4px' }}>Justification</strong>
                         <span>{evalItem.justification}</span>
                       </div>
                     </div>
@@ -2190,118 +2202,7 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
             </div>
           )}
 
-          {/* Talent Benchmarking Tab Content */}
-          {activeReportTab === 'benchmarking' && (
-            <div className="card fade-in text-left">
-              <h3 className="card-title flex align-center gap-2">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M3 3v18h18" />
-                  <path d="m18.7 8-5.1 5.2-2.8-2.7L7 14.3" />
-                </svg>
-                Talent Pool Competitive Benchmarking
-              </h3>
-              <div className="card-divider"></div>
-              
-              <div className="flex flex-col gap-6">
-                <div className="grid grid-cols-3 gap-6">
-                  {/* Percentile Card */}
-                  <div style={{ backgroundColor: 'var(--bg)', border: '1px solid var(--border)', padding: '16px', borderRadius: '12px', textAlign: 'center' }}>
-                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '600', textTransform: 'uppercase' }}>Percentile Standing</span>
-                    <strong style={{ fontSize: '28px', color: 'var(--primary)', display: 'block', margin: '8px 0' }}>Top {displayRankPercent}%</strong>
-                    <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)' }}>Rank {rankingInfo.rank} of {rankingInfo.total} applicants</span>
-                  </div>
 
-                  {/* Average Comparison */}
-                  <div style={{ backgroundColor: 'var(--bg)', border: '1px solid var(--border)', padding: '16px', borderRadius: '12px', textAlign: 'center' }}>
-                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '600', textTransform: 'uppercase' }}>Average Pool Score</span>
-                    <strong style={{ fontSize: '28px', color: 'var(--text-primary)', display: 'block', margin: '8px 0' }}>
-                      {Math.round(history.reduce((acc, h) => acc + (h.analysis?.atsScore || h.analysis?.qualityScore || 0), 0) / Math.max(1, history.length))}%
-                    </strong>
-                    <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)' }}>Current Score: {displayAtsScore}%</span>
-                  </div>
-
-                  {/* Experience Comparison */}
-                  <div style={{ backgroundColor: 'var(--bg)', border: '1px solid var(--border)', padding: '16px', borderRadius: '12px', textAlign: 'center' }}>
-                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '600', textTransform: 'uppercase' }}>Experience vs Pool</span>
-                    <strong style={{ fontSize: '28px', color: 'var(--text-primary)', display: 'block', margin: '8px 0' }}>
-                      {result.structuredResume?.experienceYears || 0} yrs
-                    </strong>
-                    <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)' }}>
-                      Average Pool: {Math.round((history.reduce((acc, h) => acc + (h.analysis?.structuredResume?.experienceYears || 0), 0) / Math.max(1, history.length)) * 10) / 10} yrs
-                    </span>
-                  </div>
-                </div>
-
-                {/* Score Distribution Chart */}
-                <div className="flex-col gap-3">
-                  <h4 style={{ margin: 0, fontSize: '14px', fontWeight: '700', color: 'var(--text-primary)' }}>Talent Score Distribution</h4>
-                  <p className="text-secondary" style={{ fontSize: '12.5px' }}>
-                    See where this candidate sits compared to all parsed applications in this session.
-                  </p>
-                  
-                  {/* Visual Bar chart using CSS Grid */}
-                  <div className="flex align-end gap-1" style={{ height: '120px', borderBottom: '2px solid var(--border)', paddingBottom: '4px', position: 'relative', marginTop: '16px' }}>
-                    {(() => {
-                      // Group scores in 10-point buckets (0-10, 10-20, ..., 90-100)
-                      const buckets = Array(10).fill(0);
-                      history.forEach(item => {
-                        const score = item.analysis?.atsScore || item.analysis?.qualityScore || 0;
-                        const idx = Math.min(9, Math.floor(score / 10));
-                        buckets[idx]++;
-                      });
-                      
-                      const maxCount = Math.max(1, ...buckets);
-                      const candidateBucketIdx = Math.min(9, Math.floor(displayAtsScore / 10));
-
-                      return buckets.map((count, idx) => {
-                        const percentHeight = Math.round((count / maxCount) * 100);
-                        const isCandidateBucket = idx === candidateBucketIdx;
-                        
-                        return (
-                          <div 
-                            key={idx} 
-                            style={{
-                              flex: 1,
-                              height: `${Math.max(10, percentHeight)}%`,
-                              backgroundColor: isCandidateBucket ? 'var(--primary)' : 'var(--border)',
-                              borderRadius: '4px 4px 0 0',
-                              transition: 'all 0.3s',
-                              position: 'relative',
-                              display: 'flex',
-                              justifyContent: 'center',
-                              cursor: 'pointer'
-                            }}
-                            title={`Range: ${idx * 10}-${(idx + 1) * 10}% | Candidates: ${count}`}
-                          >
-                            {isCandidateBucket && (
-                              <span style={{
-                                position: 'absolute',
-                                top: '-24px',
-                                backgroundColor: 'var(--primary)',
-                                color: '#FFFFFF',
-                                fontSize: '10px',
-                                fontWeight: '700',
-                                padding: '2px 6px',
-                                borderRadius: '4px',
-                                whiteSpace: 'nowrap'
-                              }}>
-                                You ({displayAtsScore}%)
-                              </span>
-                            )}
-                          </div>
-                        );
-                      });
-                    })()}
-                  </div>
-                  <div className="flex justify-between text-secondary" style={{ fontSize: '11px', padding: '0 4px', fontWeight: '600' }}>
-                    <span>0%</span>
-                    <span>50%</span>
-                    <span>100%</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       )}
 
@@ -2496,4 +2397,23 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
       `}</style>
     </div>
   );
+}
+
+function getMockRubrics(jobDescription) {
+  const jdLower = (jobDescription || '').toLowerCase();
+  const criteria = [
+    { id: "tech_stack", name: "Tech Stack Compatibility", weight: 35, description: "Matches core technical technologies and frameworks." },
+    { id: "exp_depth", name: "Software Design & Experience Depth", weight: 35, description: "Depth of professional contributions and years in codebases." },
+    { id: "domain_knowledge", name: "System Design & Domain Knowledge", weight: 15, description: "Assessments in architectures, APIs, and databases." },
+    { id: "resume_layout", name: "Formatting & Quality Layout", weight: 15, description: "Layout presentation, clear achievements, and rules check." }
+  ];
+
+  if (jdLower.includes("senior") || jdLower.includes("lead")) {
+    criteria[1].name = "Leadership & Mentorship";
+    criteria[1].description = "Evaluating team lead experience, architectural designs, and mentoring junior staff.";
+  } else if (jdLower.includes("data") || jdLower.includes("analyst")) {
+    criteria[0].name = "Data Analytics & ML Stack";
+    criteria[0].description = "Evaluates Python, SQL, statistical modeling, and data pipelines.";
+  }
+  return criteria;
 }

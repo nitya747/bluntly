@@ -42,7 +42,7 @@ export function redactPII(text, candidateName = '') {
   });
 
   // 5. Redact Candidate Name
-  if (candidateName && candidateName.trim().length > 2) {
+  if (candidateName && candidateName.trim().length > 2 && candidateName.toLowerCase() !== 'unknown') {
     const cleanName = candidateName.trim();
     // Escape regex characters
     const escapedName = cleanName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

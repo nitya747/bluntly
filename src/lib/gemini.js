@@ -73,7 +73,7 @@ ${resumeText}
 
 JSON SCHEMA:
 {
-  "name": "Candidate's full name (if not found, extract from filename/context or default to null)",
+  "name": "Candidate's full name (if not found/missing in the resume, set to 'unknown')",
   "email": "Candidate's email address (e.g. john@example.com) or null if not found",
   "phone": "Candidate's phone number or null if not found",
   "skills": ["Array of technical/professional skills found in the resume"],
@@ -760,7 +760,36 @@ function evaluateScreeningCriteriaMock(structuredResume, jobDescription, githubP
 export async function analyzeResume(resumeText, jobDescription = '', filename = 'Resume', multimodalData = null) {
   // Step 1: Parse Original Resume details to get Candidate Name for Contact records & RLS policies
   const structuredResume = await parseResumeToJSON(resumeText, filename);
-  const candidateName = structuredResume.name || filename.split('.')[0].replace(/[-_]/g, ' ').replace(/resume/gi, '').trim() || 'John Doe';
+  
+  const isValidName = (str) => {
+    if (!str) return false;
+    const s = str.trim();
+    if (s.length === 0 || s.length > 30) return false;
+    if (/\d/.test(s)) return false;
+    if (s.includes('@')) return false;
+    if (/[\\{}<>[\]()=;+*\/]/.test(s)) return false;
+    const sectionHeaders = [
+      'experience', 'work', 'employment', 'education', 'skills', 'technologies',
+      'projects', 'summary', 'contact', 'about', 'profile', 'curriculum', 'vitae', 'cv'
+    ];
+    if (sectionHeaders.some(header => s.toLowerCase().includes(header))) return false;
+    const codeKeywords = [
+      'import', 'const', 'let', 'var', 'function', 'class', 'def', 'public',
+      'private', 'void', 'return', 'documentclass', 'begin', 'end', 'include', 'require'
+    ];
+    if (codeKeywords.some(keyword => new RegExp(`\\b${keyword}\\b`, 'i').test(s))) return false;
+    return true;
+  };
+
+  let candidateName = structuredResume.name;
+  if (!candidateName || 
+      candidateName.toLowerCase() === 'unknown' || 
+      candidateName.toLowerCase() === 'null' || 
+      candidateName === 'John Doe' ||
+      !isValidName(candidateName)) {
+    candidateName = 'unknown';
+  }
+  structuredResume.name = candidateName;
   
   // Step 2: Bias Mitigation - Redact PII before passing to S-BERT & LLM Evaluation
   const redactedText = redactPII(resumeText, candidateName);
@@ -946,9 +975,32 @@ function getMockRubricEvaluations(rubrics) {
 
 function parseResumeToJSONMock(resumeText, filename) {
   const lines = resumeText.split('\n').map(l => l.trim()).filter(Boolean);
-  let name = filename.split('.')[0].replace(/[-_]/g, ' ').replace(/resume/gi, '').trim() || 'John Doe';
-  if (lines.length > 0 && lines[0].length < 30 && !lines[0].toLowerCase().includes('resume') && !lines[0].includes('@')) {
-    name = lines[0];
+  
+  const isValidName = (str) => {
+    if (!str) return false;
+    const s = str.trim();
+    if (s.length === 0 || s.length > 30) return false;
+    if (/\d/.test(s)) return false;
+    if (s.includes('@')) return false;
+    if (/[\\{}<>[\]()=;+*\/]/.test(s)) return false;
+    const sectionHeaders = [
+      'experience', 'work', 'employment', 'education', 'skills', 'technologies',
+      'projects', 'summary', 'contact', 'about', 'profile', 'curriculum', 'vitae', 'cv'
+    ];
+    if (sectionHeaders.some(header => s.toLowerCase().includes(header))) return false;
+    const codeKeywords = [
+      'import', 'const', 'let', 'var', 'function', 'class', 'def', 'public',
+      'private', 'void', 'return', 'documentclass', 'begin', 'end', 'include', 'require'
+    ];
+    if (codeKeywords.some(keyword => new RegExp(`\\b${keyword}\\b`, 'i').test(s))) return false;
+    return true;
+  };
+
+  let name = 'unknown';
+  // Check first few lines for a valid candidate name
+  const nameLine = lines.slice(0, 3).find(line => isValidName(line));
+  if (nameLine) {
+    name = nameLine.trim();
   }
 
   const emailRegex = /[\w.-]+@[\w.-]+\.\w+/i;

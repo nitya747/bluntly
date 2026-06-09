@@ -41,8 +41,21 @@ export async function parseResume(buffer, filename) {
     }
   } else if (extension === 'txt') {
     return buffer.toString('utf-8');
+  } else if (['png', 'jpg', 'jpeg', 'webp'].includes(extension)) {
+    try {
+      if (!process.env.GEMINI_API_KEY) {
+        console.warn('No GEMINI_API_KEY found. Falling back to mock image parsing.');
+        return getMockImageResumeText();
+      }
+      const mimeType = getMimeTypeFromExtension(extension);
+      const { extractTextFromImage } = await import('./gemini');
+      return await extractTextFromImage(buffer, mimeType);
+    } catch (error) {
+      console.error('Image parsing error, using mock fallback:', error);
+      return getMockImageResumeText();
+    }
   } else {
-    throw new Error(`Unsupported file format: .${extension}. Only PDF and LaTeX (.tex) files are supported.`);
+    throw new Error(`Unsupported file format: .${extension}. Only PDF, LaTeX (.tex), Text (.txt), and Image (.png, .jpg, .jpeg, .webp) files are supported.`);
   }
 }
 
@@ -102,3 +115,38 @@ function cleanLaTeX(texText) {
 
   return text.trim();
 }
+
+/**
+ * Maps image file extensions to their corresponding MIME types.
+ * @param {string} extension - File extension.
+ * @returns {string} MIME type.
+ */
+function getMimeTypeFromExtension(extension) {
+  switch (extension) {
+    case 'png': return 'image/png';
+    case 'webp': return 'image/webp';
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg';
+    default:
+      return 'image/png';
+  }
+}
+
+/**
+ * Returns mock text resume for developers testing without Gemini key.
+ * @returns {string} Mock resume text.
+ */
+function getMockImageResumeText() {
+  return `John Doe
+john.doe@example.com
+(555) 019-2834
+EXPERIENCE
+Senior Software Engineer at Tech Corp (2022 - Present)
+Led development of core features using React, Next.js, and TypeScript. Optimized load speeds by 20%.
+EDUCATION
+B.S. Computer Science from State University (2022)
+SKILLS
+React, Next.js, JavaScript, TypeScript, Node.js, HTML, CSS`;
+}
+

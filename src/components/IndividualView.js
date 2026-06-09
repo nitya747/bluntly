@@ -138,8 +138,8 @@ export default function IndividualView({
   const validateAndSetFile = (selectedFile) => {
     if (!selectedFile) return;
     const extension = selectedFile.name.split('.').pop().toLowerCase();
-    if (extension !== 'pdf' && extension !== 'tex' && extension !== 'txt') {
-      setError('Unsupported file type. Please upload a PDF (.pdf) or LaTeX (.tex) file.');
+    if (extension !== 'pdf' && extension !== 'tex' && extension !== 'txt' && extension !== 'png' && extension !== 'jpg' && extension !== 'jpeg' && extension !== 'webp') {
+      setError('Unsupported file type. Please upload a PDF (.pdf), LaTeX (.tex), Text (.txt), or Image (.png, .jpg, .jpeg, .webp) file.');
       setFile(null);
       setResult(null);
       return;
@@ -280,6 +280,25 @@ export default function IndividualView({
   const rankingInfo = getOverallRanking();
   const keywordScore = getKeywordMatchScore();
   const individualScans = history.slice(0, 5); // Last 5 scans
+
+  const getFileExtension = () => {
+    if (!file || !file.name) return 'pdf';
+    return file.name.split('.').pop().toLowerCase();
+  };
+
+  const getIconConfig = () => {
+    const ext = getFileExtension();
+    if (['png', 'jpg', 'jpeg', 'webp'].includes(ext)) {
+      return { label: 'IMG', color: '#3B82F6' };
+    } else if (ext === 'tex') {
+      return { label: 'TEX', color: '#8B5CF6' };
+    } else if (ext === 'txt') {
+      return { label: 'TXT', color: '#6B7280' };
+    }
+    return { label: 'PDF', color: '#EF4444' };
+  };
+
+  const iconConfig = getIconConfig();
 
   // Fallback Mockup Data constants
   const matchedSkillsFallback = ['React.js', 'JavaScript', 'HTML', 'CSS', 'Node.js', 'Git', 'GitHub', 'REST API'];
@@ -704,13 +723,13 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                   </div>
                 ) : (
                   <label className="upload-box flex-col align-center justify-center gap-3 cursor-pointer">
-                    <input type="file" onChange={handleFileChange} accept=".pdf,.tex,.txt" style={{ display: 'none' }} />
+                    <input type="file" onChange={handleFileChange} accept=".pdf,.tex,.txt,.png,.jpg,.jpeg,.webp" style={{ display: 'none' }} />
                     <div className="upload-icon-wrapper flex align-center justify-center" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
                       <UploadIcon size={24} style={{ color: 'var(--primary)' }} />
                     </div>
                     <div className="flex-col align-center text-center">
                       <span className="upload-title" style={{ fontSize: '15px', fontWeight: '700' }}>Drag and drop your file here</span>
-                      <span className="upload-desc" style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>PDF or LaTeX. Max size 10MB</span>
+                      <span className="upload-desc" style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>PDF, LaTeX, Text or Image. Max size 10MB</span>
                     </div>
                     <span className="button-secondary flex align-center gap-2" style={{ backgroundColor: 'var(--surface)', padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: '600' }}>
                       <UploadIcon size={14} /> Choose File
@@ -887,9 +906,9 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
           <div className="doc-header-block flex justify-between align-center w-full" style={{ border: 'none', backgroundColor: 'transparent' }}>
             <div className="flex align-center gap-4">
               <svg className="pdf-icon-svg" viewBox="0 0 40 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M4 2H28L38 12V44C38 45.1 37.1 46 36 46H4C2.9 46 2 45.1 2 44V4C2 2.9 2.9 2 4 2Z" fill="var(--surface)" stroke="#EF4444" strokeWidth="2.5" strokeLinejoin="round"/>
-                <path d="M28 2V12H38L28 2Z" fill="var(--surface)" stroke="#EF4444" strokeWidth="2.5" strokeLinejoin="round"/>
-                <text x="20" y="32" fill="#EF4444" fontSize="11" fontWeight="900" fontFamily="var(--font-primary)" textAnchor="middle" letterSpacing="0.5">PDF</text>
+                <path d="M4 2H28L38 12V44C38 45.1 37.1 46 36 46H4C2.9 46 2 45.1 2 44V4C2 2.9 2.9 2 4 2Z" fill="var(--surface)" stroke={iconConfig.color} strokeWidth="2.5" strokeLinejoin="round"/>
+                <path d="M28 2V12H38L28 2Z" fill="var(--surface)" stroke={iconConfig.color} strokeWidth="2.5" strokeLinejoin="round"/>
+                <text x="20" y="32" fill={iconConfig.color} fontSize="11" fontWeight="900" fontFamily="var(--font-primary)" textAnchor="middle" letterSpacing="0.5">{iconConfig.label}</text>
               </svg>
               <div className="flex-col text-left" style={{ gap: '4px' }}>
                 <h2 className="doc-header-title font-primary" style={{ fontWeight: '700', color: 'var(--text-primary)', letterSpacing: '-0.5px' }}>{file?.name || 'Resume.pdf'}</h2>

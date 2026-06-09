@@ -43,7 +43,7 @@ export async function POST(request) {
 
     if (typeof file === 'string' || typeof file.arrayBuffer !== 'function') {
       return NextResponse.json({ 
-        error: 'Invalid file upload. Please select a valid PDF, LaTeX, or text file.' 
+        error: 'Invalid file upload. Please select a valid PDF, LaTeX, text, or image file.' 
       }, { status: 400 });
     }
 

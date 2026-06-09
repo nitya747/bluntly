@@ -14,6 +14,41 @@ if (apiKey) {
 }
 
 /**
+ * Extracts raw text from an image buffer using Gemini multimodal capability.
+ * @param {Buffer} buffer - The image file buffer.
+ * @param {string} mimeType - The mime type of the image.
+ * @returns {Promise<string>} The extracted text.
+ */
+export async function extractTextFromImage(buffer, mimeType) {
+  if (!genAI) {
+    throw new Error('Gemini API key is not configured.');
+  }
+
+  try {
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.5-flash',
+    });
+
+    const prompt = 'Please extract all text and structured content from this resume image. Output only the extracted plain text from the resume, preserving structural readability (headings, bullet points, layout structure) as closely as possible.';
+
+    const result = await model.generateContent([
+      prompt,
+      {
+        inlineData: {
+          data: Buffer.from(buffer).toString('base64'),
+          mimeType: mimeType
+        }
+      }
+    ]);
+
+    return result.response.text();
+  } catch (error) {
+    console.error('Gemini image extraction error:', error);
+    throw error;
+  }
+}
+
+/**
  * Stage 1: Parse Resume Text to Structured JSON
  * Calls Gemini if configured, otherwise falls back to regex-based mock parser.
  */

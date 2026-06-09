@@ -75,11 +75,11 @@ export default function BatchView({
   const validateAndAddFiles = (newFiles) => {
     const validFiles = newFiles.filter(file => {
       const ext = file.name.split('.').pop().toLowerCase();
-      return ext === 'pdf' || ext === 'tex' || ext === 'txt';
+      return ext === 'pdf' || ext === 'tex' || ext === 'txt' || ext === 'png' || ext === 'jpg' || ext === 'jpeg' || ext === 'webp';
     });
 
     if (validFiles.length !== newFiles.length) {
-      setError('Some files were skipped. Only PDF (.pdf) and LaTeX (.tex) formats are supported.');
+      setError('Some files were skipped. Only PDF (.pdf), LaTeX (.tex), Text (.txt), and Image (.png, .jpg, .jpeg, .webp) formats are supported.');
     } else {
       setError(null);
     }
@@ -389,7 +389,7 @@ export default function BatchView({
                 <input 
                   type="file" 
                   onChange={handleFileChange} 
-                  accept=".pdf,.tex,.txt" 
+                  accept=".pdf,.tex,.txt,.png,.jpg,.jpeg,.webp" 
                   multiple 
                   id="batch-file-input"
                   style={{ display: 'none' }}
@@ -403,7 +403,7 @@ export default function BatchView({
                     <div className="flex-col align-center text-center">
                       <span className="upload-title">Upload Resume Batch</span>
                       <span className="upload-desc">Drag & drop or click to browse</span>
-                      <span className="upload-note font-mono">Select up to 20 PDF, LaTeX or Text files</span>
+                      <span className="upload-note font-mono">Select up to 20 PDF, LaTeX, Text or Image files</span>
                     </div>
                   </label>
                 ) : (

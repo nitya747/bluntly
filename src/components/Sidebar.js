@@ -25,7 +25,8 @@ export default function Sidebar({
   user, 
   onSignOut, 
   credits, 
-  onBuyCredits 
+  onBuyCredits,
+  isBYOKMode = false
 }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -129,24 +130,26 @@ export default function Sidebar({
         {user && (
           <div className="user-card flex flex-col gap-3">
             {/* Credits Section */}
-            <div className="credits-section w-full">
-              <div className="sidebar-credits">
-                <span className="credits-text font-sans flex align-center" style={{ gap: '4px' }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="#EAB308" style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}>
-                    <circle cx="12" cy="12" r="10" />
-                    <circle cx="12" cy="12" r="6" fill="#CA8A04" />
-                  </svg>
-                  <span style={{ fontWeight: '500' }}><strong className="font-mono">{credits}</strong> Credits</span>
-                </span>
-                <button 
-                  onClick={onBuyCredits} 
-                  className="top-up-btn" 
-                  title="Top Up +10 Credits"
-                >
-                  Top Up
-                </button>
+            {!isBYOKMode && (
+              <div className="credits-section w-full">
+                <div className="sidebar-credits">
+                  <span className="credits-text font-sans flex align-center" style={{ gap: '4px' }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="#EAB308" style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}>
+                      <circle cx="12" cy="12" r="10" />
+                      <circle cx="12" cy="12" r="6" fill="#CA8A04" />
+                    </svg>
+                    <span style={{ fontWeight: '500' }}><strong className="font-mono">{credits}</strong> Credits</span>
+                  </span>
+                  <button 
+                    onClick={onBuyCredits} 
+                    className="top-up-btn" 
+                    title="Top Up +10 Credits"
+                  >
+                    Top Up
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
             <button 
               onClick={onSignOut} 

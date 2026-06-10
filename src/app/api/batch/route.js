@@ -6,6 +6,7 @@ import { getOrCreateProfile } from '../../../lib/supabase/profile';
 
 export async function POST(request) {
   try {
+    const customApiKey = request.headers.get('x-gemini-api-key') || '';
     let user = null;
     const bypassCookie = request.cookies.get('bluntly_bypass')?.value;
     const supabase = await createClient();
@@ -85,14 +86,14 @@ export async function POST(request) {
             
             const bytes = await file.arrayBuffer();
             const buffer = Buffer.from(bytes);
-            const parsedText = await parseResume(buffer, filename);
+            const parsedText = await parseResume(buffer, filename, customApiKey);
 
             // Step 2: Analysis
             sendEvent('progress', { index: i, name: filename, status: 'analysing', credits: remainingCredits });
             
             // Build simple context containing the token for candidate GitHub resolution
             const multimodalData = { githubToken };
-            const analysis = await analyzeResume(parsedText, jobDescription, filename, multimodalData);
+            const analysis = await analyzeResume(parsedText, jobDescription, filename, multimodalData, customApiKey);
 
             let record;
 
@@ -227,7 +228,15 @@ export async function POST(request) {
         }
 
         // Final completion event
-        sendEvent('complete', { results, credits: remainingCredits, isMock: !process.env.GEMINI_API_KEY });
+        const isBatchQuotaExceeded = results.some(r => r.analysis?.isQuotaExceeded || false);
+        const isMockResult = (!process.env.GEMINI_API_KEY && !customApiKey) || isBatchQuotaExceeded;
+        
+        sendEvent('complete', { 
+          results, 
+          credits: remainingCredits, 
+          isMock: isMockResult, 
+          isQuotaExceeded: isBatchQuotaExceeded 
+        });
         controller.close();
       }
     });

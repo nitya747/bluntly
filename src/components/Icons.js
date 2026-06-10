@@ -65,7 +65,16 @@ export function LogoIcon({ size = 20, ...props }) {
       style={{ display: 'inline-block', verticalAlign: 'middle', ...style }}
       {...restProps}
     >
-      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+      {/* Clean vertical stem */}
+      <rect x="5.5" y="3" width="2.5" height="18" rx="1.25" />
+      {/* Speech bubble tail */}
+      <path d="M9.5 18l-3.5 3.5V18h3.5z" />
+      {/* Hollow circular bowl (ring) */}
+      <path 
+        fillRule="evenodd" 
+        clipRule="evenodd" 
+        d="M13.5 8a6 6 0 1 0 0 12 6 6 0 0 0 0-12zm0 2.5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7z" 
+      />
     </svg>
   );
 }

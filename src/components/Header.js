@@ -14,7 +14,8 @@ export default function Header({
   user,
   credits,
   onBuyCredits,
-  onSignOut
+  onSignOut,
+  isBYOKMode = false
 }) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
@@ -50,15 +51,17 @@ export default function Header({
     }
   ]);
 
-  const displayNotifications = notifications.map(notif => {
-    if (notif.type === 'credits') {
-      return { ...notif, desc: `${credits || 0} credits remaining. Top up anytime.` };
-    }
-    if (notif.type === 'model') {
-      return { ...notif, desc: isMock ? 'Running on simulation mock API.' : 'Connected to Google Gemini active API.' };
-    }
-    return notif;
-  });
+  const displayNotifications = notifications
+    .filter(notif => !isBYOKMode || notif.type !== 'credits')
+    .map(notif => {
+      if (notif.type === 'credits') {
+        return { ...notif, desc: `${credits || 0} credits remaining. Top up anytime.` };
+      }
+      if (notif.type === 'model') {
+        return { ...notif, desc: isMock ? 'Running on simulation mock API.' : 'Connected to Google Gemini active API.' };
+      }
+      return notif;
+    });
 
   // Click outside to close dropdowns
   useEffect(() => {
@@ -333,31 +336,34 @@ export default function Header({
                   </div>
                 </div>
                 
-                <div className="dropdown-divider"></div>
-
-                <div className="profile-dropdown-credits flex align-center justify-between">
-                  <span className="credits-text font-sans flex align-center" style={{ gap: '6px' }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="#EAB308" style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}>
-                      <circle cx="12" cy="12" r="10" />
-                      <circle cx="12" cy="12" r="6" fill="#CA8A04" />
-                    </svg>
-                    <span style={{ fontWeight: '500', fontSize: '13px', color: 'var(--text-primary)' }}>
-                      <strong>{credits || 0}</strong> Credits
-                    </span>
-                  </span>
-                  {onBuyCredits && (
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onBuyCredits();
-                      }} 
-                      className="top-up-btn-small" 
-                      title="Top Up +10 Credits"
-                    >
-                      Top Up
-                    </button>
-                  )}
-                </div>
+                {!isBYOKMode && (
+                  <>
+                    <div className="dropdown-divider"></div>
+                    <div className="profile-dropdown-credits flex align-center justify-between">
+                      <span className="credits-text font-sans flex align-center" style={{ gap: '6px' }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="#EAB308" style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}>
+                          <circle cx="12" cy="12" r="10" />
+                          <circle cx="12" cy="12" r="6" fill="#CA8A04" />
+                        </svg>
+                        <span style={{ fontWeight: '500', fontSize: '13px', color: 'var(--text-primary)' }}>
+                          <strong>{credits || 0}</strong> Credits
+                        </span>
+                      </span>
+                      {onBuyCredits && (
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onBuyCredits();
+                          }} 
+                          className="top-up-btn-small" 
+                          title="Top Up +10 Credits"
+                        >
+                          Top Up
+                        </button>
+                      )}
+                    </div>
+                  </>
+                )}
 
                 <div className="dropdown-divider"></div>
 

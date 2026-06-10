@@ -14,9 +14,10 @@ try {
  * Parses a resume file buffer based on its file extension or mime type.
  * @param {Buffer} buffer - The raw file buffer.
  * @param {string} filename - The name of the file to determine format.
+ * @param {string|null} customApiKey - Optional user-supplied Google Gemini API key.
  * @returns {Promise<string>} The extracted text content.
  */
-export async function parseResume(buffer, filename) {
+export async function parseResume(buffer, filename, customApiKey = null) {
   const extension = filename.split('.').pop().toLowerCase();
 
   if (extension === 'pdf') {
@@ -43,13 +44,13 @@ export async function parseResume(buffer, filename) {
     return buffer.toString('utf-8');
   } else if (['png', 'jpg', 'jpeg', 'webp'].includes(extension)) {
     try {
-      if (!process.env.GEMINI_API_KEY) {
-        console.warn('No GEMINI_API_KEY found. Falling back to mock image parsing.');
+      if (!process.env.GEMINI_API_KEY && !customApiKey) {
+        console.warn('No GEMINI_API_KEY or custom API key found. Falling back to mock image parsing.');
         return getMockImageResumeText();
       }
       const mimeType = getMimeTypeFromExtension(extension);
       const { extractTextFromImage } = await import('./gemini');
-      return await extractTextFromImage(buffer, mimeType);
+      return await extractTextFromImage(buffer, mimeType, customApiKey);
     } catch (error) {
       console.error('Image parsing error, using mock fallback:', error);
       return getMockImageResumeText();

@@ -20,9 +20,39 @@ export default function Home() {
   const [isMock, setIsMock] = useState(true);
   const [user, setUser] = useState(null);
   const [credits, setCredits] = useState(0);
+  const [customApiKey, setCustomApiKey] = useState('');
+  const [keyInput, setKeyInput] = useState('');
+  const [showKey, setShowKey] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   const supabase = createClient();
   const router = useRouter();
+
+  const isBYOKMode = user?.id === 'mock-dev-id' && !!customApiKey;
+
+  // Load custom API key from localStorage on mount
+  useEffect(() => {
+    const savedKey = localStorage.getItem('bluntly_gemini_api_key') || '';
+    setTimeout(() => {
+      setCustomApiKey(savedKey);
+      setKeyInput(savedKey);
+    }, 0);
+  }, []);
+
+  const handleSaveApiKey = () => {
+    localStorage.setItem('bluntly_gemini_api_key', keyInput);
+    setCustomApiKey(keyInput);
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 2000);
+    checkBackend();
+  };
+
+  const handleClearApiKey = () => {
+    localStorage.removeItem('bluntly_gemini_api_key');
+    setCustomApiKey('');
+    setKeyInput('');
+    checkBackend();
+  };
 
   const fetchCredits = async () => {
     try {
@@ -48,6 +78,27 @@ export default function Home() {
     }
   };
 
+  // Ping /api/analyse with no file to query backend status (isMock)
+  const checkBackend = async () => {
+    try {
+      const localKey = localStorage.getItem('bluntly_gemini_api_key') || '';
+      const headers = {};
+      if (localKey) {
+        headers['x-gemini-api-key'] = localKey;
+      }
+      const res = await fetch('/api/analyse', { 
+        method: 'POST',
+        headers
+      });
+      const data = await res.json();
+      if (data.isMock !== undefined) {
+        setIsMock(data.isMock);
+      }
+    } catch (err) {
+      setIsMock(true);
+    }
+  };
+
   // Load theme, fetch user, and check AI backend status on mount
   useEffect(() => {
     let themeTimer;
@@ -61,10 +112,28 @@ export default function Home() {
     // Fetch user and session-based scans history
     const getUserData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
+      const isBypass = document.cookie.includes('bluntly_bypass=true');
+
       if (user) {
         setUser(user);
         fetchHistory();
         fetchCredits();
+      } else if (isBypass) {
+        setUser({ id: 'mock-dev-id', email: 'developer@bluntly.local' });
+        setCredits(999);
+        // Hydrate history from localStorage
+        const savedHistory = localStorage.getItem('bluntly_local_history');
+        if (savedHistory) {
+          try {
+            const parsedHistory = JSON.parse(savedHistory);
+            setHistory(parsedHistory);
+            if (parsedHistory.length > 0) {
+              setCurrentAnalysis(parsedHistory[0]);
+            }
+          } catch (e) {
+            console.error('Failed to parse local history:', e);
+          }
+        }
       } else {
         router.push('/login');
       }
@@ -86,25 +155,13 @@ export default function Home() {
       }
     };
 
-    // Ping /api/analyse with no file to query backend status (isMock)
-    const checkBackend = async () => {
-      try {
-        const res = await fetch('/api/analyse', { method: 'POST' });
-        const data = await res.json();
-        if (data.isMock !== undefined) {
-          setIsMock(data.isMock);
-        }
-      } catch (err) {
-        setIsMock(true);
-      }
-    };
-
     getUserData();
     checkBackend();
 
     return () => {
       if (themeTimer) clearTimeout(themeTimer);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const toggleTheme = () => {
@@ -123,7 +180,15 @@ export default function Home() {
   };
 
   const handleAddHistory = (record) => {
-    setHistory((prev) => [record, ...prev]);
+    setHistory((prev) => {
+      const updated = [record, ...prev];
+      // Save local mode history to localStorage
+      const isBypass = document.cookie.includes('bluntly_bypass=true');
+      if (isBypass) {
+        localStorage.setItem('bluntly_local_history', JSON.stringify(updated.slice(0, 50)));
+      }
+      return updated;
+    });
     setCurrentAnalysis(record);
   };
 
@@ -149,6 +214,7 @@ export default function Home() {
         onSignOut={handleSignOut}
         credits={credits}
         onBuyCredits={handleBuyCredits}
+        isBYOKMode={isBYOKMode}
       />
 
       {/* Main Workspace Frame */}
@@ -165,6 +231,7 @@ export default function Home() {
           credits={credits}
           onBuyCredits={handleBuyCredits}
           onSignOut={handleSignOut}
+          isBYOKMode={isBYOKMode}
         />
 
         {/* View Router */}
@@ -180,6 +247,7 @@ export default function Home() {
               activeSection={individualSection}
               setActiveSection={setIndividualSection}
               setActiveView={setActiveView}
+              isBYOKMode={isBYOKMode}
             />
           )}
 
@@ -191,6 +259,7 @@ export default function Home() {
               history={history}
               activeSection={batchSection}
               setActiveSection={setBatchSection}
+              isBYOKMode={isBYOKMode}
             />
           )}
 
@@ -208,22 +277,123 @@ export default function Home() {
                   <SettingsIcon size={20} /> System Configuration
                 </h2>
                 <div className="card-divider"></div>
-                <div className="flex-col gap-4">
-                  <h3 className="settings-subtitle font-sans">API Key Setup</h3>
-                  <p className="settings-desc font-sans">
-                    By default, bluntly runs in <strong>Fallback Mock Mode</strong> using a local parser and simulation system.
+                
+                {/* Configuration Status Card */}
+                <div className="status-container flex-col gap-3 p-4" style={{ 
+                  borderRadius: '12px',
+                  border: '1px solid var(--border)',
+                  backgroundColor: 'var(--bg)'
+                }}>
+                  <div className="flex align-center justify-between">
+                    <span className="font-sans font-bold" style={{ fontSize: '14px', color: 'var(--text-primary)' }}>AI Processing Mode</span>
+                    {customApiKey ? (
+                      <span className="ai-status-badge live">
+                        <span className="status-dot"></span> Browser Key Active
+                      </span>
+                    ) : !isMock ? (
+                      <span className="ai-status-badge live" style={{ color: 'var(--primary)', borderColor: 'rgba(15,118,110,0.2)' }}>
+                        <span className="status-dot" style={{ backgroundColor: 'var(--primary)' }}></span> Server Key Active
+                      </span>
+                    ) : (
+                      <span className="ai-status-badge mock">
+                        <span className="status-dot"></span> Mock Fallback Active
+                      </span>
+                    )}
+                  </div>
+                  <p className="font-sans text-secondary" style={{ fontSize: '13px', lineHeight: '1.5' }}>
+                    {customApiKey ? (
+                      "All resume processing and job description analysis will be executed live using your personal API key stored securely in this browser."
+                    ) : !isMock ? (
+                      "The server is configured with a host-provided Gemini API key. Analysis requests will be executed using the host credentials."
+                    ) : (
+                      "The system is currently running in Fallback Mock Mode. Resume parsing, skill extraction, and evaluation scores will use local heuristics and simulation. Paste your API key below to unlock live Google Gemini AI."
+                    )}
                   </p>
+                </div>
+
+                {/* Input Fields */}
+                <div className="flex-col gap-4" style={{ marginTop: '8px' }}>
+                  <h3 className="settings-subtitle font-sans">Personal API Key Setup (BYOK)</h3>
                   <p className="settings-desc font-sans">
-                    To connect to the live Google Gemini AI, create a <code>.env.local</code> file at the root of your project directory and add your Google AI API key:
+                    Paste your personal Gemini API key here. It is saved client-side in your local storage, and sent via HTTPS headers.
+                  </p>
+                  
+                  <div className="flex-col gap-2">
+                    <div className="flex align-center justify-between">
+                      <label className="font-sans font-semibold text-secondary" style={{ fontSize: '12px' }}>Google Gemini API Key</label>
+                      <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" style={{
+                        fontSize: '12px',
+                        color: 'var(--primary)',
+                        textDecoration: 'none',
+                        fontWeight: '600'
+                      }}>Get a free key from Google AI Studio →</a>
+                    </div>
+                    
+                    <div className="flex gap-2" style={{ position: 'relative', width: '100%' }}>
+                      <div className="input-container flex-1" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                        <input
+                          type={showKey ? 'text' : 'password'}
+                          value={keyInput}
+                          onChange={(e) => setKeyInput(e.target.value)}
+                          placeholder="AIzaSy..."
+                          className="input-text font-sans"
+                          style={{ paddingRight: '40px' }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowKey(!showKey)}
+                          style={{
+                            position: 'absolute',
+                            right: '12px',
+                            background: 'transparent',
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: 'var(--text-secondary)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            opacity: 0.6
+                          }}
+                        >
+                          {showKey ? <EyeOffIcon size={16} /> : <EyeIcon size={16} />}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3" style={{ marginTop: '4px' }}>
+                    <button
+                      onClick={handleSaveApiKey}
+                      disabled={!keyInput.trim()}
+                      className="button-primary"
+                      style={{ padding: '10px 16px', borderRadius: '10px' }}
+                    >
+                      {saveSuccess ? (
+                        <span className="flex align-center gap-2">✓ Key Saved</span>
+                      ) : (
+                        <span>Save API Key</span>
+                      )}
+                    </button>
+                    {customApiKey && (
+                      <button
+                        onClick={handleClearApiKey}
+                        className="button-secondary"
+                        style={{ padding: '10px 16px', borderRadius: '10px', borderColor: 'var(--danger)', color: 'var(--danger)' }}
+                      >
+                        Delete Key
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="card-divider" style={{ margin: '12px 0' }}></div>
+
+                <div className="flex-col gap-3">
+                  <h3 className="settings-subtitle font-sans">Self-Hosted Server Config</h3>
+                  <p className="settings-desc font-sans">
+                    To make an API key default for all users of this server instance, configure the environment variable:
                   </p>
                   <pre className="env-code font-mono">
-                    GEMINI_API_KEY=your_google_ai_api_key_here
-                  </pre>
-                  <p className="settings-desc font-sans">
-                    After adding the environment variables, restart your Next.js development server to activate the live model:
-                  </p>
-                  <pre className="env-code font-mono">
-                    npm run dev
+                    GEMINI_API_KEY=your_key_here
                   </pre>
                 </div>
               </div>
@@ -262,5 +432,26 @@ export default function Home() {
         }
       `}</style>
     </div>
+  );
+}
+
+// Local SVG Icons for page.js
+function EyeIcon({ size = 16, ...props }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+function EyeOffIcon({ size = 16, ...props }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+      <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+      <path d="M6.61 6.61A13.52 13.52 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+      <line x1="2" y1="2" x2="22" y2="22" />
+    </svg>
   );
 }

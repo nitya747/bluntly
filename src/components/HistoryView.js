@@ -120,7 +120,7 @@ export default function HistoryView({ history = [], onSelectHistory }) {
                 const formattedTime = item.timestamp || 'N/A';
                 
                 return (
-                  <tr key={item.id}>
+                  <tr key={`${item.id || 'item'}-${index}`}>
                     <td style={{ fontWeight: '500', color: 'var(--text-secondary)' }}>{index + 1}</td>
                     <td style={{ fontWeight: '600' }}>{item.analysis?.candidateName || 'N/A'}</td>
                     <td className="font-mono" style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>

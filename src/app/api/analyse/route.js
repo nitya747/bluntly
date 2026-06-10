@@ -7,6 +7,7 @@ import { fetchGitHubPortfolio } from '../../../lib/github';
 
 export async function POST(request) {
   try {
+    const customApiKey = request.headers.get('x-gemini-api-key') || '';
     let user = null;
     const bypassCookie = request.cookies.get('bluntly_bypass')?.value;
     const supabase = await createClient();
@@ -27,7 +28,7 @@ export async function POST(request) {
     if (!contentType.includes('multipart/form-data')) {
       return NextResponse.json({ 
         success: true, 
-        isMock: !process.env.GEMINI_API_KEY 
+        isMock: !process.env.GEMINI_API_KEY && !customApiKey
       });
     }
 
@@ -44,7 +45,7 @@ export async function POST(request) {
     if (!file) {
       return NextResponse.json({ 
         success: true, 
-        isMock: !process.env.GEMINI_API_KEY 
+        isMock: !process.env.GEMINI_API_KEY && !customApiKey
       });
     }
 
@@ -90,12 +91,12 @@ export async function POST(request) {
     const buffer = Buffer.from(bytes);
 
     // Parse the file text based on its format (pdf / LaTeX / txt)
-    const parsedText = await parseResume(buffer, file.name || 'Resume.pdf');
+    const parsedText = await parseResume(buffer, file.name || 'Resume.pdf', customApiKey);
 
     // Run the analysis (Gemini or Mock fallback)
-    const analysis = await analyzeResume(parsedText, jobDescription, file.name || 'Resume', multimodalData);
+    const analysis = await analyzeResume(parsedText, jobDescription, file.name || 'Resume', multimodalData, customApiKey);
 
-    let scanId = 'dummy-scan-id';
+    let scanId = 'dummy-' + Math.random().toString(36).substring(2, 11);
     let createdAt = new Date().toISOString();
     let remainingCredits = Math.max(0, profile.credits - 1);
 
@@ -178,6 +179,7 @@ export async function POST(request) {
     }
 
     // Return the response containing database ID, updated credits, & mock status
+    const isMockResult = (!process.env.GEMINI_API_KEY && !customApiKey) || (analysis.isQuotaExceeded || false);
     return NextResponse.json({
       success: true,
       analysis: {
@@ -186,7 +188,8 @@ export async function POST(request) {
         timestamp: new Date(createdAt).toLocaleTimeString()
       },
       credits: remainingCredits,
-      isMock: !process.env.GEMINI_API_KEY
+      isMock: isMockResult,
+      isQuotaExceeded: analysis.isQuotaExceeded || false
     });
   } catch (error) {
     console.error('Error in /api/analyse:', error);

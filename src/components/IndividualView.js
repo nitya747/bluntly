@@ -51,7 +51,8 @@ export default function IndividualView({
   history = [],
   activeSection,
   setActiveSection,
-  setActiveView
+  setActiveView,
+  isBYOKMode = false
 }) {
   const [file, setFile] = useState(null);
   const [jobDescription, setJobDescription] = useState('');
@@ -183,9 +184,16 @@ export default function IndividualView({
     formData.append('linkedinSummary', linkedinSummary);
     formData.append('assessmentScores', assessmentScores);
 
+    const localKey = typeof window !== 'undefined' ? localStorage.getItem('bluntly_gemini_api_key') || '' : '';
+    const headers = {};
+    if (localKey) {
+      headers['x-gemini-api-key'] = localKey;
+    }
+
     try {
       const response = await fetch('/api/analyse', {
         method: 'POST',
+        headers: headers,
         body: formData,
       });
 
@@ -783,7 +791,7 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
           {/* Multimodal integrations removed as per request */}
 
           {/* Credit warnings */}
-          {file && !file.isSavedRecord && credits < 1 && (
+          {file && !file.isSavedRecord && credits < 1 && !isBYOKMode && (
             <div className="credit-warning-banner card flex align-center gap-3" style={{ alignSelf: 'center', maxWidth: '500px', width: '100%', borderColor: 'var(--danger)', backgroundColor: 'var(--danger-subtle)', color: 'var(--danger)' }}>
               <span className="error-icon flex align-center"><AlertIcon size={16} /></span>
               <span className="error-message font-sans" style={{ fontSize: '13px' }}>
@@ -804,7 +812,7 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
           <div className="flex-col align-center gap-2" style={{ marginTop: '8px' }}>
             <button
               onClick={runAnalysis}
-              disabled={!file || analyzing || credits === 0}
+              disabled={!file || analyzing || (credits === 0 && !isBYOKMode)}
               className="button-primary run-analysis-btn flex align-center justify-center gap-2"
               style={{ width: '320px', height: '48px', backgroundColor: 'var(--primary)', borderRadius: '12px' }}
             >
@@ -823,7 +831,9 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
             <span className="cost-subtext" style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
               {file?.isSavedRecord 
                 ? 'Viewing saved scan' 
-                : `Costs 1 credit — You have ${credits} credits remaining`}
+                : isBYOKMode
+                  ? 'Runs on your custom Gemini API key'
+                  : `Costs 1 credit — You have ${credits} credits remaining`}
             </span>
           </div>
 
@@ -857,11 +867,11 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                     </tr>
                   </thead>
                   <tbody>
-                    {individualScans.map((scan) => {
+                    {individualScans.map((scan, idx) => {
                       const atsScoreVal = scan.analysis?.atsScore;
                       const qualityScoreVal = scan.analysis?.qualityScore || 0;
                       return (
-                        <tr key={scan.id}>
+                        <tr key={`${scan.id || 'scan'}-${idx}`}>
                           <td style={{ fontWeight: '700' }}>
                             <div className="flex align-center gap-2">
                               <FileTextIcon size={16} style={{ color: '#EF4444', marginRight: '4px' }} />
@@ -917,6 +927,14 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
       {/* 2. Analysis Report Screen Pattern */}
       {activeSection === 'analysis' && result && (
         <div className="flex-col gap-6 fade-in analysis-report-container">
+          {result.isQuotaExceeded && (
+            <div className="card flex align-center gap-3 w-full" style={{ borderColor: '#EAB308', backgroundColor: 'rgba(234, 179, 8, 0.1)', color: '#CA8A04', padding: '16px', borderRadius: '12px', display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
+              <span className="error-icon flex align-center" style={{ display: 'flex', alignItems: 'center' }}><AlertIcon size={18} style={{ color: '#CA8A04' }} /></span>
+              <span className="error-message font-sans" style={{ fontSize: '13.5px', fontWeight: '600' }}>
+                Your Gemini API Key has exceeded its daily limit (20 requests/day). Bluntly has temporarily fallen back to simulated results so you can see a preview of the report features without blocking you.
+              </span>
+            </div>
+          )}
 
           {/* Document Header block */}
           <div className="doc-header-block flex justify-between align-center w-full" style={{ border: 'none', backgroundColor: 'transparent' }}>
@@ -1051,32 +1069,34 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                           cy="60" 
                           r="50" 
                           strokeDasharray="314"
-                          strokeDashoffset={314 - (displayAtsScore / 100) * 314}
+                          strokeDashoffset={-(314 - (displayAtsScore / 100) * 314)}
                         />
                       </svg>
                       <div className="score-gauge-text">
-                        <span className={`score-gauge-number ${scoreTierClass}`}>{displayAtsScore}</span>
+                        <span className={`score-gauge-number ${scoreTierClass}`}>{displayAtsScore}%</span>
                         <span className="score-gauge-label">Match</span>
                       </div>
                     </div>
 
                     {result.semanticSimilarity !== undefined && result.semanticSimilarity !== null && (
-                      <div className="score-gauge-wrapper" style={{ borderLeft: '1px solid var(--border)', paddingLeft: '16px' }}>
-                        <svg className="score-gauge-svg" width="120" height="120" viewBox="0 0 120 120">
-                          <circle className="score-gauge-bg" cx="60" cy="60" r="50" />
-                          <circle 
-                            className="score-gauge-fill"
-                            cx="60" 
-                            cy="60" 
-                            r="50" 
-                            strokeDasharray="314"
-                            strokeDashoffset={314 - (result.semanticSimilarity / 100) * 314}
-                            stroke="var(--primary)"
-                          />
-                        </svg>
-                        <div className="score-gauge-text">
-                          <span className="score-gauge-number" style={{ color: 'var(--primary)' }}>{result.semanticSimilarity}%</span>
-                          <span className="score-gauge-label" style={{ color: 'var(--primary)', fontSize: '10px' }}>Semantic</span>
+                      <div className="flex align-center" style={{ borderLeft: '1px solid var(--border)', paddingLeft: '16px' }}>
+                        <div className="score-gauge-wrapper">
+                          <svg className="score-gauge-svg" width="120" height="120" viewBox="0 0 120 120">
+                            <circle className="score-gauge-bg" cx="60" cy="60" r="50" />
+                            <circle 
+                              className="score-gauge-fill"
+                              cx="60" 
+                              cy="60" 
+                              r="50" 
+                              strokeDasharray="314"
+                              strokeDashoffset={-(314 - (result.semanticSimilarity / 100) * 314)}
+                              stroke="var(--primary)"
+                            />
+                          </svg>
+                          <div className="score-gauge-text">
+                            <span className="score-gauge-number" style={{ color: 'var(--primary)' }}>{result.semanticSimilarity}%</span>
+                            <span className="score-gauge-label">Semantic</span>
+                          </div>
                         </div>
                       </div>
                     )}
@@ -2119,7 +2139,7 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
 
                       {result.multimodalDetails.github.bio && (
                         <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', margin: '4px 0', fontStyle: 'italic', textAlign: 'left' }}>
-                          "{result.multimodalDetails.github.bio}"
+                          &ldquo;{result.multimodalDetails.github.bio}&rdquo;
                         </p>
                       )}
 

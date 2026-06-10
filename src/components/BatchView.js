@@ -26,7 +26,8 @@ export default function BatchView({
   setCredits, 
   history = [],
   activeSection,
-  setActiveSection
+  setActiveSection,
+  isBYOKMode = false
 }) {
   const [files, setFiles] = useState([]);
   const [jobDescription, setJobDescription] = useState('');
@@ -48,6 +49,7 @@ export default function BatchView({
   // Comparison & Benchmarking State
   const [selectedCompareIds, setSelectedCompareIds] = useState([]);
   const [showCompareDrawer, setShowCompareDrawer] = useState(false);
+  const [isQuotaExceeded, setIsQuotaExceeded] = useState(false);
 
   const loadSampleJD = () => {
     setJobDescription(
@@ -107,6 +109,7 @@ export default function BatchView({
     setProcessing(true);
     setError(null);
     setResults([]);
+    setIsQuotaExceeded(false);
     setExpandedIndex(null);
     setSelectedCompareIds([]);
     setShowCompareDrawer(false);
@@ -127,9 +130,16 @@ export default function BatchView({
     });
     formData.append('jobDescription', jobDescription);
 
+    const localKey = typeof window !== 'undefined' ? localStorage.getItem('bluntly_gemini_api_key') || '' : '';
+    const headers = {};
+    if (localKey) {
+      headers['x-gemini-api-key'] = localKey;
+    }
+
     try {
       const response = await fetch('/api/batch', {
         method: 'POST',
+        headers: headers,
         body: formData,
       });
 
@@ -189,6 +199,7 @@ export default function BatchView({
       );
     } else if (event === 'complete') {
       setProcessing(false);
+      setIsQuotaExceeded(eventData.isQuotaExceeded || false);
       
       const formattedResults = finalResults.map((res, rankIdx) => ({
         id: res.id || Math.random().toString(36).substr(2, 9),
@@ -302,6 +313,7 @@ export default function BatchView({
     setResults(job.rawResults);
     setActiveSection('analysis');
     setExpandedIndex(null);
+    setIsQuotaExceeded(job.rawResults.some(r => r.analysis?.isQuotaExceeded || false));
   };
 
   const getJobTitle = (scan) => {
@@ -478,7 +490,7 @@ export default function BatchView({
           </div>
 
           {/* Credit warnings */}
-          {files.length > 0 && credits < files.length && (
+          {files.length > 0 && credits < files.length && !isBYOKMode && (
             <div className="credit-warning-banner card flex align-center gap-3" style={{ alignSelf: 'center', maxWidth: '500px', width: '100%', borderColor: 'var(--danger)', backgroundColor: 'rgba(239,68,68,0.06)', color: 'var(--danger)' }}>
               <span className="error-icon flex align-center"><AlertIcon size={16} /></span>
               <span className="error-message font-sans" style={{ fontSize: '13px' }}>
@@ -499,7 +511,7 @@ export default function BatchView({
           <div className="flex-col align-center gap-2" style={{ marginTop: '8px' }}>
             <button
               onClick={runBatchAnalysis}
-              disabled={files.length === 0 || processing || credits < files.length}
+              disabled={files.length === 0 || processing || (credits < files.length && !isBYOKMode)}
               className="button-primary run-analysis-btn"
             >
               {processing ? (
@@ -512,9 +524,11 @@ export default function BatchView({
               )}
             </button>
             <span className="cost-subtext">
-              {files.length > 0 
-                ? `Costs ${files.length} credit${files.length > 1 ? 's' : ''} — You have ${credits} credits remaining`
-                : `Costs 1 credit per resume — You have ${credits} credits remaining`}
+              {isBYOKMode
+                ? 'Runs on your custom Gemini API key'
+                : files.length > 0 
+                  ? `Costs ${files.length} credit${files.length > 1 ? 's' : ''} — You have ${credits} credits remaining`
+                  : `Costs 1 credit per resume — You have ${credits} credits remaining`}
             </span>
           </div>
 
@@ -588,6 +602,15 @@ export default function BatchView({
 
       {activeSection === 'analysis' && (results.length > 0 || processing) && (
         <div className="flex-col gap-6 fade-in">
+          {isQuotaExceeded && (
+            <div className="card flex align-center gap-3 w-full" style={{ borderColor: '#EAB308', backgroundColor: 'rgba(234, 179, 8, 0.1)', color: '#CA8A04', padding: '16px', borderRadius: '12px', display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
+              <span className="error-icon flex align-center" style={{ display: 'flex', alignItems: 'center' }}><AlertIcon size={18} style={{ color: '#CA8A04' }} /></span>
+              <span className="error-message font-sans" style={{ fontSize: '13.5px', fontWeight: '600' }}>
+                Your Gemini API Key has exceeded its daily limit (20 requests/day). Bluntly has temporarily fallen back to simulated results so you can see a preview of the report features without blocking you.
+              </span>
+            </div>
+          )}
+
           {/* Section 1: Batch Status */}
           <div className="card text-left">
             <h3 className="card-title">Batch Progress</h3>

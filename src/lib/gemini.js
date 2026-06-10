@@ -3,34 +3,93 @@ import fs from 'fs';
 import { redactPII } from './pii.js';
 import { computeSemanticSimilarity } from './embeddings.js';
 
-// Initialize Gemini API if key is available
-const apiKey = process.env.GEMINI_API_KEY;
-let genAI = null;
+// Cache genAI instances by API key to avoid re-initializing on every request
+const clientCache = {};
 
-if (apiKey) {
-  try {
-    genAI = new GoogleGenerativeAI(apiKey);
-  } catch (error) {
-    console.error('Failed to initialize GoogleGenerativeAI:', error);
+/**
+ * Returns a generative AI client instance.
+ * Prioritizes a custom request-scoped API key, falling back to the server environment key.
+ * Dynamically updates if the environment key or custom key is changed.
+ */
+function getGenAIClient(customApiKey = null) {
+  const activeKey = customApiKey || process.env.GEMINI_API_KEY;
+  if (!activeKey) return null;
+
+  if (!clientCache[activeKey]) {
+    try {
+      clientCache[activeKey] = new GoogleGenerativeAI(activeKey);
+    } catch (error) {
+      console.error('Failed to initialize GoogleGenerativeAI client:', error);
+      return null;
+    }
+  }
+  return clientCache[activeKey];
+}
+
+/**
+ * Helper to call generateContent with automatic retry and exponential backoff on 429/quota errors.
+ */
+async function generateContentWithRetry(model, promptOrParts, customApiKey = null, retries = 4, initialDelayMs = 1500) {
+  let delay = initialDelayMs;
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      return await model.generateContent(promptOrParts);
+    } catch (error) {
+      const errorMsg = error.message || '';
+      const errorDetailsStr = error.errorDetails ? JSON.stringify(error.errorDetails) : '';
+      
+      const isDailyLimit = 
+        errorMsg.includes('PerDay') || 
+        errorMsg.includes('Daily') || 
+        errorMsg.includes('limit: 20') ||
+        errorMsg.includes('exceeded your current quota') ||
+        errorMsg.includes('billing details') ||
+        errorMsg.includes('plan and billing') ||
+        errorDetailsStr.includes('QuotaFailure') ||
+        errorDetailsStr.includes('PerDay') ||
+        errorDetailsStr.includes('GenerateRequestsPerDay');
+        
+      if (isDailyLimit) {
+        const quotaError = new Error('GEMINI_DAILY_QUOTA_EXCEEDED');
+        quotaError.originalMessage = errorMsg;
+        throw quotaError;
+      }
+
+      const isRateLimit = errorMsg.includes('429') || errorMsg.includes('quota') || errorMsg.includes('Too Many Requests') || errorMsg.includes('limit');
+
+      const isServiceUnavailable = errorMsg.includes('503') || errorMsg.includes('Service Unavailable') || errorMsg.includes('demand');
+      const shouldRetry = (isRateLimit || isServiceUnavailable) && attempt < retries;
+      
+      if (shouldRetry) {
+        const type = isRateLimit ? 'rate limit (429)' : 'service unavailable (503)';
+        console.warn(`Gemini ${type} hit, retrying in ${delay}ms (attempt ${attempt}/${retries})...`);
+        logGeminiError(new Error(`${type} hit on attempt ${attempt}. Retrying... Details: ${errorMsg}`));
+        await new Promise(resolve => setTimeout(resolve, delay));
+        delay *= 2;
+        continue;
+      }
+      throw error;
+    }
   }
 }
 
 /**
  * Extracts raw text from an image buffer using Gemini multimodal capability.
  */
-export async function extractTextFromImage(buffer, mimeType) {
-  if (!genAI) {
+export async function extractTextFromImage(buffer, mimeType, customApiKey = null) {
+  const activeGenAI = getGenAIClient(customApiKey);
+  if (!activeGenAI) {
     throw new Error('Gemini API key is not configured.');
   }
 
   try {
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
+    const model = activeGenAI.getGenerativeModel({
+      model: 'gemini-3.5-flash',
     });
 
     const prompt = 'Please extract all text and structured content from this resume image. Output only the extracted plain text from the resume, preserving structural readability (headings, bullet points, layout structure) as closely as possible.';
 
-    const result = await model.generateContent([
+    const result = await generateContentWithRetry(model, [
       prompt,
       {
         inlineData: {
@@ -38,7 +97,7 @@ export async function extractTextFromImage(buffer, mimeType) {
           mimeType: mimeType
         }
       }
-    ]);
+    ], customApiKey);
 
     return result.response.text();
   } catch (error) {
@@ -50,19 +109,20 @@ export async function extractTextFromImage(buffer, mimeType) {
 /**
  * Stage 1: Parse Resume Text to Structured JSON
  */
-export async function parseResumeToJSON(resumeText, filename = 'Resume') {
-  if (!genAI) {
+export async function parseResumeToJSON(resumeText, filename = 'Resume', customApiKey = null) {
+  const activeGenAI = getGenAIClient(customApiKey);
+  if (!activeGenAI) {
     return parseResumeToJSONMock(resumeText, filename);
   }
 
   try {
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
+    const model = activeGenAI.getGenerativeModel({
+      model: 'gemini-3.5-flash',
       generationConfig: {
         responseMimeType: 'application/json',
       },
     });
-
+ 
     const prompt = `
 You are an expert resume parser. Extract structural information from the following resume text and format it into a valid JSON object matching the exact schema below.
 
@@ -98,7 +158,7 @@ JSON SCHEMA:
 }
 `;
 
-    const result = await model.generateContent(prompt);
+    const result = await generateContentWithRetry(model, prompt, customApiKey);
     const textResponse = result.response.text();
     const parsed = JSON.parse(textResponse);
     parsed.textLength = resumeText.length;
@@ -106,14 +166,18 @@ JSON SCHEMA:
   } catch (error) {
     console.error('Gemini Resume Parsing error, falling back to mock:', error);
     logGeminiError(error);
-    return parseResumeToJSONMock(resumeText, filename);
+    const mock = parseResumeToJSONMock(resumeText, filename);
+    if (error.message === 'GEMINI_DAILY_QUOTA_EXCEEDED') {
+      mock.isQuotaExceeded = true;
+    }
+    return mock;
   }
 }
 
 /**
  * Stage 1b: Parse Job Description text into structured requirements
  */
-export async function parseJobDescriptionToJSON(jobDescription) {
+export async function parseJobDescriptionToJSON(jobDescription, customApiKey = null) {
   if (!jobDescription || !jobDescription.trim()) {
     return {
       requiredSkills: [],
@@ -123,13 +187,14 @@ export async function parseJobDescriptionToJSON(jobDescription) {
     };
   }
 
-  if (!genAI) {
+  const activeGenAI = getGenAIClient(customApiKey);
+  if (!activeGenAI) {
     return parseJobDescriptionToJSONMock(jobDescription);
   }
 
   try {
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
+    const model = activeGenAI.getGenerativeModel({
+      model: 'gemini-3.5-flash',
       generationConfig: {
         responseMimeType: 'application/json',
       },
@@ -152,20 +217,24 @@ JSON SCHEMA:
 }
 `;
 
-    const result = await model.generateContent(prompt);
+    const result = await generateContentWithRetry(model, prompt, customApiKey);
     const textResponse = result.response.text();
     return JSON.parse(textResponse);
   } catch (error) {
     console.error('Gemini JD Parsing error, falling back to mock:', error);
     logGeminiError(error);
-    return parseJobDescriptionToJSONMock(jobDescription);
+    const mock = parseJobDescriptionToJSONMock(jobDescription);
+    if (error.message === 'GEMINI_DAILY_QUOTA_EXCEEDED') {
+      mock.isQuotaExceeded = true;
+    }
+    return mock;
   }
 }
 
 /**
  * Generates dynamic, job-specific evaluation rubrics from a Job Description.
  */
-export async function generateDynamicRubrics(jobDescription) {
+export async function generateDynamicRubrics(jobDescription, customApiKey = null) {
   const defaultRubrics = [
     { id: "technical_depth", name: "Technical Depth & Stack", weight: 35, description: "Check candidate's technical skills matching the core stack." },
     { id: "experience_relevance", name: "Work Experience Relevance", weight: 35, description: "Examine scope, depth, and duration of professional experience." },
@@ -177,13 +246,14 @@ export async function generateDynamicRubrics(jobDescription) {
     return defaultRubrics;
   }
 
-  if (!genAI) {
+  const activeGenAI = getGenAIClient(customApiKey);
+  if (!activeGenAI) {
     return getMockRubrics(jobDescription);
   }
 
   try {
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
+    const model = activeGenAI.getGenerativeModel({
+      model: 'gemini-3.5-flash',
       generationConfig: {
         responseMimeType: 'application/json',
       },
@@ -209,7 +279,7 @@ JSON SCHEMA:
 ]
 `;
 
-    const result = await model.generateContent(prompt);
+    const result = await generateContentWithRetry(model, prompt, customApiKey);
     const rubrics = JSON.parse(result.response.text());
 
     // Validate and adjust weights to total exactly 100
@@ -229,21 +299,26 @@ JSON SCHEMA:
     return rubrics.slice(0, 4); // Keep exactly 4 to fit UI grid
   } catch (error) {
     console.error('Failed to generate dynamic rubrics, falling back to mock:', error);
-    return getMockRubrics(jobDescription);
+    const mock = getMockRubrics(jobDescription);
+    if (error.message === 'GEMINI_DAILY_QUOTA_EXCEEDED') {
+      mock.forEach(m => m.isQuotaExceeded = true);
+    }
+    return mock;
   }
 }
 
 /**
  * Evaluates the redacted resume against dynamic rubrics.
  */
-export async function evaluateResumeAgainstRubrics(redactedResumeText, rubrics, jobDescription = '') {
-  if (!genAI) {
+export async function evaluateResumeAgainstRubrics(redactedResumeText, rubrics, jobDescription = '', customApiKey = null) {
+  const activeGenAI = getGenAIClient(customApiKey);
+  if (!activeGenAI) {
     return getMockRubricEvaluations(rubrics);
   }
 
   try {
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
+    const model = activeGenAI.getGenerativeModel({
+      model: 'gemini-3.5-flash',
       generationConfig: {
         responseMimeType: 'application/json',
       },
@@ -275,11 +350,15 @@ JSON SCHEMA:
 ]
 `;
 
-    const result = await model.generateContent(prompt);
+    const result = await generateContentWithRetry(model, prompt, customApiKey);
     return JSON.parse(result.response.text());
   } catch (error) {
     console.error('Failed to evaluate resume against rubrics:', error);
-    return getMockRubricEvaluations(rubrics);
+    const mock = getMockRubricEvaluations(rubrics);
+    if (error.message === 'GEMINI_DAILY_QUOTA_EXCEEDED') {
+      mock.forEach(m => m.isQuotaExceeded = true);
+    }
+    return mock;
   }
 }
 
@@ -450,19 +529,20 @@ export function runComparisonEngine(structuredResume, structuredJD) {
 /**
  * Stage 4: LLM Feedback Generator (Scrubbed PII)
  */
-export async function generateLLMFeedback(structuredResume, jobDescription, atsScore, qualityScore, ruleViolations) {
-  if (!genAI) {
+export async function generateLLMFeedback(structuredResume, jobDescription, atsScore, qualityScore, ruleViolations, customApiKey = null) {
+  const activeGenAI = getGenAIClient(customApiKey);
+  if (!activeGenAI) {
     return generateLLMFeedbackMock(structuredResume, jobDescription, atsScore, qualityScore, ruleViolations);
   }
 
   try {
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
+    const model = activeGenAI.getGenerativeModel({
+      model: 'gemini-3.5-flash',
       generationConfig: {
         responseMimeType: 'application/json',
       },
     });
-
+ 
     const prompt = `
 You are an expert career advisor and technical recruiter.
 Review the candidate's parsed resume details and target job description (if any), along with their programmatic scores.
@@ -490,13 +570,17 @@ Based on this information, generate customized, detailed career feedback in a JS
 }
 `;
 
-    const result = await model.generateContent(prompt);
+    const result = await generateContentWithRetry(model, prompt, customApiKey);
     const textResponse = result.response.text();
     return JSON.parse(textResponse);
   } catch (error) {
     console.error('Gemini Feedback Generation error, falling back to mock:', error);
     logGeminiError(error);
-    return generateLLMFeedbackMock(structuredResume, jobDescription, atsScore, qualityScore, ruleViolations);
+    const mock = generateLLMFeedbackMock(structuredResume, jobDescription, atsScore, qualityScore, ruleViolations);
+    if (error.message === 'GEMINI_DAILY_QUOTA_EXCEEDED') {
+      mock.isQuotaExceeded = true;
+    }
+    return mock;
   }
 }
 
@@ -618,16 +702,17 @@ export function calculateGitHubPortfolioScore(githubData, jobDescription) {
 /**
  * Stage 5: Evaluate resume against the new three-component screening criteria
  */
-export async function evaluateScreeningCriteria(structuredResume, jobDescription, githubData, semanticSimilarityScore) {
+export async function evaluateScreeningCriteria(structuredResume, jobDescription, githubData, semanticSimilarityScore, customApiKey = null) {
   const githubPortfolio = calculateGitHubPortfolioScore(githubData, jobDescription);
+  const activeGenAI = getGenAIClient(customApiKey);
 
-  if (!genAI) {
+  if (!activeGenAI) {
     return evaluateScreeningCriteriaMock(structuredResume, jobDescription, githubPortfolio, semanticSimilarityScore);
   }
 
   try {
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
+    const model = activeGenAI.getGenerativeModel({
+      model: 'gemini-3.5-flash',
       generationConfig: {
         responseMimeType: 'application/json',
       },
@@ -669,7 +754,7 @@ Generate a JSON object matching this schema:
 }
 `;
 
-    const result = await model.generateContent(prompt);
+    const result = await generateContentWithRetry(model, prompt, customApiKey);
     const evaluation = JSON.parse(result.response.text());
     
     // Attach calculated and pre-computed values
@@ -679,7 +764,11 @@ Generate a JSON object matching this schema:
     return evaluation;
   } catch (error) {
     console.error('Failed to evaluate screening criteria via Gemini:', error);
-    return evaluateScreeningCriteriaMock(structuredResume, jobDescription, githubPortfolio, semanticSimilarityScore);
+    const mock = evaluateScreeningCriteriaMock(structuredResume, jobDescription, githubPortfolio, semanticSimilarityScore);
+    if (error.message === 'GEMINI_DAILY_QUOTA_EXCEEDED') {
+      mock.isQuotaExceeded = true;
+    }
+    return mock;
   }
 }
 
@@ -757,9 +846,13 @@ function evaluateScreeningCriteriaMock(structuredResume, jobDescription, githubP
 /**
  * Main Orchestrator: Combines PDF/LaTeX text, dynamic rubrics, S-BERT embeddings, PII shield, and multimodal integrations.
  */
-export async function analyzeResume(resumeText, jobDescription = '', filename = 'Resume', multimodalData = null) {
-  // Step 1: Parse Original Resume details to get Candidate Name for Contact records & RLS policies
-  const structuredResume = await parseResumeToJSON(resumeText, filename);
+export async function analyzeResume(resumeText, jobDescription = '', filename = 'Resume', multimodalData = null, customApiKey = null) {
+  // Step 1: Parse Original Resume, Job Description, and Rubrics in parallel to minimize response latency
+  const [structuredResume, parsedJD, rubrics] = await Promise.all([
+    parseResumeToJSON(resumeText, filename, customApiKey),
+    parseJobDescriptionToJSON(jobDescription, customApiKey),
+    generateDynamicRubrics(jobDescription, customApiKey)
+  ]);
   
   const isValidName = (str) => {
     if (!str) return false;
@@ -810,28 +903,9 @@ export async function analyzeResume(resumeText, jobDescription = '', filename = 
     semanticSimilarity = await computeSemanticSimilarity(jobDescription, redactedText);
   }
 
-  // Step 4: Dynamic Rubrics Auto-generation & evaluation
-  let rubrics = [];
-  let rubricEvaluations = [];
-  let weightedRubricScore = 0;
-
-  if (jobDescription.trim().length > 0) {
-    rubrics = await generateDynamicRubrics(jobDescription);
-    rubricEvaluations = await evaluateResumeAgainstRubrics(redactedText, rubrics, jobDescription);
-    
-    // Calculate weighted rubric score
-    let rubricSum = 0;
-    rubrics.forEach(rub => {
-      const match = rubricEvaluations.find(e => e.id === rub.id);
-      const score = match ? match.score : 50;
-      rubricSum += score * ((rub.weight || 25) / 100);
-    });
-    weightedRubricScore = rubricSum;
-  }
-
   // Step 5: Programmatic checks
   const rulesResult = runRuleEngine(structuredResume);
-  const matchResult = runComparisonEngine(structuredResume, await parseJobDescriptionToJSON(jobDescription));
+  const matchResult = runComparisonEngine(structuredResume, parsedJD);
 
   // Step 6: Multimodal integrations - Fetch GitHub portfolio by auto-extracting from resume text
   let processedMultimodal = {
@@ -858,13 +932,22 @@ export async function analyzeResume(resumeText, jobDescription = '', filename = 
     }
   }
 
-  // Step 7: Evaluate detailed screening metrics
-  const screeningDetails = await evaluateScreeningCriteria(
-    redactedStructured,
-    jobDescription,
-    processedMultimodal.github,
-    Math.round(semanticSimilarity * 100)
-  );
+  // Step 7: Evaluate detailed screening metrics and rubrics in parallel
+  let rubricEvaluationsPromise = Promise.resolve([]);
+  if (jobDescription.trim().length > 0) {
+    rubricEvaluationsPromise = evaluateResumeAgainstRubrics(redactedText, rubrics, jobDescription, customApiKey);
+  }
+
+  const [rubricEvaluations, screeningDetails] = await Promise.all([
+    rubricEvaluationsPromise,
+    evaluateScreeningCriteria(
+      redactedStructured,
+      jobDescription,
+      processedMultimodal.github,
+      Math.round(semanticSimilarity * 100),
+      customApiKey
+    )
+  ]);
 
   const githubScoreVal = screeningDetails.github.score;
   const skillsSemanticScoreVal = Math.round(
@@ -912,8 +995,16 @@ export async function analyzeResume(resumeText, jobDescription = '', filename = 
     jobDescription,
     hybridATS,
     rulesResult.qualityScore,
-    rulesResult.ruleViolations
+    rulesResult.ruleViolations,
+    customApiKey
   );
+
+  const isQuotaExceeded = (structuredResume?.isQuotaExceeded) || 
+                           (parsedJD?.isQuotaExceeded) || 
+                           (rubrics?.some?.(r => r.isQuotaExceeded)) ||
+                           (rubricEvaluations?.some?.(r => r.isQuotaExceeded)) ||
+                           (screeningDetails?.isQuotaExceeded) ||
+                           (feedback?.isQuotaExceeded) || false;
 
   return {
     candidateName,
@@ -930,7 +1021,8 @@ export async function analyzeResume(resumeText, jobDescription = '', filename = 
     rubricEvaluations,
     rubrics,
     multimodalDetails: processedMultimodal,
-    screeningDetails
+    screeningDetails,
+    isQuotaExceeded
   };
 }
 

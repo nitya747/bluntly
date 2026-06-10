@@ -133,8 +133,12 @@ function LoginContent() {
         
         if (data?.user?.identities?.length === 0) {
           setErrorMsg('An account with this email already exists.');
+        } else if (data?.session) {
+          // If email confirmation is disabled, a session is returned immediately
+          router.push('/');
+          router.refresh();
         } else {
-          setMessage('Success! Check your email to verify your registration.');
+          setMessage('Success! Registration complete. Please log in.');
           setEmail('');
           setPassword('');
         }

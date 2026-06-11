@@ -1,0 +1,24 @@
+# ==============================================================================
+# bluntly ⚡ - Python Dependencies
+# ==============================================================================
+# NOTE: Bluntly is a Next.js (Node.js) web application. 
+# Primary application dependencies are defined and managed via `package.json`.
+# 
+# This file lists optional Python dependencies used for utility scripts, local
+# LaTeX resume compilation testing, or advanced local parsing services.
+#
+# To install these optional packages:
+#   pip install -r requirements.txt
+# ==============================================================================
+
+# PDF & Text Extraction Utilities (Optional)
+pdfplumber>=0.10.3
+pypandoc>=1.12
+
+# Local LaTex Compilation Testing (Optional)
+latex>=0.7.0
+
+# Local AI / LLM Testing (Optional)
+ollama>=0.1.7
+google-generativeai>=0.4.0
+pydantic>=2.6.1

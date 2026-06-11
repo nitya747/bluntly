@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Bluntly local logs & diffs
+gemini-errors.log
+*.diff
+git_*
+/scratch/

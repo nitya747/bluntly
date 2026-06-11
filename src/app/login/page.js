@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '../../lib/supabase/client';
-import { LogoIcon, AlertIcon, CheckIcon, SunIcon, MoonIcon } from '../../components/Icons';
+import { AlertIcon, CheckIcon, SunIcon, MoonIcon } from '../../components/Icons';
 
 // Local SVG Icons for the redesigned page
 function EnvelopeIcon({ size = 16, ...props }) {
@@ -207,10 +207,7 @@ function LoginContent() {
 
       <div className="login-card">
         {/* Brand/Header */}
-        <div className="login-header flex-col align-center gap-2 text-center">
-          <div className="login-logo flex align-center justify-center">
-            <LogoIcon size={24} />
-          </div>
+        <div className="login-header flex-col align-center gap-1 text-center">
           <h1 className="login-title">bluntly</h1>
           <p className="login-subtitle font-sans">
             {isSignUp ? 'Create an account to start parsing resumes' : 'Sign in to access your dashboard'}
@@ -432,15 +429,15 @@ function LoginContent() {
 
         .login-card {
           width: 100%;
-          max-width: 400px;
-          padding: 3.5rem 2.5rem;
+          max-width: 420px;
+          padding: 2.25rem 2.25rem;
           background-color: var(--surface);
           border: 1px solid var(--border);
           border-radius: 20px;
           box-shadow: 0 20px 40px -15px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04);
           display: flex;
           flex-direction: column;
-          gap: 2rem;
+          gap: 1.25rem;
           position: relative;
           z-index: 10;
           transition: background-color var(--transition-speed) ease, border-color var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
@@ -475,30 +472,6 @@ function LoginContent() {
           box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.45);
         }
 
-        .login-logo {
-          background: linear-gradient(135deg, var(--primary), var(--primary-hover));
-          width: 44px;
-          height: 44px;
-          border-radius: 12px;
-          color: #FFFFFF;
-          box-shadow: 0 4px 12px rgba(15, 118, 110, 0.25);
-          transition: all var(--transition-speed) ease;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .login-logo:hover {
-          transform: scale(1.05);
-          box-shadow: 0 4px 10px rgba(15, 118, 110, 0.2);
-        }
-
-        [data-theme="dark"] .login-logo {
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-        }
-
-        [data-theme="dark"] .login-logo:hover {
-          box-shadow: 0 4px 12px rgba(20, 184, 166, 0.25);
-        }
-
         .login-title {
           font-family: var(--font-primary);
           font-size: 1.85rem;
@@ -521,7 +494,7 @@ function LoginContent() {
           width: 100%;
           display: flex;
           flex-direction: column;
-          gap: 1.5rem;
+          gap: 1.15rem;
         }
 
         .form-group {
@@ -560,7 +533,7 @@ function LoginContent() {
 
         .input-text {
           width: 100%;
-          padding: 0.8rem 1rem;
+          padding: 0.7rem 0.9rem;
           border-radius: 10px;
           border: 1px solid rgba(226, 232, 240, 0.8);
           background-color: var(--bg);
@@ -651,7 +624,7 @@ function LoginContent() {
 
         .submit-btn {
           width: 100%;
-          padding: 0.85rem;
+          padding: 0.75rem;
           font-size: 0.9rem;
           font-weight: 600;
           border-radius: 10px;
@@ -692,7 +665,7 @@ function LoginContent() {
 
         .github-btn {
           width: 100%;
-          padding: 0.85rem;
+          padding: 0.75rem;
           font-size: 0.9rem;
           font-weight: 600;
           border-radius: 10px;
@@ -724,7 +697,7 @@ function LoginContent() {
 
         .bypass-btn {
           width: 100%;
-          padding: 0.85rem;
+          padding: 0.75rem;
           font-size: 0.9rem;
           font-weight: 600;
           border-radius: 10px;
@@ -737,7 +710,7 @@ function LoginContent() {
           align-items: center;
           justify-content: center;
           gap: 0.5rem;
-          margin-top: 0.75rem;
+          margin-top: 0.5rem;
         }
 
         .bypass-btn:hover:not(:disabled) {

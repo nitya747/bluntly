@@ -15,7 +15,8 @@ export default function Header({
   credits,
   onBuyCredits,
   onSignOut,
-  isBYOKMode = false
+  isBYOKMode = false,
+  isLocalUser = false
 }) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
@@ -52,7 +53,7 @@ export default function Header({
   ]);
 
   const displayNotifications = notifications
-    .filter(notif => !isBYOKMode || notif.type !== 'credits')
+    .filter(notif => (!isBYOKMode && !isLocalUser) || notif.type !== 'credits')
     .map(notif => {
       if (notif.type === 'credits') {
         return { ...notif, desc: `${credits || 0} credits remaining. Top up anytime.` };
@@ -336,7 +337,7 @@ export default function Header({
                   </div>
                 </div>
                 
-                {!isBYOKMode && (
+                {!isBYOKMode && !isLocalUser && (
                   <>
                     <div className="dropdown-divider"></div>
                     <div className="profile-dropdown-credits flex align-center justify-between">

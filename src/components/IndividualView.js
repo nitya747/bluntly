@@ -52,7 +52,8 @@ export default function IndividualView({
   activeSection,
   setActiveSection,
   setActiveView,
-  isBYOKMode = false
+  isBYOKMode = false,
+  isLocalUser = false
 }) {
   const [file, setFile] = useState(null);
   const [jobDescription, setJobDescription] = useState('');
@@ -789,7 +790,7 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
           {/* Multimodal integrations removed as per request */}
 
           {/* Credit warnings */}
-          {file && !file.isSavedRecord && credits < 1 && !isBYOKMode && (
+          {file && !file.isSavedRecord && credits < 1 && !isBYOKMode && !isLocalUser && (
             <div className="credit-warning-banner card flex align-center gap-3" style={{ alignSelf: 'center', maxWidth: '500px', width: '100%', borderColor: 'var(--danger)', backgroundColor: 'var(--danger-subtle)', color: 'var(--danger)' }}>
               <span className="error-icon flex align-center"><AlertIcon size={16} /></span>
               <span className="error-message font-sans" style={{ fontSize: '13px' }}>
@@ -810,7 +811,7 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
           <div className="flex-col align-center gap-2" style={{ marginTop: '8px' }}>
             <button
               onClick={runAnalysis}
-              disabled={!file || analyzing || (credits === 0 && !isBYOKMode)}
+              disabled={!file || analyzing || (credits === 0 && !isBYOKMode && !isLocalUser)}
               className="button-primary run-analysis-btn flex align-center justify-center gap-2"
               style={{ width: '320px', height: '48px', backgroundColor: 'var(--primary)', borderRadius: '12px' }}
             >
@@ -829,8 +830,8 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
             <span className="cost-subtext" style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
               {file?.isSavedRecord 
                 ? 'Viewing saved scan' 
-                : isBYOKMode
-                  ? 'Runs on your custom Gemini API key'
+                : isLocalUser
+                  ? (isBYOKMode ? 'Runs on your custom Gemini API key' : 'Runs on local Gemini API key')
                   : `Costs 1 credit — You have ${credits} credits remaining`}
             </span>
           </div>

@@ -27,7 +27,8 @@ export default function Sidebar({
   onSignOut, 
   credits, 
   onBuyCredits,
-  isBYOKMode = false
+  isBYOKMode = false,
+  isLocalUser = false
 }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -140,7 +141,7 @@ export default function Sidebar({
         {user && (
           <div className="user-card flex flex-col gap-3">
             {/* Credits Section */}
-            {!isBYOKMode && (
+            {!isBYOKMode && !isLocalUser && (
               <div className="credits-section w-full">
                 <div className="sidebar-credits">
                   <span className="credits-text font-sans flex align-center" style={{ gap: '4px' }}>

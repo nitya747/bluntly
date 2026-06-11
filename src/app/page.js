@@ -29,6 +29,7 @@ export default function Home() {
   const router = useRouter();
 
   const isBYOKMode = user?.id === 'mock-dev-id' && !!customApiKey;
+  const isLocalUser = user?.id === 'mock-dev-id';
 
   // Load custom API key from localStorage on mount
   useEffect(() => {
@@ -228,6 +229,7 @@ export default function Home() {
         credits={credits}
         onBuyCredits={handleBuyCredits}
         isBYOKMode={isBYOKMode}
+        isLocalUser={isLocalUser}
       />
 
       {/* Main Workspace Frame */}
@@ -245,6 +247,7 @@ export default function Home() {
           onBuyCredits={handleBuyCredits}
           onSignOut={handleSignOut}
           isBYOKMode={isBYOKMode}
+          isLocalUser={isLocalUser}
         />
 
         {/* View Router */}
@@ -261,6 +264,7 @@ export default function Home() {
               setActiveSection={setIndividualSection}
               setActiveView={setActiveView}
               isBYOKMode={isBYOKMode}
+              isLocalUser={isLocalUser}
             />
           )}
 
@@ -273,6 +277,7 @@ export default function Home() {
               activeSection={batchSection}
               setActiveSection={setBatchSection}
               isBYOKMode={isBYOKMode}
+              isLocalUser={isLocalUser}
             />
           )}
 

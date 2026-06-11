@@ -27,7 +27,8 @@ export default function BatchView({
   history = [],
   activeSection,
   setActiveSection,
-  isBYOKMode = false
+  isBYOKMode = false,
+  isLocalUser = false
 }) {
   const [files, setFiles] = useState([]);
   const [jobDescription, setJobDescription] = useState('');
@@ -490,7 +491,7 @@ export default function BatchView({
           </div>
 
           {/* Credit warnings */}
-          {files.length > 0 && credits < files.length && !isBYOKMode && (
+          {files.length > 0 && credits < files.length && !isBYOKMode && !isLocalUser && (
             <div className="credit-warning-banner card flex align-center gap-3" style={{ alignSelf: 'center', maxWidth: '500px', width: '100%', borderColor: 'var(--danger)', backgroundColor: 'rgba(239,68,68,0.06)', color: 'var(--danger)' }}>
               <span className="error-icon flex align-center"><AlertIcon size={16} /></span>
               <span className="error-message font-sans" style={{ fontSize: '13px' }}>
@@ -511,7 +512,7 @@ export default function BatchView({
           <div className="flex-col align-center gap-2" style={{ marginTop: '8px' }}>
             <button
               onClick={runBatchAnalysis}
-              disabled={files.length === 0 || processing || (credits < files.length && !isBYOKMode)}
+              disabled={files.length === 0 || processing || (credits < files.length && !isBYOKMode && !isLocalUser)}
               className="button-primary run-analysis-btn"
             >
               {processing ? (
@@ -524,11 +525,13 @@ export default function BatchView({
               )}
             </button>
             <span className="cost-subtext">
-              {isBYOKMode
-                ? 'Runs on your custom Gemini API key'
-                : files.length > 0 
-                  ? `Costs ${files.length} credit${files.length > 1 ? 's' : ''} — You have ${credits} credits remaining`
-                  : `Costs 1 credit per resume — You have ${credits} credits remaining`}
+              {isLocalUser
+                ? (isBYOKMode ? 'Runs on your custom Gemini API key' : 'Runs on local Gemini API key')
+                : isBYOKMode
+                  ? 'Runs on your custom Gemini API key'
+                  : files.length > 0 
+                    ? `Costs ${files.length} credit${files.length > 1 ? 's' : ''} — You have ${credits} credits remaining`
+                    : `Costs 1 credit per resume — You have ${credits} credits remaining`}
             </span>
           </div>
 

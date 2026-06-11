@@ -29,48 +29,85 @@ function getGenAIClient(customApiKey = null) {
 /**
  * Helper to call generateContent with automatic retry and exponential backoff on 429/quota errors.
  */
-async function generateContentWithRetry(model, promptOrParts, customApiKey = null, retries = 4, initialDelayMs = 1500) {
-  let delay = initialDelayMs;
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    try {
-      return await model.generateContent(promptOrParts);
-    } catch (error) {
-      const errorMsg = error.message || '';
-      const errorDetailsStr = error.errorDetails ? JSON.stringify(error.errorDetails) : '';
-      
-      const isDailyLimit = 
-        errorMsg.includes('PerDay') || 
-        errorMsg.includes('Daily') || 
-        errorMsg.includes('limit: 20') ||
-        errorMsg.includes('exceeded your current quota') ||
-        errorMsg.includes('billing details') ||
-        errorMsg.includes('plan and billing') ||
-        errorDetailsStr.includes('QuotaFailure') ||
-        errorDetailsStr.includes('PerDay') ||
-        errorDetailsStr.includes('GenerateRequestsPerDay');
+/**
+ * Helper to call generateContent with automatic retry, exponential backoff on 429/quota errors,
+ * and automatic fallback to lite models if the primary model hits its daily quota/limit.
+ */
+async function generateContentWithRetry(activeGenAI, generationConfig, promptOrParts, customApiKey = null, retries = 4, initialDelayMs = 1500) {
+  const models = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-flash-lite-latest'];
+  let lastError = null;
+
+  for (const modelName of models) {
+    let delay = initialDelayMs;
+    const model = activeGenAI.getGenerativeModel({
+      model: modelName,
+      ...(generationConfig ? { generationConfig } : {})
+    });
+
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        return await model.generateContent(promptOrParts);
+      } catch (error) {
+        lastError = error;
+        const errorMsg = error.message || '';
+        const errorDetailsStr = error.errorDetails ? JSON.stringify(error.errorDetails) : '';
         
-      if (isDailyLimit) {
-        const quotaError = new Error('GEMINI_DAILY_QUOTA_EXCEEDED');
-        quotaError.originalMessage = errorMsg;
-        throw quotaError;
-      }
+        const isDailyLimit = 
+          errorMsg.includes('PerDay') || 
+          errorMsg.includes('Daily') || 
+          errorMsg.includes('limit: 20') ||
+          errorMsg.includes('exceeded your current quota') ||
+          errorMsg.includes('billing details') ||
+          errorMsg.includes('plan and billing') ||
+          errorDetailsStr.includes('QuotaFailure') ||
+          errorDetailsStr.includes('PerDay') ||
+          errorDetailsStr.includes('GenerateRequestsPerDay');
+          
+        if (isDailyLimit) {
+          console.warn(`Gemini model ${modelName} hit daily limit/quota. Attempting fallback...`);
+          logGeminiError(new Error(`Model ${modelName} hit daily limit. Details: ${errorMsg}`));
+          break; // Exit retry loop and try the next model
+        }
 
-      const isRateLimit = errorMsg.includes('429') || errorMsg.includes('quota') || errorMsg.includes('Too Many Requests') || errorMsg.includes('limit');
+        const isRateLimit = errorMsg.includes('429') || errorMsg.includes('quota') || errorMsg.includes('Too Many Requests') || errorMsg.includes('limit');
+        const isServiceUnavailable = errorMsg.includes('503') || errorMsg.includes('Service Unavailable') || errorMsg.includes('demand');
+        const shouldRetry = (isRateLimit || isServiceUnavailable) && attempt < retries;
+        
+        if (shouldRetry) {
+          const type = isRateLimit ? 'rate limit (429)' : 'service unavailable (503)';
+          console.warn(`Gemini ${type} hit on model ${modelName}, retrying in ${delay}ms (attempt ${attempt}/${retries})...`);
+          logGeminiError(new Error(`${type} hit on model ${modelName} attempt ${attempt}. Retrying... Details: ${errorMsg}`));
+          await new Promise(resolve => setTimeout(resolve, delay));
+          delay *= 2;
+          continue;
+        }
 
-      const isServiceUnavailable = errorMsg.includes('503') || errorMsg.includes('Service Unavailable') || errorMsg.includes('demand');
-      const shouldRetry = (isRateLimit || isServiceUnavailable) && attempt < retries;
-      
-      if (shouldRetry) {
-        const type = isRateLimit ? 'rate limit (429)' : 'service unavailable (503)';
-        console.warn(`Gemini ${type} hit, retrying in ${delay}ms (attempt ${attempt}/${retries})...`);
-        logGeminiError(new Error(`${type} hit on attempt ${attempt}. Retrying... Details: ${errorMsg}`));
-        await new Promise(resolve => setTimeout(resolve, delay));
-        delay *= 2;
-        continue;
+        const isModelNotFoundError = errorMsg.includes('404') || errorMsg.includes('not found') || errorMsg.includes('not supported');
+        if (isModelNotFoundError) {
+          console.warn(`Gemini model ${modelName} not found/supported. Attempting fallback...`);
+          break; // Try next model
+        }
+
+        throw error;
       }
-      throw error;
     }
   }
+
+  // If all models failed, throw the quota exceeded error if that was the main issue
+  const isDailyLimit = 
+    (lastError.message || '').includes('PerDay') || 
+    (lastError.message || '').includes('Daily') || 
+    (lastError.message || '').includes('limit: 20') ||
+    (lastError.message || '').includes('exceeded your current quota') ||
+    JSON.stringify(lastError.errorDetails || '').includes('QuotaFailure');
+    
+  if (isDailyLimit) {
+    const quotaError = new Error('GEMINI_DAILY_QUOTA_EXCEEDED');
+    quotaError.originalMessage = lastError.message;
+    throw quotaError;
+  }
+
+  throw lastError;
 }
 
 /**
@@ -83,21 +120,22 @@ export async function extractTextFromImage(buffer, mimeType, customApiKey = null
   }
 
   try {
-    const model = activeGenAI.getGenerativeModel({
-      model: 'gemini-3.5-flash',
-    });
-
     const prompt = 'Please extract all text and structured content from this resume image. Output only the extracted plain text from the resume, preserving structural readability (headings, bullet points, layout structure) as closely as possible.';
 
-    const result = await generateContentWithRetry(model, [
-      prompt,
-      {
-        inlineData: {
-          data: Buffer.from(buffer).toString('base64'),
-          mimeType: mimeType
+    const result = await generateContentWithRetry(
+      activeGenAI,
+      null,
+      [
+        prompt,
+        {
+          inlineData: {
+            data: Buffer.from(buffer).toString('base64'),
+            mimeType: mimeType
+          }
         }
-      }
-    ], customApiKey);
+      ],
+      customApiKey
+    );
 
     return result.response.text();
   } catch (error) {
@@ -116,13 +154,6 @@ export async function parseResumeToJSON(resumeText, filename = 'Resume', customA
   }
 
   try {
-    const model = activeGenAI.getGenerativeModel({
-      model: 'gemini-3.5-flash',
-      generationConfig: {
-        responseMimeType: 'application/json',
-      },
-    });
- 
     const prompt = `
 You are an expert resume parser. Extract structural information from the following resume text and format it into a valid JSON object matching the exact schema below.
 
@@ -158,7 +189,12 @@ JSON SCHEMA:
 }
 `;
 
-    const result = await generateContentWithRetry(model, prompt, customApiKey);
+    const result = await generateContentWithRetry(
+      activeGenAI,
+      { responseMimeType: 'application/json' },
+      prompt,
+      customApiKey
+    );
     const textResponse = result.response.text();
     const parsed = JSON.parse(textResponse);
     parsed.textLength = resumeText.length;
@@ -193,13 +229,6 @@ export async function parseJobDescriptionToJSON(jobDescription, customApiKey = n
   }
 
   try {
-    const model = activeGenAI.getGenerativeModel({
-      model: 'gemini-3.5-flash',
-      generationConfig: {
-        responseMimeType: 'application/json',
-      },
-    });
-
     const prompt = `
 You are an expert job description parser. Parse the following job description and extract required skills, preferred skills, experience years, and key terms.
 
@@ -217,7 +246,12 @@ JSON SCHEMA:
 }
 `;
 
-    const result = await generateContentWithRetry(model, prompt, customApiKey);
+    const result = await generateContentWithRetry(
+      activeGenAI,
+      { responseMimeType: 'application/json' },
+      prompt,
+      customApiKey
+    );
     const textResponse = result.response.text();
     return JSON.parse(textResponse);
   } catch (error) {
@@ -252,13 +286,6 @@ export async function generateDynamicRubrics(jobDescription, customApiKey = null
   }
 
   try {
-    const model = activeGenAI.getGenerativeModel({
-      model: 'gemini-3.5-flash',
-      generationConfig: {
-        responseMimeType: 'application/json',
-      },
-    });
-
     const prompt = `
 You are an expert technical recruiter. Analyze the following Job Description and generate a set of exactly 4 specific, customized scoring rubrics (evaluation criteria) tailored to assess candidates for this role.
 The sum of all rubric weights must equal exactly 100. Each rubric should have a clear name, a weight, and a brief description of what is assessed.
@@ -279,7 +306,12 @@ JSON SCHEMA:
 ]
 `;
 
-    const result = await generateContentWithRetry(model, prompt, customApiKey);
+    const result = await generateContentWithRetry(
+      activeGenAI,
+      { responseMimeType: 'application/json' },
+      prompt,
+      customApiKey
+    );
     const rubrics = JSON.parse(result.response.text());
 
     // Validate and adjust weights to total exactly 100
@@ -317,13 +349,6 @@ export async function evaluateResumeAgainstRubrics(redactedResumeText, rubrics, 
   }
 
   try {
-    const model = activeGenAI.getGenerativeModel({
-      model: 'gemini-3.5-flash',
-      generationConfig: {
-        responseMimeType: 'application/json',
-      },
-    });
-
     const prompt = `
 You are an expert technical interviewer. Evaluate the following redacted candidate resume against the given scoring rubrics.
 For each rubric, assign an integer score between 0 and 100 and write a concise, one-sentence justification detailing the evidence or lack thereof in the resume.
@@ -350,7 +375,12 @@ JSON SCHEMA:
 ]
 `;
 
-    const result = await generateContentWithRetry(model, prompt, customApiKey);
+    const result = await generateContentWithRetry(
+      activeGenAI,
+      { responseMimeType: 'application/json' },
+      prompt,
+      customApiKey
+    );
     return JSON.parse(result.response.text());
   } catch (error) {
     console.error('Failed to evaluate resume against rubrics:', error);
@@ -536,13 +566,6 @@ export async function generateLLMFeedback(structuredResume, jobDescription, atsS
   }
 
   try {
-    const model = activeGenAI.getGenerativeModel({
-      model: 'gemini-3.5-flash',
-      generationConfig: {
-        responseMimeType: 'application/json',
-      },
-    });
- 
     const prompt = `
 You are an expert career advisor and technical recruiter.
 Review the candidate's parsed resume details and target job description (if any), along with their programmatic scores.
@@ -570,7 +593,12 @@ Based on this information, generate customized, detailed career feedback in a JS
 }
 `;
 
-    const result = await generateContentWithRetry(model, prompt, customApiKey);
+    const result = await generateContentWithRetry(
+      activeGenAI,
+      { responseMimeType: 'application/json' },
+      prompt,
+      customApiKey
+    );
     const textResponse = result.response.text();
     return JSON.parse(textResponse);
   } catch (error) {
@@ -711,13 +739,6 @@ export async function evaluateScreeningCriteria(structuredResume, jobDescription
   }
 
   try {
-    const model = activeGenAI.getGenerativeModel({
-      model: 'gemini-3.5-flash',
-      generationConfig: {
-        responseMimeType: 'application/json',
-      },
-    });
-
     const prompt = `
 You are an expert technical recruiter and HR screener.
 Evaluate the candidate's resume against the target Job Description based on the following specific screening rubrics:
@@ -754,7 +775,12 @@ Generate a JSON object matching this schema:
 }
 `;
 
-    const result = await generateContentWithRetry(model, prompt, customApiKey);
+    const result = await generateContentWithRetry(
+      activeGenAI,
+      { responseMimeType: 'application/json' },
+      prompt,
+      customApiKey
+    );
     const evaluation = JSON.parse(result.response.text());
     
     // Attach calculated and pre-computed values

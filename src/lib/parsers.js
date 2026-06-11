@@ -24,8 +24,34 @@ export async function parseResume(buffer, filename, customApiKey = null) {
     try {
       const parser = new PDFParse({ data: buffer });
       const result = await parser.getText();
+      let text = result.text || '';
+
+      // Fallback: If the extracted text is empty or very short, it could be a scanned PDF.
+      // Render pages as screenshots/images and perform OCR using Gemini multimodal capability.
+      if (text.trim().length < 150) {
+        console.warn('Extracted PDF text is too short. Falling back to page rendering and OCR...');
+        const screenshots = await parser.getScreenshot({
+          imageBuffer: true,
+          scale: 1.5
+        });
+        
+        if (screenshots && screenshots.pages && screenshots.pages.length > 0) {
+          const ocrTexts = [];
+          const { extractTextFromImage } = await import('./gemini.js');
+          for (const page of screenshots.pages) {
+            const pageText = await extractTextFromImage(page.data, 'image/png', customApiKey);
+            if (pageText) {
+              ocrTexts.push(pageText);
+            }
+          }
+          if (ocrTexts.length > 0) {
+            text = ocrTexts.join('\n\n');
+          }
+        }
+      }
+
       await parser.destroy();
-      return result.text || '';
+      return text;
     } catch (error) {
       console.error('PDF parsing error:', error);
       throw new Error(`Failed to parse PDF file: ${error.message}`);
@@ -49,7 +75,7 @@ export async function parseResume(buffer, filename, customApiKey = null) {
         return getMockImageResumeText();
       }
       const mimeType = getMimeTypeFromExtension(extension);
-      const { extractTextFromImage } = await import('./gemini');
+      const { extractTextFromImage } = await import('./gemini.js');
       return await extractTextFromImage(buffer, mimeType, customApiKey);
     } catch (error) {
       console.error('Image parsing error, using mock fallback:', error);

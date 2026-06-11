@@ -15,12 +15,7 @@ async function getPipeline() {
   try {
     // Dynamically import @huggingface/transformers or @xenova/transformers
     // This resolves bundler loading issues in Next.js API routes
-    let transformers;
-    try {
-      transformers = await import('@huggingface/transformers');
-    } catch {
-      transformers = await import('@xenova/transformers');
-    }
+    const transformers = await import('@huggingface/transformers');
     
     if (transformers && transformers.pipeline) {
       embeddingPipeline = await transformers.pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');

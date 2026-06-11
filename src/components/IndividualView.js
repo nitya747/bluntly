@@ -347,9 +347,7 @@ export default function IndividualView({
     : 68;
 
   // Rule violations fallback
-  const ruleViolations = result?.ruleViolations && result.ruleViolations.length > 0
-    ? result.ruleViolations
-    : ['No skills section'];
+  const ruleViolations = result?.ruleViolations || [];
 
   // AI Feedback fallbacks
   const feedbackSummary = result?.feedback?.summary || "The resume shows a decent alignment with the Software Engineering Intern role. The candidate has relevant skills and education, but the experience section lacks depth and measurable impact. Improving keyword usage and adding more quantifiable achievements will significantly boost the ATS score.";

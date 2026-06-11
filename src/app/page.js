@@ -33,10 +33,11 @@ export default function Home() {
   // Load custom API key from localStorage on mount
   useEffect(() => {
     const savedKey = localStorage.getItem('bluntly_gemini_api_key') || '';
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       setCustomApiKey(savedKey);
       setKeyInput(savedKey);
     }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const handleSaveApiKey = () => {
@@ -44,6 +45,9 @@ export default function Home() {
     setCustomApiKey(keyInput);
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 2000);
+    if (user?.id === 'mock-dev-id') {
+      setCredits(0);
+    }
     checkBackend();
   };
 
@@ -51,12 +55,20 @@ export default function Home() {
     localStorage.removeItem('bluntly_gemini_api_key');
     setCustomApiKey('');
     setKeyInput('');
+    if (user?.id === 'mock-dev-id') {
+      setCredits(999);
+    }
     checkBackend();
   };
 
   const fetchCredits = async () => {
     try {
-      const res = await fetch('/api/credits');
+      const localKey = typeof window !== 'undefined' ? localStorage.getItem('bluntly_gemini_api_key') || '' : '';
+      const headers = {};
+      if (localKey) {
+        headers['x-gemini-api-key'] = localKey;
+      }
+      const res = await fetch('/api/credits', { headers });
       const data = await res.json();
       if (data.success) {
         setCredits(data.credits);
@@ -120,7 +132,8 @@ export default function Home() {
         fetchCredits();
       } else if (isBypass) {
         setUser({ id: 'mock-dev-id', email: 'developer@bluntly.local' });
-        setCredits(999);
+        const savedKey = localStorage.getItem('bluntly_gemini_api_key') || '';
+        setCredits(savedKey ? 0 : 999);
         // Hydrate history from localStorage
         const savedHistory = localStorage.getItem('bluntly_local_history');
         if (savedHistory) {

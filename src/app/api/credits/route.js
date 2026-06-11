@@ -4,6 +4,7 @@ import { getOrCreateProfile } from '../../../lib/supabase/profile';
 
 export async function GET(request) {
   try {
+    const customApiKey = request.headers.get('x-gemini-api-key') || '';
     let user = null;
     const bypassCookie = request.cookies.get('bluntly_bypass')?.value;
     const supabase = await createClient();
@@ -22,7 +23,7 @@ export async function GET(request) {
     // Retrieve or auto-create profile
     let profile = null;
     if (user.id === 'mock-dev-id') {
-      profile = { credits: 999 };
+      profile = { credits: customApiKey ? 0 : 999 };
     } else {
       profile = await getOrCreateProfile(supabase, user.id);
     }

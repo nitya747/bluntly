@@ -10,7 +10,8 @@ import {
   ConfigureIcon,
   AnalysisReportIcon,
   BatchAnalysisIcon,
-  BatchRankingIcon
+  BatchRankingIcon,
+  SettingsIcon
 } from './Icons';
 
 export default function Sidebar({ 
@@ -119,6 +120,15 @@ export default function Sidebar({
               <HistoryIcon size={18} />
               {!isCollapsed && <span className="nav-label">History</span>}
               {!isCollapsed && isHistoryActive && <span className="active-indicator" />}
+            </button>
+            <button
+              onClick={() => setActiveView('settings')}
+              className={`nav-item-btn ${activeView === 'settings' ? 'active' : ''}`}
+              title={isCollapsed ? "Settings" : undefined}
+            >
+              <SettingsIcon size={18} />
+              {!isCollapsed && <span className="nav-label">Settings</span>}
+              {!isCollapsed && activeView === 'settings' && <span className="active-indicator" />}
             </button>
           </div>
         </nav>

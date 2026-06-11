@@ -1,139 +1,128 @@
 # bluntly ⚡
+> **AI Resume Analyser for CS Students — Checks Education, Skills, GitHub, and more.**
 
-A premium, open-source AI Resume Analyser & Candidate Matcher. Bluntly parses, scrubs, evaluates, and ranks resumes against job descriptions using Google Gemini 1.5 Flash and a heuristic compliance engine.
+Bluntly is a premium, privacy-first open-source AI resume analyser and candidate matching dashboard. Built specifically to help computer science students optimize their resumes, Bluntly parses, scrubs, evaluates, and ranks resumes against real-world job descriptions using Google Gemini 1.5 Flash, a local heuristic compliance engine, and public GitHub portfolio integration.
 
 <div align="center">
-  
-  ![Aesthetic](https://img.shields.io/badge/Aesthetic-Premium%20SaaS-purple?style=for-the-badge)
-  ![Next.js](https://img.shields.io/badge/Next.js-16.2.7-black?style=for-the-badge&logo=nextdotjs)
-  ![React](https://img.shields.io/badge/React-19.2.4-blue?style=for-the-badge&logo=react)
-  ![Supabase](https://img.shields.io/badge/Supabase-Database%20%26%20Auth-green?style=for-the-badge&logo=supabase)
-  ![Gemini](https://img.shields.io/badge/AI-Google%20Gemini-orange?style=for-the-badge&logo=google)
-  ![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
+[![Next.js Version](https://img.shields.io/badge/Next.js-16.2.7-black?style=for-the-badge&logo=nextdotjs)](https://nextjs.org)
+[![React Version](https://img.shields.io/badge/React-19.2.4-blue?style=for-the-badge&logo=react)](https://react.dev)
+[![Gemini](https://img.shields.io/badge/AI-Gemini%201.5%20Flash-orange?style=for-the-badge&logo=google)](https://ai.google.dev/)
+[![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-brightgreen.svg?style=for-the-badge)](CONTRIBUTING.md)
 
 </div>
 
 ---
 
-## 🌟 Key Features
-
-### 🔒 Privacy-First PII Redaction
-Built-in PII scrubbing via [pii.js](file:///c:/Users/Nitya/.gemini/antigravity/scratch/resume_analyser/src/lib/pii.js) runs locally in the browser/server environment. It automatically redacts emails, phone numbers, location addresses, social profiles (LinkedIn, GitHub, etc.), and candidate names before transmitting any data to AI endpoints to prevent unconscious bias and safeguard data privacy.
-
-### 🧠 Hybrid Assessment Engine
-Powered by [gemini.js](file:///c:/Users/Nitya/.gemini/antigravity/scratch/resume_analyser/src/lib/gemini.js), the evaluation combines:
-1. **Dynamic Rubric Generation**: Tailored candidate benchmarks generated on-the-fly based on the target job requirements.
-2. **Heuristic Rule Engine**: Code-based checks for resume quality (page-length optimization, font/formatting heuristics, buzzword density, and contact details integrity).
-3. **Hard Requirements Comparison**: Checks for education thresholds, specific technologies, and minimum years of experience.
-4. **GitHub Portfolio Scoring**: Integrates public candidate data fetched via [github.js](file:///c:/Users/Nitya/.gemini/antigravity/scratch/resume_analyser/src/lib/github.js) (repos, stars, activity, top languages) into the final fit score.
-
-### ⚡ Individual & Batch Matching Views
-- **Individual Analysis Mode** ([IndividualView.js](file:///c:/Users/Nitya/.gemini/antigravity/scratch/resume_analyser/src/components/IndividualView.js)): View interactive gauge scores, section breakdown charts, color-coded skill chips, and tabbed lists showing specific strengths and recommendations.
-- **Batch Analysis Mode** ([BatchView.js](file:///c:/Users/Nitya/.gemini/antigravity/scratch/resume_analyser/src/components/BatchView.js)): Drag-and-drop up to 20 resumes concurrently. Updates stream via Server-Sent Events (SSE). Compare candidate profiles in a sortable ranking grid, view detail accordions, and download analysis as CSV/JSON.
-
-### 🔑 Bring Your Own Key (BYOK)
-Fully functional without server-side keys! Users can enter their personal Gemini API key in the settings panel to enable live AI parsing. If no key is configured, Bluntly defaults to a high-fidelity Mock Engine for zero-dependency evaluation.
+## 📋 Table of Contents
+- [🎯 Why Bluntly Exists](#-why-bluntly-exists)
+- [✨ Key Features](#-key-features)
+- [💻 Tech Stack](#-tech-stack)
+- [📸 Screenshots in Action](#-screenshots-in-action)
+- [🚀 Quick Start](#-quick-start)
+- [📂 Project Architecture](#-project-architecture)
+- [🤝 Contributing](#-contributing)
+- [⚖️ License](#️-license)
 
 ---
 
-## 📂 Project Architecture & Code Components
-
-Below is the directory tree of the key modules in Bluntly. You can click on the file names to inspect their source code:
-
-- **Database Configuration**:
-  - [schema.sql](file:///c:/Users/Nitya/.gemini/antigravity/scratch/resume_analyser/schema.sql): Sets up the scans database table and the Row Level Security (RLS) policies.
-  - [schema_credits.sql](file:///c:/Users/Nitya/.gemini/antigravity/scratch/resume_analyser/schema_credits.sql): Establishes candidate profile schemas and registration triggers for credit allocations.
-- **Client & Server Logic Services**:
-  - [parsers.js](file:///c:/Users/Nitya/.gemini/antigravity/scratch/resume_analyser/src/lib/parsers.js): Text parsers extracting clean text from PDF and LaTeX inputs.
-  - [pii.js](file:///c:/Users/Nitya/.gemini/antigravity/scratch/resume_analyser/src/lib/pii.js): Local privacy script to redact candidate names, locations, email, phone numbers, and web profiles.
-  - [gemini.js](file:///c:/Users/Nitya/.gemini/antigravity/scratch/resume_analyser/src/lib/gemini.js): AI analysis pipelines, rule engines, tech comparison maps, and mockup evaluation fallbacks.
-  - [github.js](file:///c:/Users/Nitya/.gemini/antigravity/scratch/resume_analyser/src/lib/github.js): Fetcher and parser for public GitHub portfolios, calculating public activity points.
-  - [embeddings.js](file:///c:/Users/Nitya/.gemini/antigravity/scratch/resume_analyser/src/lib/embeddings.js): Text semantic similarity engine.
-- **Supabase Utilities**:
-  - [supabase/client.js](file:///c:/Users/Nitya/.gemini/antigravity/scratch/resume_analyser/src/lib/supabase/client.js): Client-side Supabase connections.
-  - [supabase/server.js](file:///c:/Users/Nitya/.gemini/antigravity/scratch/resume_analyser/src/lib/supabase/server.js): Server-side Supabase middleware wrapper.
-  - [supabase/profile.js](file:///c:/Users/Nitya/.gemini/antigravity/scratch/resume_analyser/src/lib/supabase/profile.js): Database profile credit managers.
-- **Frontend Views & Layouts**:
-  - [Sidebar.js](file:///c:/Users/Nitya/.gemini/antigravity/scratch/resume_analyser/src/components/Sidebar.js): Navigation sidebar supporting light/dark theme switches.
-  - [Header.js](file:///c:/Users/Nitya/.gemini/antigravity/scratch/resume_analyser/src/components/Header.js): Status bar tracking active AI model mode, login info, and current screen.
-  - [IndividualView.js](file:///c:/Users/Nitya/.gemini/antigravity/scratch/resume_analyser/src/components/IndividualView.js): Workspace layout for uploading and reading single candidate analysis details.
-  - [BatchView.js](file:///c:/Users/Nitya/.gemini/antigravity/scratch/resume_analyser/src/components/BatchView.js): SSE progress streaming dashboard displaying candidate tables and CSV downloads.
-  - [HistoryView.js](file:///c:/Users/Nitya/.gemini/antigravity/scratch/resume_analyser/src/components/HistoryView.js): Historic scans explorer.
-  - [globals.css](file:///c:/Users/Nitya/.gemini/antigravity/scratch/resume_analyser/src/app/globals.css): Global UI design values, variables, and typography definitions.
+## 🎯 Why Bluntly Exists
+Standard Applicant Tracking Systems (ATS) are black boxes that reject qualified CS students without giving actionable feedback, often failing to account for critical non-academic indicators like open-source contributions. Bluntly solves this by giving students a clear, visual report showing how their education, technical skills, and public GitHub repositories align with job requirements. It operates on a **Bring Your Own Key (BYOK)** model, ensuring that candidate resume data and API keys remain completely private and under the candidate's control.
 
 ---
 
-## 🚀 Getting Started
+## ✨ Key Features
 
-### Prerequisites
-- Node.js (v18.0.0 or higher)
-- npm or yarn
+- **🔒 Privacy-First PII Redaction**: Built-in client-side scrubbing via [pii.js](src/lib/pii.js) runs locally in the browser/server environment. It automatically redacts emails, phone numbers, location addresses, social profiles (LinkedIn, GitHub, etc.), and candidate names before transmitting any data to AI endpoints.
+- **🧠 Hybrid Assessment Engine**: Tailored evaluations combining:
+  1. **Dynamic Rubric Generation**: Tailored candidate benchmarks generated on-the-fly based on the target job requirements.
+  2. **Heuristic Rule Engine**: Code-based checks for resume quality (page-length optimization, font/formatting, buzzword density, and contact details integrity).
+  3. **Hard Requirements Comparison**: Checks for education thresholds, specific technologies, and minimum years of experience.
+- **🐙 GitHub Portfolio Integration**: Integrates public candidate data fetched via [github.js](src/lib/github.js) (repositories, stars, activity, top languages) into the final fit score to highlight open-source contributions.
+- **⚡ Individual & Batch Matching Views**:
+  - **Individual View**: View interactive gauge scores, section breakdown charts, color-coded skill chips, and tabbed checklists showing strengths and recommendations.
+  - **Batch View**: Drag-and-drop up to 20 resumes concurrently. Progress streams live via Server-Sent Events (SSE). Compare candidates in a sortable ranking grid and export the analysis as CSV/JSON.
+- **🔑 Bring Your Own Key (BYOK)**: Works entirely using your own API keys. No database setup is required for local storage mode, and candidate privacy is protected.
 
-### 1. Clone & Install
+---
+
+## 💻 Tech Stack
+- **Core Framework**: [Next.js (v16.2.7)](https://nextjs.org/) utilizing the App Router architecture for unified client/server rendering.
+- **UI & Layout**: [React (v19.2.4)](https://react.dev/) and Vanilla CSS for custom premium styles, featuring adaptation to dark/light modes and dynamic transition elements.
+- **Large Language Model API**: [Google Gemini 1.5 Flash](https://ai.google.dev/) via `@google/generative-ai` for intelligent resume evaluations.
+- **Semantic Search**: [@huggingface/transformers (v4.2.0)](https://github.com/huggingface/transformers.js) for local, client-side embedding analysis.
+- **Database & Authentication (Optional)**: [Supabase](https://supabase.com/) for shared team configurations, user tracking, and credits.
+- **PDF Extraction**: `pdf-parse` for parsing text out of PDF files.
+
+---
+
+## 📸 Screenshots in Action
+
+### Individual Analysis Workspace
+![Individual Dashboard view](docs/assets/dashboard.png)
+*Deep-dive analysis panel showing overall compatibility scores, matching skills, and recommendations.*
+
+### Batch Candidate Matcher
+![Batch Matching view](docs/assets/batch-matching.png)
+*Compare up to 20 candidate resumes in real time with live SSE status updates and exportable rankings.*
+
+### Settings & BYOK API Configuration
+![Settings & BYOK panel](docs/assets/settings-byok.png)
+*Configure your own Gemini API keys and GitHub tokens locally in the browser.*
+
+---
+
+## 🚀 Quick Start
+
+### 1. Clone the Repository
 ```bash
 git clone https://github.com/your-username/bluntly.git
 cd bluntly
+```
+
+### 2. Install Dependencies
+```bash
 npm install
 ```
 
-### 2. Configure Environment
-Bluntly supports two operational modes:
-- **Local Dev Mode** (Zero Config): Runs fully in local storage. All records, settings, keys, and history remain local to your browser.
-- **Shared Database Mode** (Supabase): Stores users, credit limits, and analysis runs in a secure PostgreSQL database.
+### 3. Configure Environment (Optional for Local Storage Mode)
+Bluntly runs in **Local Dev Mode** automatically, storing all scans and API keys locally in your browser's `localStorage` (no server config required). 
 
-To set up the shared database mode, copy [.env.example](file:///c:/Users/Nitya/.gemini/antigravity/scratch/resume_analyser/.env.example) to `.env.local` and populate it:
+If you want to configure a shared server environment with Supabase:
 ```bash
 cp .env.example .env.local
 ```
-Edit the file to configure your API keys:
-- `GEMINI_API_KEY`: Global Gemini API key (optional; fallback is local user BYOK).
-- `NEXT_PUBLIC_SUPABASE_URL`: Supabase project database URL.
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Supabase project public anon key.
+Fill out the variables in `.env.local`:
+```env
+GEMINI_API_KEY=your_global_gemini_api_key
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
 
-### 3. Run Development Server
+### 4. Run Development Server
 ```bash
 npm run dev
 ```
-Open [http://localhost:3000](http://localhost:3000) to view the application.
+Navigate to [http://localhost:3000](http://localhost:3000) to view Bluntly.
 
 ---
 
-## 🗄️ Database Setup
+## 📂 Project Architecture
 
-For shared database configurations, run the migration scripts within your **Supabase SQL Editor**:
-
-1. **Scans Database**: Run [schema.sql](file:///c:/Users/Nitya/.gemini/antigravity/scratch/resume_analyser/schema.sql) to create the scans index table and establish user isolation Row Level Security (RLS) policies.
-2. **Credits & Profiles**: Run [schema_credits.sql](file:///c:/Users/Nitya/.gemini/antigravity/scratch/resume_analyser/schema_credits.sql) to create user profile hooks that automatically allocate 3 initial credits on registration and allow credit tracking.
-
----
-
-## 🛠️ API Reference
-
-### 1. Single Analysis
-- **Route**: `POST /api/analyse`
-- **Headers**:
-  - `x-api-key` (Optional): Custom Gemini API key override
-- **Body** (`multipart/form-data`):
-  - `file`: Resume file (`.pdf`, `.tex`, or `.txt`)
-  - `jobDescription`: Target job requirements text
-- **Returns**: JSON matching details including ATS scores, skill chips, alignment metrics, and action plans.
-
-### 2. Streamed Batch Matcher
-- **Route**: `POST /api/batch`
-- **Headers**:
-  - `x-api-key` (Optional): Custom Gemini API key override
-- **Body** (`multipart/form-data`):
-  - `files`: Array of resume files (up to 20)
-  - `jobDescription`: Target job requirements text
-- **Returns**: `text/event-stream` returning SSE events:
-  - `init`: Total files configuration
-  - `progress`: Status updates per resume file
-  - `complete`: Final sorted candidate ranking array
+A high-level view of key modules:
+- [src/lib/parsers.js](src/lib/parsers.js) — PDF and LaTeX textual parsing engine.
+- [src/lib/pii.js](src/lib/pii.js) — Client-side regular expression rules to scrub PII.
+- [src/lib/gemini.js](src/lib/gemini.js) — AI comparison logic, scoring heuristics, and fallback mock engine.
+- [src/lib/github.js](src/lib/github.js) — Portfolio activity and stats calculation service.
+- [schema.sql](schema.sql) — SQL table setup and Row Level Security policies.
 
 ---
 
-## 🤝 Contribution & License
+## 🤝 Contributing
+Contributions make the open-source community amazing! Please read our [Contributing Guidelines](CONTRIBUTING.md) to get started on setting up your local environment and submitting Pull Requests.
 
-Contributions are welcome! Please submit a Pull Request or open an issue to suggest enhancements.
+---
 
-Distributed under the MIT License. See [LICENSE](file:///c:/Users/Nitya/.gemini/antigravity/scratch/resume_analyser/LICENSE) for more information.
+## ⚖️ License
+Distributed under the MIT License. See [LICENSE](LICENSE) for more details.

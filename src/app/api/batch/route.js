@@ -41,7 +41,7 @@ export async function POST(request) {
     // Retrieve user credits (retrieve or auto-create profile)
     let profile = null;
     if (user.id === 'mock-dev-id') {
-      profile = { credits: 999 };
+      profile = { credits: customApiKey ? 0 : 999 };
     } else {
       profile = await getOrCreateProfile(supabase, user.id);
     }
@@ -105,7 +105,7 @@ export async function POST(request) {
                 analysis,
                 timestamp: new Date().toLocaleTimeString()
               };
-              remainingCredits = 999;
+              remainingCredits = customApiKey ? 0 : 999;
             } else {
               // Persist the batch item inside the Supabase database
               const insertData = {

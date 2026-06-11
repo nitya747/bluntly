@@ -58,7 +58,7 @@ export async function POST(request) {
     // Verify user credits (retrieve or auto-create profile)
     let profile = null;
     if (user.id === 'mock-dev-id') {
-      profile = { credits: 999 };
+      profile = { credits: customApiKey ? 0 : 999 };
     } else {
       profile = await getOrCreateProfile(supabase, user.id);
     }
@@ -175,7 +175,7 @@ export async function POST(request) {
         console.error('Failed to deduct credit:', creditError);
       }
     } else {
-      remainingCredits = 999;
+      remainingCredits = customApiKey ? 0 : 999;
     }
 
     // Return the response containing database ID, updated credits, & mock status

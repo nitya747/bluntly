@@ -1,4 +1,4 @@
-# bluntly ⚡
+# bluntly 
 > **AI Resume Analyser for CS Students — Checks Education, Skills, GitHub, and more.**
 
 Bluntly is a premium, privacy-first open-source AI resume analyser and candidate matching dashboard. Built specifically to help computer science students optimize their resumes, Bluntly parses, scrubs, evaluates, and ranks resumes against real-world job descriptions using Google Gemini 1.5 Flash, a local heuristic compliance engine, and public GitHub portfolio integration.

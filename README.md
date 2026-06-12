@@ -124,5 +124,5 @@ Contributions make the open-source community amazing! Please read our [Contribut
 
 ---
 
-## ⚖️ License
+##  License
 Distributed under the MIT License. See [LICENSE](LICENSE) for more details.

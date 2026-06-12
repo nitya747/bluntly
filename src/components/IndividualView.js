@@ -1107,7 +1107,10 @@ ${(result.ruleViolations || []).map(r => `- ✕ ${r}`).join('\n') || '*None*'}
                       <span className="percentile-badge">Top {displayRankPercent}%</span>
                     </div>
                     <p className="assessment-text">
-                      {feedbackSummary.split(/[.!?]/)[0] + '.'}
+                      {(() => {
+                        const sentenceMatch = feedbackSummary.match(/^.*?[.!?](?=\s|$)/);
+                        return sentenceMatch ? sentenceMatch[0] : feedbackSummary;
+                      })()}
                     </p>
                     <button 
                       onClick={() => {

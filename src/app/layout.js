@@ -13,10 +13,10 @@ const geistMono = Geist_Mono({
 
 export const metadata = {
   metadataBase: new URL('http://localhost:3000'),
-  title: "bluntly ⚡ — AI Resume Analyser & Candidate Matcher",
+  title: "bluntly — AI Resume Analyser & Candidate Matcher",
   description: "An open-source AI-powered resume matching dashboard for CS students. Redact PII, analyze skills, and incorporate GitHub portfolios with BYOK security.",
   openGraph: {
-    title: "bluntly ⚡ — AI Resume Analyser & Candidate Matcher",
+    title: "bluntly — AI Resume Analyser & Candidate Matcher",
     description: "An open-source AI-powered resume matching dashboard for CS students. Redact PII, analyze skills, and incorporate GitHub portfolios with BYOK security.",
     url: "https://github.com/your-username/bluntly",
     siteName: "bluntly",
@@ -33,7 +33,7 @@ export const metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "bluntly ⚡ — AI Resume Analyser & Candidate Matcher",
+    title: "bluntly — AI Resume Analyser & Candidate Matcher",
     description: "An open-source AI-powered resume matching dashboard for CS students. Redact PII, analyze skills, and incorporate GitHub portfolios with BYOK security.",
     images: ["/og-image.png"],
   },

@@ -57,7 +57,11 @@ Standard Applicant Tracking Systems (ATS) are black boxes that reject qualified 
 
 ---
 
-##  Screenshots in Action
+## 📸 Screenshots in Action
+
+### Welcome & Authentication Gateway
+![Login screen](docs/assets/login.png)
+*Unified login interface supporting password authentication, GitHub OAuth integration, and quick local BYOK access.*
 
 ### Individual Analysis Workspace
 ![Individual Dashboard view](docs/assets/dashboard.png)

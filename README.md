@@ -16,38 +16,38 @@ Bluntly is a premium, privacy-first open-source AI resume analyser and candidate
 ---
 
 ## 📋 Table of Contents
-- [🎯 Why Bluntly Exists](#-why-bluntly-exists)
-- [✨ Key Features](#-key-features)
-- [💻 Tech Stack](#-tech-stack)
-- [📸 Screenshots in Action](#-screenshots-in-action)
-- [🚀 Quick Start](#-quick-start)
-- [📂 Project Architecture](#-project-architecture)
-- [🤝 Contributing](#-contributing)
-- [⚖️ License](#️-license)
+- [ Why Bluntly Exists](#-why-bluntly-exists)
+- [ Key Features](#-key-features)
+- [ Tech Stack](#-tech-stack)
+- [ Screenshots in Action](#-screenshots-in-action)
+- [ Quick Start](#-quick-start)
+- [ Project Architecture](#-project-architecture)
+- [ Contributing](#-contributing)
+- [ License](#️-license)
 
 ---
 
-## 🎯 Why Bluntly Exists
+##  Why Bluntly Exists
 Standard Applicant Tracking Systems (ATS) are black boxes that reject qualified CS students without giving actionable feedback, often failing to account for critical non-academic indicators like open-source contributions. Bluntly solves this by giving students a clear, visual report showing how their education, technical skills, and public GitHub repositories align with job requirements. It operates on a **Bring Your Own Key (BYOK)** model, ensuring that candidate resume data and API keys remain completely private and under the candidate's control.
 
 ---
 
-## ✨ Key Features
+##  Key Features
 
-- **🔒 Privacy-First PII Redaction**: Built-in client-side scrubbing via [pii.js](src/lib/pii.js) runs locally in the browser/server environment. It automatically redacts emails, phone numbers, location addresses, social profiles (LinkedIn, GitHub, etc.), and candidate names before transmitting any data to AI endpoints.
-- **🧠 Hybrid Assessment Engine**: Tailored evaluations combining:
+- ** Privacy-First PII Redaction**: Built-in client-side scrubbing via [pii.js](src/lib/pii.js) runs locally in the browser/server environment. It automatically redacts emails, phone numbers, location addresses, social profiles (LinkedIn, GitHub, etc.), and candidate names before transmitting any data to AI endpoints.
+- **Hybrid Assessment Engine**: Tailored evaluations combining:
   1. **Dynamic Rubric Generation**: Tailored candidate benchmarks generated on-the-fly based on the target job requirements.
   2. **Heuristic Rule Engine**: Code-based checks for resume quality (page-length optimization, font/formatting, buzzword density, and contact details integrity).
   3. **Hard Requirements Comparison**: Checks for education thresholds, specific technologies, and minimum years of experience.
-- **🐙 GitHub Portfolio Integration**: Integrates public candidate data fetched via [github.js](src/lib/github.js) (repositories, stars, activity, top languages) into the final fit score to highlight open-source contributions.
-- **⚡ Individual & Batch Matching Views**:
+- ** GitHub Portfolio Integration**: Integrates public candidate data fetched via [github.js](src/lib/github.js) (repositories, stars, activity, top languages) into the final fit score to highlight open-source contributions.
+- ** Individual & Batch Matching Views**:
   - **Individual View**: View interactive gauge scores, section breakdown charts, color-coded skill chips, and tabbed checklists showing strengths and recommendations.
   - **Batch View**: Drag-and-drop up to 20 resumes concurrently. Progress streams live via Server-Sent Events (SSE). Compare candidates in a sortable ranking grid and export the analysis as CSV/JSON.
-- **🔑 Bring Your Own Key (BYOK)**: Works entirely using your own API keys. No database setup is required for local storage mode, and candidate privacy is protected.
+- ** Bring Your Own Key (BYOK)**: Works entirely using your own API keys. No database setup is required for local storage mode, and candidate privacy is protected.
 
 ---
 
-## 💻 Tech Stack
+##  Tech Stack
 - **Core Framework**: [Next.js (v16.2.7)](https://nextjs.org/) utilizing the App Router architecture for unified client/server rendering.
 - **UI & Layout**: [React (v19.2.4)](https://react.dev/) and Vanilla CSS for custom premium styles, featuring adaptation to dark/light modes and dynamic transition elements.
 - **Large Language Model API**: [Google Gemini 1.5 Flash](https://ai.google.dev/) via `@google/generative-ai` for intelligent resume evaluations.
@@ -57,7 +57,7 @@ Standard Applicant Tracking Systems (ATS) are black boxes that reject qualified 
 
 ---
 
-## 📸 Screenshots in Action
+##  Screenshots in Action
 
 ### Individual Analysis Workspace
 ![Individual Dashboard view](docs/assets/dashboard.png)
@@ -73,7 +73,7 @@ Standard Applicant Tracking Systems (ATS) are black boxes that reject qualified 
 
 ---
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### 1. Clone the Repository
 ```bash
@@ -108,7 +108,7 @@ Navigate to [http://localhost:3000](http://localhost:3000) to view Bluntly.
 
 ---
 
-## 📂 Project Architecture
+##  Project Architecture
 
 A high-level view of key modules:
 - [src/lib/parsers.js](src/lib/parsers.js) — PDF and LaTeX textual parsing engine.
@@ -119,7 +119,7 @@ A high-level view of key modules:
 
 ---
 
-## 🤝 Contributing
+##  Contributing
 Contributions make the open-source community amazing! Please read our [Contributing Guidelines](CONTRIBUTING.md) to get started on setting up your local environment and submitting Pull Requests.
 
 ---
